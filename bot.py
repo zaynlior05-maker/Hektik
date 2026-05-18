@@ -8,65 +8,61 @@ from telegram.ext import (
     ContextTypes,
 )
 
-# ── Logging (shows errors in Railway logs) ──────────────────────────────────
+# ── Logging ──────────────────────────────────────────────────────────────────
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ── Config ───────────────────────────────────────────────────────────────────
-BOT_TOKEN    = os.environ.get("BOT_TOKEN")       # Set this in Railway
-ADMIN_USER   = os.environ.get("ADMIN_USERNAME", "hek")   # Your Telegram username (no @)
-MIN_BALANCE  = 70  # £70 minimum to access sections
+BOT_TOKEN   = os.environ.get("BOT_TOKEN")
+ADMIN_USER  = os.environ.get("ADMIN_USERNAME", "hektik")
+MIN_BALANCE = 70
 
-# ── Crypto wallet addresses – change these to YOUR real addresses ─────────────
+# ── Crypto wallet addresses ──────────────────────────────────────────────────
 WALLETS = {
     "BTC": os.environ.get("WALLET_BTC", "YOUR_BTC_ADDRESS_HERE"),
     "SOL": os.environ.get("WALLET_SOL", "YOUR_SOL_ADDRESS_HERE"),
     "LTC": os.environ.get("WALLET_LTC", "YOUR_LTC_ADDRESS_HERE"),
 }
 
-# ── In-memory storage (resets on restart – good enough for starting out) ─────
-user_balances: dict[int, float] = {}   # { user_id: balance_gbp }
-agreed_users:  set[int]         = set()  # users who clicked Continue on welcome screen
-
-# ── Welcome / Rules message ───────────────────────────────────────────────────
-# Edit the rules text below to whatever you want to show users
-RULES_TEXT = (
-    "🛍 *Welcome to HekTik's Store\!*\n\n"
-    "Here are the following rules:\n\n"
-    "To access the store, a minimum top\-up of £70 is required\.\n\n"
-    "*Refund Rules*\n"
-    "• /refund to submit refunds\n"
-    "• Screen recording proof of pay\.google\.com only, 5 mins refund time\n"
-    "• If the card is live, but phone number is incorrect, this doesn't qualify for a refund\n\n"
-    "*Spam source Rules*\n"
-    "• The balance to scan data, is separate to the rest of the bot\. "
-    "It will not transfer over, vice versa\n"
-    "Please be assured that\n\n"
-    "*Keep in Mind:*\n\n"
-    "*\(£10 & £5 BASES ARE NOT REFUNDABLE\)*\n\n"
-    "⛔️ *NOTE* ⛔️\n\n"
-    "ANYONE NEED BULK SMS/EMAIL BLAST WITH SID 100% LANDING \(NO BOUNCE\) CODING\n"
-    "FOR YOUR\n"
-    "• Centers, panels, pages & scripts available pm\n\n"
-    "🔹Support account is available 24/7 @EXCELV3\.\n\n"
-    "By continuing, you agree to the rules,\n"
-    "Note: withdrawals can be made at any time\.\!"
-)
+# ── In-memory storage ────────────────────────────────────────────────────────
+user_balances = {}
+agreed_users  = set()
 
 live_stock = {
     "leads": 63_629_085,
     "stock": 183,
 }
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Helpers
-# ─────────────────────────────────────────────────────────────────────────────
+# ── Welcome / Rules message ──────────────────────────────────────────────────
+RULES_TEXT = (
+    "🛍 *Welcome to HekTik's Store!*\n\n"
+    "Here are the following rules:\n\n"
+    "To access the store, a minimum top-up of *£70* is required.\n\n"
+    "*Refund Rules*\n"
+    "• /refund to submit refunds\n"
+    "• Screen recording proof of pay.google.com only, 5 mins refund time\n"
+    "• If the card is live, but phone number is incorrect, this doesn't qualify for a refund\n\n"
+    "*Spam source Rules*\n"
+    "• The balance to scan data, is separate to the rest of the bot. It will not transfer over, vice versa\n"
+    "Please be assured that\n\n"
+    "*Keep in Mind:*\n\n"
+    "*(£10 & £5 BASES ARE NOT REFUNDABLE)*\n\n"
+    "⛔️ *NOTE* ⛔️\n\n"
+    "ANYONE NEED BULK SMS/EMAIL BLAST WITH SID 100% LANDING (NO BOUNCE) CODING\n"
+    "FOR YOUR\n"
+    "• Centers, panels, pages & scripts available pm\n\n"
+    "🔹 Support account is available 24/7 @HekTikz.\n\n"
+    "By continuing, you agree to the rules,\n"
+    "Note: withdrawals can be made at any time.!"
+)
 
-def has_access(user_id: int) -> bool:
+# ── Helpers ──────────────────────────────────────────────────────────────────
+
+def has_access(user_id):
     return user_balances.get(user_id, 0) >= MIN_BALANCE
 
 
-def main_menu_keyboard() -> InlineKeyboardMarkup:
+def main_menu_keyboard():
     return InlineKeyboardMarkup([
         [
             InlineKeyboardButton("🌍 Leads",   callback_data="leads"),
@@ -79,17 +75,17 @@ def main_menu_keyboard() -> InlineKeyboardMarkup:
     ])
 
 
-def main_menu_text() -> str:
+def main_menu_text():
     return (
         "🏪 *Main Menu*\n\n"
-        "📊 *Live Stock*\n"
+        "*Live Stock*\n"
         f"🌍 Leads: *{live_stock['leads']:,}*\n"
         f"🛍️ Stock: *{live_stock['stock']}*\n\n"
         "_Choose a section below:_"
     )
 
 
-def denied_text(section: str) -> str:
+def denied_text(section):
     return (
         f"Access denied⛔️\n\n"
         f"To access the {section}, a minimum top-up of £{MIN_BALANCE} is required.\n\n"
@@ -98,23 +94,11 @@ def denied_text(section: str) -> str:
         f"Managed by @{ADMIN_USER}"
     )
 
+# ── /start ───────────────────────────────────────────────────────────────────
 
-def back_keyboard(target: str = "back") -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("💰 Wallet",  callback_data="wallet"),
-            InlineKeyboardButton("⬅️ Back",    callback_data=target),
-        ]
-    ])
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Command: /start
-# ─────────────────────────────────────────────────────────────────────────────
-
-async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
-    # If user already agreed to rules, go straight to main menu
     if user_id in agreed_users:
         await update.message.reply_text(
             main_menu_text(),
@@ -123,7 +107,6 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         )
         return
 
-    # First time — show welcome + rules screen with Continue button
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("✅ Continue", callback_data="agree_rules")]
     ])
@@ -133,92 +116,65 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         parse_mode="Markdown",
     )
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Command: /addbalance  (admin only)
-# Usage:  /addbalance <user_id> <amount>
-# Example: /addbalance 123456789 100
-# ─────────────────────────────────────────────────────────────────────────────
+# ── Admin: /addbalance ───────────────────────────────────────────────────────
 
-async def cmd_addbalance(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def cmd_addbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.username != ADMIN_USER:
-        await update.message.reply_text("❌ Unauthorised.")
+        await update.message.reply_text("Unauthorised.")
         return
-
     try:
         target_id = int(context.args[0])
         amount    = float(context.args[1])
     except (IndexError, ValueError):
-        await update.message.reply_text(
-            "Usage: `/addbalance <user_id> <amount>`\n"
-            "Example: `/addbalance 123456789 70`",
-            parse_mode="Markdown",
-        )
+        await update.message.reply_text("Usage: /addbalance <user_id> <amount>")
         return
 
     user_balances[target_id] = round(user_balances.get(target_id, 0) + amount, 2)
     await update.message.reply_text(
-        f"✅ Added £{amount:.2f} to user `{target_id}`.\n"
-        f"New balance: *£{user_balances[target_id]:.2f}*",
-        parse_mode="Markdown",
+        f"Added £{amount:.2f} to user {target_id}. New balance: £{user_balances[target_id]:.2f}"
     )
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Command: /setstock  (admin only)
-# Usage:  /setstock leads <number>  OR  /setstock stock <number>
-# ─────────────────────────────────────────────────────────────────────────────
+# ── Admin: /setstock ─────────────────────────────────────────────────────────
 
-async def cmd_setstock(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def cmd_setstock(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.username != ADMIN_USER:
-        await update.message.reply_text("❌ Unauthorised.")
+        await update.message.reply_text("Unauthorised.")
         return
-
     try:
-        key   = context.args[0].lower()   # "leads" or "stock"
+        key   = context.args[0].lower()
         value = int(context.args[1])
         assert key in ("leads", "stock")
     except (IndexError, ValueError, AssertionError):
-        await update.message.reply_text(
-            "Usage: `/setstock leads <number>` or `/setstock stock <number>`",
-            parse_mode="Markdown",
-        )
+        await update.message.reply_text("Usage: /setstock leads <number>")
         return
 
     live_stock[key] = value
-    await update.message.reply_text(f"✅ Updated *{key}* to *{value:,}*", parse_mode="Markdown")
+    await update.message.reply_text(f"Updated {key} to {value:,}")
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Command: /checkbalance  (admin only)
-# Usage:  /checkbalance <user_id>
-# ─────────────────────────────────────────────────────────────────────────────
+# ── Admin: /checkbalance ─────────────────────────────────────────────────────
 
-async def cmd_checkbalance(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def cmd_checkbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.username != ADMIN_USER:
-        await update.message.reply_text("❌ Unauthorised.")
+        await update.message.reply_text("Unauthorised.")
         return
-
     try:
         target_id = int(context.args[0])
     except (IndexError, ValueError):
-        await update.message.reply_text("Usage: `/checkbalance <user_id>`", parse_mode="Markdown")
+        await update.message.reply_text("Usage: /checkbalance <user_id>")
         return
 
     bal = user_balances.get(target_id, 0)
-    await update.message.reply_text(
-        f"User `{target_id}` balance: *£{bal:.2f}*", parse_mode="Markdown"
-    )
+    await update.message.reply_text(f"User {target_id} balance: £{bal:.2f}")
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Button handler (inline keyboard clicks)
-# ─────────────────────────────────────────────────────────────────────────────
+# ── Button handler ───────────────────────────────────────────────────────────
 
-async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query   = update.callback_query
-    await query.answer()                 # removes the "loading" spinner
+    await query.answer()
 
     user_id = query.from_user.id
     data    = query.data
 
-    # ── User clicks Continue on welcome screen ───────────────────────────────
     if data == "agree_rules":
         agreed_users.add(user_id)
         await query.edit_message_text(
@@ -228,7 +184,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         )
         return
 
-    # ── Back → Main Menu ────────────────────────────────────────────────────
     if data == "back":
         await query.edit_message_text(
             main_menu_text(),
@@ -237,44 +192,34 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         )
         return
 
-    # ── Wallet (always accessible) ───────────────────────────────────────────
     if data == "wallet":
         bal = user_balances.get(user_id, 0)
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("₿  BTC",  callback_data="pay_btc")],
-            [InlineKeyboardButton("◎  SOL",  callback_data="pay_sol")],
-            [InlineKeyboardButton("Ł  LTC",  callback_data="pay_ltc")],
-            [InlineKeyboardButton("⬅️ Back", callback_data="back")],
+            [InlineKeyboardButton("BTC", callback_data="pay_btc")],
+            [InlineKeyboardButton("SOL", callback_data="pay_sol")],
+            [InlineKeyboardButton("LTC", callback_data="pay_ltc")],
+            [InlineKeyboardButton("Back", callback_data="back")],
         ])
         await query.edit_message_text(
-            f"💰 *Wallet*\n\n"
-            f"Your balance: *£{bal:.2f}*\n\n"
-            f"Minimum required: *£{MIN_BALANCE}*\n\n"
-            f"Top up using a crypto option below 👇",
+            f"💰 *Wallet*\n\nYour balance: *£{bal:.2f}*\n\nMinimum required: *£{MIN_BALANCE}*\n\nTop up using a crypto option below 👇",
             reply_markup=keyboard,
             parse_mode="Markdown",
         )
         return
 
-    # ── Crypto top-up address display ────────────────────────────────────────
     if data.startswith("pay_"):
         symbol  = data.split("_")[1].upper()
-        address = WALLETS.get(symbol, "Address not configured")
+        address = WALLETS.get(symbol, "Address not configured yet")
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("⬅️ Back to Wallet", callback_data="wallet")]
+            [InlineKeyboardButton("Back to Wallet", callback_data="wallet")]
         ])
         await query.edit_message_text(
-            f"💳 *Top Up with {symbol}*\n\n"
-            f"Send to this address:\n`{address}`\n\n"
-            f"After sending, contact @{ADMIN_USER} with your *transaction ID* "
-            f"and your Telegram *user ID* (`{user_id}`) to get your balance credited.\n\n"
-            f"_Your user ID: `{user_id}`_",
+            f"💳 *Top Up with {symbol}*\n\nSend to this address:\n`{address}`\n\nAfter sending, DM @{ADMIN_USER} with your transaction ID and your user ID: `{user_id}`",
             reply_markup=keyboard,
             parse_mode="Markdown",
         )
         return
 
-    # ── Access-gated sections ────────────────────────────────────────────────
     section_names = {
         "leads":   "Leads section",
         "store":   "Store",
@@ -285,65 +230,48 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if not has_access(user_id):
         await query.edit_message_text(
             denied_text(section_label),
-            reply_markup=back_keyboard("back"),
+            reply_markup=InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("💰 Wallet", callback_data="wallet"),
+                    InlineKeyboardButton("Back",      callback_data="back"),
+                ]
+            ]),
         )
         return
 
-    # ── Paid content (customise each section below) ──────────────────────────
+    back_btn = InlineKeyboardMarkup([[InlineKeyboardButton("Back", callback_data="back")]])
+
     if data == "leads":
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("⬅️ Back", callback_data="back")]
-        ])
         await query.edit_message_text(
-            f"🌍 *Leads*\n\n"
-            f"Total available: *{live_stock['leads']:,}*\n\n"
-            f"Contact @{ADMIN_USER} to purchase.",
-            reply_markup=keyboard,
+            f"🌍 *Leads*\n\nTotal available: *{live_stock['leads']:,}*\n\nContact @{ADMIN_USER} to purchase.",
+            reply_markup=back_btn,
             parse_mode="Markdown",
         )
-
     elif data == "store":
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("⬅️ Back", callback_data="back")]
-        ])
         await query.edit_message_text(
-            f"🛍️ *Store*\n\n"
-            f"Items in stock: *{live_stock['stock']}*\n\n"
-            f"Contact @{ADMIN_USER} to browse and purchase.",
-            reply_markup=keyboard,
+            f"🛍️ *Store*\n\nItems in stock: *{live_stock['stock']}*\n\nContact @{ADMIN_USER} to browse and purchase.",
+            reply_markup=back_btn,
             parse_mode="Markdown",
         )
-
     elif data == "scanner":
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("⬅️ Back", callback_data="back")]
-        ])
         await query.edit_message_text(
-            f"🔍 *Scanner*\n\n"
-            f"Send a value to scan and @{ADMIN_USER} will process it for you.",
-            reply_markup=keyboard,
+            f"🔍 *Scanner*\n\nContact @{ADMIN_USER} with the value you want scanned.",
+            reply_markup=back_btn,
             parse_mode="Markdown",
         )
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Entry point
-# ─────────────────────────────────────────────────────────────────────────────
+# ── Main ─────────────────────────────────────────────────────────────────────
 
-def main() -> None:
+def main():
     if not BOT_TOKEN:
-        raise ValueError("BOT_TOKEN environment variable is not set!")
+        raise ValueError("BOT_TOKEN is not set!")
 
     app = Application.builder().token(BOT_TOKEN).build()
 
-    # User commands
-    app.add_handler(CommandHandler("start", cmd_start))
-
-    # Admin commands
+    app.add_handler(CommandHandler("start",        cmd_start))
     app.add_handler(CommandHandler("addbalance",   cmd_addbalance))
     app.add_handler(CommandHandler("setstock",     cmd_setstock))
     app.add_handler(CommandHandler("checkbalance", cmd_checkbalance))
-
-    # Button clicks
     app.add_handler(CallbackQueryHandler(button_handler))
 
     logger.info("Bot started ✅")
