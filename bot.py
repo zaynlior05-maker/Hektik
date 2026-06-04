@@ -89,7 +89,7 @@ RULES_TEXT = (
     "⛔️ *NOTE* ⛔️\n"
     "ANYONE NEED BULK SMS/EMAIL BLAST WITH SID 100% LANDING (NO BOUNCE) CODING\n"
     "• Centers, panels, pages & scripts available pm\n\n"
-    "🔹 Support 24/7 @EXCELV3.\n\n"
+    "🔹 Support 24/7 @HekTikz.\n\n"
     "By continuing, you agree to the rules.\n"
     "Note: withdrawals can be made at any time!"
 )
