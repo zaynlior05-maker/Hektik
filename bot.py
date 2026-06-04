@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 BOT_TOKEN      = os.environ.get("BOT_TOKEN")
 ADMIN_USER     = os.environ.get("ADMIN_USERNAME", "hektik")
 LOG_CHANNEL_ID = os.environ.get("LOG_CHANNEL_ID")   # e.g. -1001234567890
+MIN_BALANCE    = 70
 
 WALLETS = {
     "BTC": os.environ.get("WALLET_BTC", "YOUR_BTC_ADDRESS_HERE"),
