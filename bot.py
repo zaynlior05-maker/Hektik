@@ -83,7 +83,6 @@ DEADS_ITEMS = [
 
 RULES_TEXT = (
     "🛍 *Welcome to HekTik's Store!*\n\n"
-    "To access the store, you are required to join our channel below.\n\n"
     "*Refund Rules*\n"
     "• /refund to submit refunds\n"
     "• Screen recording proof of pay.google.com only, 5 mins refund time\n"
