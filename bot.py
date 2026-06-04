@@ -112,23 +112,6 @@ async def log(app, text: str):
     except Exception as e:
         logger.warning(f"Log failed: {e}")
 
-# ── Channel membership check ──────────────────────────────────────────────────
-
-async def has_joined_channel(bot, user_id: int) -> bool:
-    if not JOIN_CHANNEL:
-        return True
-    if user_id in channel_verified:
-        return True
-    try:
-        member = await bot.get_chat_member(chat_id=JOIN_CHANNEL, user_id=user_id)
-        if member.status in ("member", "administrator", "creator"):
-            channel_verified.add(user_id)
-            return True
-        return False
-    except Exception as e:
-        logger.warning(f"Channel check error: {e}")
-        return False
-
 # ── Admin check ───────────────────────────────────────────────────────────────
 
 def is_admin(update) -> bool:
@@ -258,7 +241,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"🆕 *New User*\n👤 {user_tag(update)}\n🪪 ID: `{uid}`\n"
             f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
 
-    if uid in agreed_users and uid in channel_verified:
+    if uid in agreed_users:
         await update.message.reply_text(main_menu_text(), reply_markup=main_menu_keyboard(), parse_mode="Markdown")
         return
 
@@ -462,14 +445,12 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # ── Welcome / join gate ───────────────────────────────────────────────────
     if data == "agree_rules":
-        joined = await has_joined_channel(context.bot, uid)
-        if not joined:
-            await query.answer("❌ You haven't joined the channel yet! Tap 'Join Channel' first.", show_alert=True)
-            return
         agreed_users.add(uid)
-        channel_verified.add(uid)
-        await log(context.application, f"✅ *User Verified & Joined*\n👤 {user_tag(update)}\n🪪 ID: `{uid}`")
-        await query.edit_message_text(main_menu_text(), reply_markup=main_menu_keyboard(), parse_mode="Markdown")
+        await log(context.application,
+            f"✅ *User Entered Bot*\n👤 {user_tag(update)}\n🪪 ID: `{uid}`\n"
+            f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+        await query.edit_message_text(
+            main_menu_text(), reply_markup=main_menu_keyboard(), parse_mode="Markdown")
         return
 
     if data == "back":
