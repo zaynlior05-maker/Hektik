@@ -127,29 +127,21 @@ def is_admin(update) -> bool:
 
 async def check_channel_membership(bot, user_id: int) -> tuple[bool, str]:
     """
-    Returns (is_member, reason).
-    reason is 'ok', 'not_joined', or 'error'.
+    Always does a live API check — no caching so it's always accurate.
+    Returns (is_member, reason): reason is 'ok', 'not_joined', or 'error'.
     """
     if not JOIN_CHANNEL:
-        return True, "ok"                    # no channel required
-
-    if user_id in channel_verified:
-        return True, "ok"                    # already verified this session
+        return True, "ok"          # no channel configured = open access
 
     try:
         member = await bot.get_chat_member(chat_id=JOIN_CHANNEL, user_id=user_id)
         status = member.status
-        if status in ("member", "administrator", "creator"):
-            channel_verified.add(user_id)
-            return True, "ok"
-        elif status == "restricted":
-            channel_verified.add(user_id)
+        if status in ("member", "administrator", "creator", "restricted"):
             return True, "ok"
         else:
-            # left or kicked
-            return False, "not_joined"
+            return False, "not_joined"   # left or kicked
     except Exception as e:
-        logger.warning(f"Membership check failed: {e}")
+        logger.warning(f"Membership check failed for {user_id}: {e}")
         return False, "error"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -274,10 +266,13 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"🆕 *New User*\n👤 {user_tag(update)}\n🪪 ID: `{uid}`\n"
             f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
 
-    if uid in agreed_users:
-        await update.message.reply_text(main_menu_text(), reply_markup=main_menu_keyboard(), parse_mode="Markdown")
+    # Only skip welcome screen if BOTH agreed AND channel-verified
+    if uid in agreed_users and uid in channel_verified:
+        await update.message.reply_text(
+            main_menu_text(), reply_markup=main_menu_keyboard(), parse_mode="Markdown")
         return
 
+    # Show rules + join button every other time
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("📢 Join Channel to Continue", url=JOIN_CHANNEL_URL)],
         [InlineKeyboardButton("✅ I've Joined — Let Me In",  callback_data="agree_rules")],
@@ -550,17 +545,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown")
         return
 
-    # ── Store — channel check ─────────────────────────────────────────────────
+    # ── Store ─────────────────────────────────────────────────────────────────
     if data == "store":
-        joined = await has_joined_channel(context.bot, uid)
-        if not joined:
-            await query.edit_message_text(
-                "🔒 *Access Restricted*\n\nJoin our channel to access the store.",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("📢 Join Channel", url=JOIN_CHANNEL_URL)],
-                    [InlineKeyboardButton("✅ I've Joined", callback_data="agree_rules")],
-                ]), parse_mode="Markdown")
-            return
         await query.edit_message_text("👥 *Select a vendor:*", reply_markup=vendor_select_keyboard(), parse_mode="Markdown")
         return
 
