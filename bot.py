@@ -30,8 +30,8 @@ WALLETS = {
 user_balances         = {}
 agreed_users          = set()
 user_join_dates       = {}
-logged_in_admins      = set()   # user IDs who authenticated with admin password
-channel_verified      = set()   # users confirmed to have joined the channel
+logged_in_admins = set()   # user IDs who authenticated with admin password
+channel_verified = set()   # users confirmed to have joined the channel
 
 live_stock = {"leads": 63_629_085, "stock": 183}
 TOPUP_AMOUNTS = [70, 100, 150, 200, 250, 300, 350, 400, 450, 500, 750, 1000]
@@ -83,7 +83,7 @@ DEADS_ITEMS = [
 
 RULES_TEXT = (
     "🛍 *Welcome to HekTik's Store!*\n\n"
-    "To access the store, a minimum top-up of *£70* is required.\n\n"
+    "To access the store, you are required to join our channel below.\n\n"
     "*Refund Rules*\n"
     "• /refund to submit refunds\n"
     "• Screen recording proof of pay.google.com only, 5 mins refund time\n"
@@ -91,10 +91,10 @@ RULES_TEXT = (
     "*Spam source Rules*\n"
     "• The scan balance is separate from the rest of the bot — will not transfer over\n\n"
     "*Keep in Mind:* *(£10 & £5 BASES ARE NOT REFUNDABLE)*\n\n"
-    "⛔️ *NOTE* ⛔️\n"
+    "🔴 *NOTE* 🔴\n"
     "ANYONE NEED BULK SMS/EMAIL BLAST WITH SID 100% LANDING (NO BOUNCE) CODING\n"
     "• Centers, panels, pages & scripts available pm\n\n"
-    "🔹 Support 24/7 @EXCELV3.\n\n"
+    "🔹 Support 24/7 @HekTikz.\n\n"
     "By continuing, you agree to the rules.\n"
     "Note: withdrawals can be made at any time!"
 )
@@ -275,15 +275,17 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"🆕 *New User*\n👤 {user_tag(update)}\n🪪 ID: `{uid}`\n"
             f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
 
-    if uid in agreed_users:
+    # Already verified channel member — go straight to menu
+    if uid in agreed_users and uid in channel_verified:
         await update.message.reply_text(main_menu_text(), reply_markup=main_menu_keyboard(), parse_mode="Markdown")
         return
 
-    await update.message.reply_text(
-        RULES_TEXT,
-        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("✅ Continue", callback_data="agree_rules")]]),
-        parse_mode="Markdown",
-    )
+    # Show rules with Join Channel button
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("📢 Join Channel to Continue", url=JOIN_CHANNEL_URL)],
+        [InlineKeyboardButton("✅ I've Joined — Let Me In", callback_data="agree_rules")],
+    ])
+    await update.message.reply_text(RULES_TEXT, reply_markup=keyboard, parse_mode="Markdown")
 
 # ═════════════════════════════════════════════════════════════════════════════
 # ADMIN LOGIN / LOGOUT
@@ -552,11 +554,23 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid  = query.from_user.id
     data = query.data
 
-    # Welcome / agree rules
+    # Welcome / agree rules — verify channel membership first
     if data == "agree_rules":
+        joined = await has_joined_channel(context.bot, uid)
+        if not joined:
+            # Not in channel yet — bounce them back with alert
+            await query.answer(
+                "❌ You haven't joined the channel yet! Tap 'Join Channel' first, then try again.",
+                show_alert=True)
+            return
+        # Confirmed member — grant full access
         agreed_users.add(uid)
-        await log(context.application, f"✅ *User Agreed to Rules*\n👤 {user_tag(update)}\n🪪 ID: `{uid}`")
-        await query.edit_message_text(main_menu_text(), reply_markup=main_menu_keyboard(), parse_mode="Markdown")
+        channel_verified.add(uid)
+        await log(context.application,
+            f"✅ *User Joined & Verified*\n👤 {user_tag(update)}\n🪪 ID: `{uid}`\n"
+            f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+        await query.edit_message_text(
+            main_menu_text(), reply_markup=main_menu_keyboard(), parse_mode="Markdown")
         return
 
     if data == "back":
@@ -576,14 +590,25 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 disable_web_page_preview=True)
             return
 
-    # Check joined button
+    # Check joined button — re-verify and send straight to store
     if data == "check_joined":
         joined = await has_joined_channel(context.bot, uid)
         if joined:
+            await log(context.application,
+                f"📢 *Channel Joined — Verified*\n👤 {user_tag(update)}\n🪪 ID: `{uid}`")
             await query.edit_message_text(
-                main_menu_text(), reply_markup=main_menu_keyboard(), parse_mode="Markdown")
+                "✅ *Verified! Welcome to the store.*",
+                parse_mode="Markdown")
+            # Go straight to vendor select
+            await context.bot.send_message(
+                chat_id=uid,
+                text="👥 *Select a vendor:*",
+                reply_markup=vendor_select_keyboard(),
+                parse_mode="Markdown")
         else:
-            await query.answer("❌ You haven't joined yet. Please join first.", show_alert=True)
+            await query.answer(
+                "❌ You haven't joined yet. Please join the channel first.",
+                show_alert=True)
         return
 
     # ── Wallet ────────────────────────────────────────────────────────────────
