@@ -12,13 +12,19 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ── Config ────────────────────────────────────────────────────────────────────
-BOT_TOKEN        = os.environ.get("BOT_TOKEN")
-SUPER_ADMIN      = os.environ.get("ADMIN_USERNAME", "HekTikz")
-ADMIN_PASSWORD   = os.environ.get("ADMIN_PASSWORD", "changeme123")
-LOG_CHANNEL_ID   = os.environ.get("LOG_CHANNEL_ID")
-JOIN_CHANNEL     = os.environ.get("JOIN_CHANNEL")
-JOIN_CHANNEL_URL = os.environ.get("JOIN_CHANNEL_URL", "https://t.me/yourchannel")
-MIN_TOPUP        = 70
+BOT_TOKEN      = os.environ.get("BOT_TOKEN")
+SUPER_ADMIN    = os.environ.get("ADMIN_USERNAME", "HekTikz")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "changeme123")
+LOG_CHANNEL_ID = os.environ.get("LOG_CHANNEL_ID")
+MIN_TOPUP      = 70
+
+# Private channel setup — two variables:
+#   JOIN_CHANNEL     = your channel's numeric ID, e.g. -1001234567890
+#                      (forward any message from your channel to @userinfobot to get it)
+#   JOIN_CHANNEL_URL = your private invite link, e.g. https://t.me/+aBcDeFgHiJk
+_raw = os.environ.get("JOIN_CHANNEL", "")
+JOIN_CHANNEL     = _raw if _raw else None
+JOIN_CHANNEL_URL = os.environ.get("JOIN_CHANNEL_URL", "https://t.me/+yourchannelinvitelink")
 
 WALLETS = {
     "BTC": os.environ.get("WALLET_BTC", "YOUR_BTC_ADDRESS_HERE"),
@@ -118,6 +124,33 @@ def is_admin(update) -> bool:
     uid      = update.effective_user.id
     username = update.effective_user.username or ""
     return username == SUPER_ADMIN or uid in logged_in_admins
+
+async def check_channel_membership(bot, user_id: int) -> tuple[bool, str]:
+    """
+    Returns (is_member, reason).
+    reason is 'ok', 'not_joined', or 'error'.
+    """
+    if not JOIN_CHANNEL:
+        return True, "ok"                    # no channel required
+
+    if user_id in channel_verified:
+        return True, "ok"                    # already verified this session
+
+    try:
+        member = await bot.get_chat_member(chat_id=JOIN_CHANNEL, user_id=user_id)
+        status = member.status
+        if status in ("member", "administrator", "creator"):
+            channel_verified.add(user_id)
+            return True, "ok"
+        elif status == "restricted":
+            channel_verified.add(user_id)
+            return True, "ok"
+        else:
+            # left or kicked
+            return False, "not_joined"
+    except Exception as e:
+        logger.warning(f"Membership check failed: {e}")
+        return False, "error"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -445,9 +478,27 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # ── Welcome / join gate ───────────────────────────────────────────────────
     if data == "agree_rules":
+        is_member, reason = await check_channel_membership(context.bot, uid)
+
+        if reason == "error":
+            # Bot isn't admin in channel or channel not set up correctly
+            await query.answer(
+                "⚠️ Could not verify membership. Make sure the bot is admin in the channel, then try again.",
+                show_alert=True)
+            return
+
+        if not is_member:
+            # User hasn't joined
+            await query.answer(
+                "⛔️ You haven't joined our channel yet!\n\nTap 'Join Channel' then come back and try again.",
+                show_alert=True)
+            return
+
+        # Verified member — grant access
         agreed_users.add(uid)
+        channel_verified.add(uid)
         await log(context.application,
-            f"✅ *User Entered Bot*\n👤 {user_tag(update)}\n🪪 ID: `{uid}`\n"
+            f"✅ *User Verified & Entered*\n👤 {user_tag(update)}\n🪪 ID: `{uid}`\n"
             f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
         await query.edit_message_text(
             main_menu_text(), reply_markup=main_menu_keyboard(), parse_mode="Markdown")
