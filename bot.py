@@ -2,7 +2,7 @@ import os
 import logging
 import aiohttp
 from datetime import datetime
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ChatMember
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler,
     MessageHandler, filters, ContextTypes,
@@ -13,12 +13,12 @@ logger = logging.getLogger(__name__)
 
 # ── Config ────────────────────────────────────────────────────────────────────
 BOT_TOKEN        = os.environ.get("BOT_TOKEN")
-SUPER_ADMIN      = os.environ.get("ADMIN_USERNAME", "HekTikz")   # main owner
-ADMIN_PASSWORD   = os.environ.get("ADMIN_PASSWORD", "changeme123") # shared admin PIN
-LOG_CHANNEL_ID   = os.environ.get("LOG_CHANNEL_ID")               # e.g. -1001234567890
-JOIN_CHANNEL     = os.environ.get("JOIN_CHANNEL")                  # e.g. @hektikstore or -1001234567890
+SUPER_ADMIN      = os.environ.get("ADMIN_USERNAME", "HekTikz")
+ADMIN_PASSWORD   = os.environ.get("ADMIN_PASSWORD", "changeme123")
+LOG_CHANNEL_ID   = os.environ.get("LOG_CHANNEL_ID")
+JOIN_CHANNEL     = os.environ.get("JOIN_CHANNEL")
 JOIN_CHANNEL_URL = os.environ.get("JOIN_CHANNEL_URL", "https://t.me/yourchannel")
-MIN_TOPUP        = 70   # minimum top-up amount (not an access gate anymore)
+MIN_TOPUP        = 70
 
 WALLETS = {
     "BTC": os.environ.get("WALLET_BTC", "YOUR_BTC_ADDRESS_HERE"),
@@ -27,22 +27,22 @@ WALLETS = {
 }
 
 # ── Storage ───────────────────────────────────────────────────────────────────
-user_balances         = {}
-agreed_users          = set()
-user_join_dates       = {}
-logged_in_admins = set()   # user IDs who authenticated with admin password
-channel_verified = set()   # users confirmed to have joined the channel
+user_balances    = {}
+agreed_users     = set()
+user_join_dates  = {}
+logged_in_admins = set()
+channel_verified = set()
 
-live_stock = {"leads": 63_629_085, "stock": 183}
+live_stock    = {"leads": 63_629_085, "stock": 183}
 TOPUP_AMOUNTS = [70, 100, 150, 200, 250, 300, 350, 400, 450, 500, 750, 1000]
-BINS_PER_PAGE = 10
+BINS_PER_PAGE = 20   # 20 bins per page = 10 rows of 2
 
-# ── Store Data ────────────────────────────────────────────────────────────────
+# ── Store Data  (NOTE: base keys must NOT contain the | character) ─────────────
 STORE = {
     "8888": {
         "label": "Vendor 8888",
         "bases": {
-            "15_fresh": {
+            "15fresh": {
                 "label": "£15 Base - Fresh Lives 🇬🇧",
                 "price_per_card": 15,
                 "bins": {
@@ -51,6 +51,9 @@ STORE = {
                     "416549": 9,  "416598": 16, "446223": 1,  "446261": 7,
                     "446278": 1,  "446291": 1,  "449352": 2,  "449353": 2,
                     "450875": 1,  "454313": 6,  "454638": 2,  "459647": 4,
+                    "459661": 2,  "462010": 3,  "465941": 2,  "470041": 1,
+                    "471626": 5,  "480038": 2,  "484446": 1,  "486490": 3,
+                    "490581": 1,  "491179": 2,
                 },
             }
         },
@@ -58,7 +61,7 @@ STORE = {
     "1717": {
         "label": "Vendor 1717",
         "bases": {
-            "10_fresh": {
+            "10fresh": {
                 "label": "£10 Base - Fresh Lives 🇬🇧",
                 "price_per_card": 10,
                 "bins": {
@@ -72,17 +75,18 @@ STORE = {
 }
 
 DEADS_ITEMS = [
-    ("50+ Specific BIN, Gender & DOB File",  225,  "dead_spec_50"),
-    ("100+ Specific BIN, Gender & DOB File", 350,  "dead_spec_100"),
-    ("50+ Random File",                      100,  "dead_rand_50"),
-    ("100+ Random File",                     150,  "dead_rand_100"),
-    ("500 Random File",                      500,  "dead_rand_500"),
-    ("1k Random File",                       700,  "dead_rand_1k"),
-    ("2k Random File",                       1200, "dead_rand_2k"),
+    ("50+ Specific BIN, Gender & DOB File",  225,  "dspec50"),
+    ("100+ Specific BIN, Gender & DOB File", 350,  "dspec100"),
+    ("50+ Random File",                      100,  "drand50"),
+    ("100+ Random File",                     150,  "drand100"),
+    ("500 Random File",                      500,  "drand500"),
+    ("1k Random File",                       700,  "drand1k"),
+    ("2k Random File",                       1200, "drand2k"),
 ]
 
 RULES_TEXT = (
     "🛍 *Welcome to HekTik's Store!*\n\n"
+    "To access the store, you are required to join our channel below.\n\n"
     "*Refund Rules*\n"
     "• /refund to submit refunds\n"
     "• Screen recording proof of pay.google.com only, 5 mins refund time\n"
@@ -111,30 +115,23 @@ async def log(app, text: str):
 # ── Channel membership check ──────────────────────────────────────────────────
 
 async def has_joined_channel(bot, user_id: int) -> bool:
-    """Check if user has joined the required channel. Caches successful checks."""
     if not JOIN_CHANNEL:
-        return True                    # no channel configured = open access
-
+        return True
     if user_id in channel_verified:
-        return True                    # already confirmed before, skip API call
-
+        return True
     try:
         member = await bot.get_chat_member(chat_id=JOIN_CHANNEL, user_id=user_id)
-        # Accept any active membership status
-        if member.status in ("member", "administrator", "creator", "restricted"):
-            channel_verified.add(user_id)   # cache so we don't keep checking
+        if member.status in ("member", "administrator", "creator"):
+            channel_verified.add(user_id)
             return True
-        return False                   # left or banned
+        return False
     except Exception as e:
-        logger.warning(f"Channel membership check error: {e}")
-        # If check fails (bot not admin, network issue etc.) let the user through
-        # rather than blocking everyone. Remove this line to be strict instead.
-        return True
+        logger.warning(f"Channel check error: {e}")
+        return False
 
-# ── Admin auth ────────────────────────────────────────────────────────────────
+# ── Admin check ───────────────────────────────────────────────────────────────
 
 def is_admin(update) -> bool:
-    """Super admin (by username) OR any user who logged in with the password."""
     uid      = update.effective_user.id
     username = update.effective_user.username or ""
     return username == SUPER_ADMIN or uid in logged_in_admins
@@ -156,6 +153,11 @@ async def get_crypto_prices():
     except Exception:
         return None
 
+def user_tag(update):
+    u = update.effective_user
+    uname = f"@{u.username}" if u.username else f"ID:`{u.id}`"
+    return f"{u.full_name or 'Unknown'} ({uname})"
+
 def main_menu_keyboard():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("🌍 Leads",   callback_data="leads"),
@@ -173,26 +175,11 @@ def main_menu_text():
         "_Choose a section below:_"
     )
 
-def not_joined_text():
-    return (
-        "🔒 *Access Restricted*\n\n"
-        "You must join our channel to access the store.\n\n"
-        f"👉 [Join Here]({JOIN_CHANNEL_URL})\n\n"
-        "Once joined, tap the button below to continue."
-    )
-
-def not_joined_keyboard():
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton("📢 Join Channel", url=JOIN_CHANNEL_URL)],
-        [InlineKeyboardButton("✅ I've Joined — Check Again", callback_data="check_joined")],
-    ])
-
 def wallet_profile_text(uid):
-    bal = user_balances.get(uid, 0)
     return (
         f"============================\n"
         f"🪪 *ID:* `{uid}`\n"
-        f"💰 *Balance:* £{bal:.2f}\n"
+        f"💰 *Balance:* £{user_balances.get(uid,0):.2f}\n"
         f"📅 *Join Date:* {get_join_date(uid)}\n"
         f"============================\n\n"
         f"Select a top-up amount below:\n_Minimum top-up: £{MIN_TOPUP}_"
@@ -201,7 +188,7 @@ def wallet_profile_text(uid):
 def amount_keyboard():
     rows, row = [], []
     for a in TOPUP_AMOUNTS:
-        row.append(InlineKeyboardButton(f"💠 £{a} 💠", callback_data=f"amount_{a}"))
+        row.append(InlineKeyboardButton(f"💠 £{a} 💠", callback_data=f"amt|{a}"))
         if len(row) == 2:
             rows.append(row); row = []
     if row: rows.append(row)
@@ -211,56 +198,53 @@ def amount_keyboard():
 
 def coin_select_keyboard(amount):
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("₿ BTC", callback_data=f"pay_BTC_{amount}")],
-        [InlineKeyboardButton("◎ SOL", callback_data=f"pay_SOL_{amount}")],
-        [InlineKeyboardButton("Ł LTC", callback_data=f"pay_LTC_{amount}")],
+        [InlineKeyboardButton("₿ BTC", callback_data=f"pay|BTC|{amount}")],
+        [InlineKeyboardButton("◎ SOL", callback_data=f"pay|SOL|{amount}")],
+        [InlineKeyboardButton("Ł LTC", callback_data=f"pay|LTC|{amount}")],
         [InlineKeyboardButton("⬅️ Back", callback_data="wallet")],
     ])
 
 def vendor_select_keyboard():
     rows = []
-    vendor_ids = list(STORE.keys())
-    for i in range(0, len(vendor_ids), 2):
-        rows.append([InlineKeyboardButton(v, callback_data=f"vendor_{v}") for v in vendor_ids[i:i+2]])
+    vids = list(STORE.keys())
+    for i in range(0, len(vids), 2):
+        rows.append([InlineKeyboardButton(v, callback_data=f"vendor|{v}") for v in vids[i:i+2]])
     rows.append([InlineKeyboardButton("💀 Deads", callback_data="deads")])
     rows.append([InlineKeyboardButton("⬅️ Back",  callback_data="back")])
     return InlineKeyboardMarkup(rows)
 
 def base_select_keyboard(vid):
-    rows = [[InlineKeyboardButton(b["label"], callback_data=f"base_{vid}_{bk}")]
+    rows = [[InlineKeyboardButton(b["label"], callback_data=f"base|{vid}|{bk}")]
             for bk, b in STORE[vid]["bases"].items()]
-    rows.append([InlineKeyboardButton("🔍 BIN Search", callback_data=f"binsearch_{vid}")])
+    rows.append([InlineKeyboardButton("🔍 BIN Search", callback_data=f"bsearch|{vid}")])
     rows.append([InlineKeyboardButton("⬅️ Back", callback_data="store")])
     return InlineKeyboardMarkup(rows)
 
 def bin_list_keyboard(vid, bkey, page=0):
+    """20 BINs per page, 2 per row (10 rows)."""
     bins        = list(STORE[vid]["bases"][bkey]["bins"].items())
     total_pages = max(1, (len(bins) + BINS_PER_PAGE - 1) // BINS_PER_PAGE)
-    page_bins   = bins[page * BINS_PER_PAGE:(page + 1) * BINS_PER_PAGE]
+    page_bins   = bins[page * BINS_PER_PAGE : (page + 1) * BINS_PER_PAGE]
     rows = []
     for i in range(0, len(page_bins), 2):
-        rows.append([InlineKeyboardButton(
-            f"{b} ({q})", callback_data=f"buybin_{vid}_{bkey}_{b}_{page}")
-            for b, q in page_bins[i:i+2]])
+        rows.append([
+            InlineKeyboardButton(f"{b} ({q})", callback_data=f"buybin|{vid}|{bkey}|{b}|{page}")
+            for b, q in page_bins[i:i+2]
+        ])
     nav = []
     if page > 0:
-        nav.append(InlineKeyboardButton("◀️ Prev", callback_data=f"binpage_{vid}_{bkey}_{page-1}"))
+        nav.append(InlineKeyboardButton("◀️ Prev", callback_data=f"bpage|{vid}|{bkey}|{page-1}"))
     if page < total_pages - 1:
-        nav.append(InlineKeyboardButton("Next ▶️", callback_data=f"binpage_{vid}_{bkey}_{page+1}"))
+        nav.append(InlineKeyboardButton("Next ▶️", callback_data=f"bpage|{vid}|{bkey}|{page+1}"))
     if nav: rows.append(nav)
-    rows.append([InlineKeyboardButton("⬅️ Back", callback_data=f"vendor_{vid}")])
+    rows.append([InlineKeyboardButton("⬅️ Back", callback_data=f"vendor|{vid}")])
     return InlineKeyboardMarkup(rows), total_pages
 
 def deads_keyboard():
-    rows = [[InlineKeyboardButton(f"{l} — £{p:,}", callback_data=f"deadbuy_{k}")]
+    rows = [[InlineKeyboardButton(f"{l} — £{p:,}", callback_data=f"dbuy|{k}")]
             for l, p, k in DEADS_ITEMS]
     rows.append([InlineKeyboardButton("⬅️ Back", callback_data="store")])
     return InlineKeyboardMarkup(rows)
-
-def user_tag(update):
-    u = update.effective_user
-    uname = f"@{u.username}" if u.username else f"ID:`{u.id}`"
-    return f"{u.full_name or 'Unknown'} ({uname})"
 
 # ── /start ────────────────────────────────────────────────────────────────────
 
@@ -274,61 +258,48 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"🆕 *New User*\n👤 {user_tag(update)}\n🪪 ID: `{uid}`\n"
             f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
 
-    # Already verified channel member — go straight to menu
     if uid in agreed_users and uid in channel_verified:
         await update.message.reply_text(main_menu_text(), reply_markup=main_menu_keyboard(), parse_mode="Markdown")
         return
 
-    # Show rules with Join Channel button
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("📢 Join Channel to Continue", url=JOIN_CHANNEL_URL)],
-        [InlineKeyboardButton("✅ I've Joined — Let Me In", callback_data="agree_rules")],
+        [InlineKeyboardButton("✅ I've Joined — Let Me In",  callback_data="agree_rules")],
     ])
     await update.message.reply_text(RULES_TEXT, reply_markup=keyboard, parse_mode="Markdown")
 
 # ═════════════════════════════════════════════════════════════════════════════
-# ADMIN LOGIN / LOGOUT
+# ADMIN LOGIN
 # ═════════════════════════════════════════════════════════════════════════════
 
 async def cmd_adminlogin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Any user runs /adminlogin <password> to gain admin access."""
     uid = update.effective_user.id
     try:
         password = context.args[0]
     except IndexError:
-        await update.message.reply_text("Usage: /adminlogin <password>")
-        return
-
+        await update.message.reply_text("Usage: /adminlogin <password>"); return
     if password == ADMIN_PASSWORD:
         logged_in_admins.add(uid)
         await update.message.reply_text(
-            "✅ *Admin access granted!*\n\nYou can now use all admin commands.\n"
-            "Send /adminhelp to see them all.\n\n"
-            "_Run /adminlogout when done._",
-            parse_mode="Markdown"
-        )
+            "✅ *Admin access granted!*\nSend /adminhelp to see all commands.",
+            parse_mode="Markdown")
         await log(context.application,
-            f"🔑 *Admin Login*\n👤 {user_tag(update)}\n🪪 ID: `{uid}`\n"
-            f"🕐 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+            f"🔑 *Admin Login*\n👤 {user_tag(update)}\n🕐 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
     else:
         await update.message.reply_text("❌ Wrong password.")
-        await log(context.application,
-            f"⚠️ *Failed Admin Login Attempt*\n👤 {user_tag(update)}\n🪪 ID: `{uid}`")
+        await log(context.application, f"⚠️ *Failed Admin Login*\n👤 {user_tag(update)}")
 
 async def cmd_adminlogout(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    uid = update.effective_user.id
-    logged_in_admins.discard(uid)
+    logged_in_admins.discard(update.effective_user.id)
     await update.message.reply_text("🔒 Logged out of admin access.")
 
 async def cmd_adminhelp(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update):
-        await update.message.reply_text("❌ You need admin access. Use /adminlogin <password>")
-        return
+        await update.message.reply_text("❌ Use /adminlogin <password> first."); return
     await update.message.reply_text(
         "🛠 *Admin Commands*\n\n"
         "*Login*\n"
-        "`/adminlogin <password>` — Login as admin\n"
-        "`/adminlogout` — Logout\n\n"
+        "`/adminlogin <password>`\n`/adminlogout`\n\n"
         "*Balance*\n"
         "`/addbalance <user_id> <amount>`\n"
         "`/removebalance <user_id> <amount>`\n"
@@ -351,200 +322,136 @@ async def cmd_adminhelp(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "*Users*\n"
         "`/listusers`\n"
         "`/broadcast <message>`",
-        parse_mode="Markdown"
-    )
+        parse_mode="Markdown")
 
 # ═════════════════════════════════════════════════════════════════════════════
 # ADMIN COMMANDS
 # ═════════════════════════════════════════════════════════════════════════════
 
 async def cmd_addbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update):
-        await update.message.reply_text("❌ Not authorised. Use /adminlogin <password>"); return
-    try:
-        tid = int(context.args[0]); amt = float(context.args[1])
-    except (IndexError, ValueError):
-        await update.message.reply_text("Usage: /addbalance <user_id> <amount>"); return
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
+    try: tid = int(context.args[0]); amt = float(context.args[1])
+    except (IndexError, ValueError): await update.message.reply_text("Usage: /addbalance <user_id> <amount>"); return
     user_balances[tid] = round(user_balances.get(tid, 0) + amt, 2)
-    await update.message.reply_text(
-        f"✅ Added *£{amt:.2f}* to `{tid}`\nNew balance: *£{user_balances[tid]:.2f}*",
-        parse_mode="Markdown")
-    await log(context.application,
-        f"💳 *Balance Added*\nBy: {user_tag(update)}\nUser: `{tid}`\n"
-        f"Amount: £{amt:.2f}\nNew balance: £{user_balances[tid]:.2f}")
+    await update.message.reply_text(f"✅ Added *£{amt:.2f}* to `{tid}`\nNew balance: *£{user_balances[tid]:.2f}*", parse_mode="Markdown")
+    await log(context.application, f"💳 *Balance Added*\nBy: {user_tag(update)}\nUser: `{tid}`\nAmount: £{amt:.2f}\nNew balance: £{user_balances[tid]:.2f}")
 
 async def cmd_removebalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update):
-        await update.message.reply_text("❌ Not authorised. Use /adminlogin <password>"); return
-    try:
-        tid = int(context.args[0]); amt = float(context.args[1])
-    except (IndexError, ValueError):
-        await update.message.reply_text("Usage: /removebalance <user_id> <amount>"); return
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
+    try: tid = int(context.args[0]); amt = float(context.args[1])
+    except (IndexError, ValueError): await update.message.reply_text("Usage: /removebalance <user_id> <amount>"); return
     user_balances[tid] = round(max(0, user_balances.get(tid, 0) - amt), 2)
-    await update.message.reply_text(
-        f"✅ Removed *£{amt:.2f}* from `{tid}`\nNew balance: *£{user_balances[tid]:.2f}*",
-        parse_mode="Markdown")
+    await update.message.reply_text(f"✅ Removed *£{amt:.2f}* from `{tid}`\nNew balance: *£{user_balances[tid]:.2f}*", parse_mode="Markdown")
 
 async def cmd_setbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update):
-        await update.message.reply_text("❌ Not authorised. Use /adminlogin <password>"); return
-    try:
-        tid = int(context.args[0]); amt = float(context.args[1])
-    except (IndexError, ValueError):
-        await update.message.reply_text("Usage: /setbalance <user_id> <amount>"); return
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
+    try: tid = int(context.args[0]); amt = float(context.args[1])
+    except (IndexError, ValueError): await update.message.reply_text("Usage: /setbalance <user_id> <amount>"); return
     user_balances[tid] = round(amt, 2)
     await update.message.reply_text(f"✅ Set `{tid}` balance to *£{amt:.2f}*", parse_mode="Markdown")
 
 async def cmd_checkbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update):
-        await update.message.reply_text("❌ Not authorised. Use /adminlogin <password>"); return
-    try:
-        tid = int(context.args[0])
-    except (IndexError, ValueError):
-        await update.message.reply_text("Usage: /checkbalance <user_id>"); return
-    await update.message.reply_text(
-        f"User `{tid}` balance: *£{user_balances.get(tid,0):.2f}*", parse_mode="Markdown")
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
+    try: tid = int(context.args[0])
+    except (IndexError, ValueError): await update.message.reply_text("Usage: /checkbalance <user_id>"); return
+    await update.message.reply_text(f"User `{tid}` balance: *£{user_balances.get(tid,0):.2f}*", parse_mode="Markdown")
 
 async def cmd_setstock(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update):
-        await update.message.reply_text("❌ Not authorised. Use /adminlogin <password>"); return
-    try:
-        key = context.args[0].lower(); val = int(context.args[1])
-        assert key in ("leads", "stock")
-    except (IndexError, ValueError, AssertionError):
-        await update.message.reply_text("Usage: /setstock leads <number>"); return
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
+    try: key = context.args[0].lower(); val = int(context.args[1]); assert key in ("leads","stock")
+    except (IndexError, ValueError, AssertionError): await update.message.reply_text("Usage: /setstock leads <number>"); return
     live_stock[key] = val
     await update.message.reply_text(f"✅ Updated *{key}* to *{val:,}*", parse_mode="Markdown")
 
 async def cmd_addvendor(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update):
-        await update.message.reply_text("❌ Not authorised. Use /adminlogin <password>"); return
-    try:
-        vid = context.args[0]; label = " ".join(context.args[1:]); assert vid and label
-    except (IndexError, AssertionError):
-        await update.message.reply_text("Usage: /addvendor <id> <label>"); return
-    if vid in STORE:
-        await update.message.reply_text(f"Vendor `{vid}` already exists."); return
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
+    try: vid = context.args[0]; label = " ".join(context.args[1:]); assert vid and label
+    except (IndexError, AssertionError): await update.message.reply_text("Usage: /addvendor <id> <label>"); return
+    if vid in STORE: await update.message.reply_text(f"Vendor `{vid}` already exists."); return
     STORE[vid] = {"label": label, "bases": {}}
     await update.message.reply_text(f"✅ Added vendor *{label}*", parse_mode="Markdown")
 
 async def cmd_removevendor(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update):
-        await update.message.reply_text("❌ Not authorised. Use /adminlogin <password>"); return
-    try:
-        vid = context.args[0]; assert vid in STORE
-    except (IndexError, AssertionError):
-        await update.message.reply_text("Usage: /removevendor <vendor_id>"); return
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
+    try: vid = context.args[0]; assert vid in STORE
+    except (IndexError, AssertionError): await update.message.reply_text("Usage: /removevendor <vendor_id>"); return
     del STORE[vid]
     await update.message.reply_text(f"✅ Removed vendor `{vid}`")
 
 async def cmd_addbase(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update):
-        await update.message.reply_text("❌ Not authorised. Use /adminlogin <password>"); return
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
     try:
         vid = context.args[0]; bkey = context.args[1]
         price = int(context.args[2]); label = " ".join(context.args[3:])
-        assert vid in STORE and label
+        assert vid in STORE and label and "|" not in bkey
     except (IndexError, ValueError, AssertionError):
-        await update.message.reply_text(
-            "Usage: /addbase <vendor_id> <base_key> <price> <label>\n"
-            "Example: /addbase 8888 20_fresh 20 £20 Base Fresh 🇬🇧"); return
+        await update.message.reply_text("Usage: /addbase <vendor_id> <base_key> <price> <label>\nNote: base_key must not contain | or spaces\nExample: /addbase 8888 20fresh 20 £20 Base Fresh 🇬🇧"); return
     STORE[vid]["bases"][bkey] = {"label": label, "price_per_card": price, "bins": {}}
     await update.message.reply_text(f"✅ Added base *{label}* at £{price}/card", parse_mode="Markdown")
 
 async def cmd_removebase(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update):
-        await update.message.reply_text("❌ Not authorised. Use /adminlogin <password>"); return
-    try:
-        vid = context.args[0]; bkey = context.args[1]
-        assert vid in STORE and bkey in STORE[vid]["bases"]
-    except (IndexError, AssertionError):
-        await update.message.reply_text("Usage: /removebase <vendor_id> <base_key>"); return
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
+    try: vid = context.args[0]; bkey = context.args[1]; assert vid in STORE and bkey in STORE[vid]["bases"]
+    except (IndexError, AssertionError): await update.message.reply_text("Usage: /removebase <vendor_id> <base_key>"); return
     del STORE[vid]["bases"][bkey]
     await update.message.reply_text(f"✅ Removed base `{bkey}` from vendor `{vid}`")
 
 async def cmd_addbin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update):
-        await update.message.reply_text("❌ Not authorised. Use /adminlogin <password>"); return
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
     try:
         vid = context.args[0]; bkey = context.args[1]
         bin_num = context.args[2]; qty = int(context.args[3])
         assert vid in STORE and bkey in STORE[vid]["bases"]
     except (IndexError, ValueError, AssertionError):
-        await update.message.reply_text(
-            "Usage: /addbin <vendor_id> <base_key> <bin_number> <quantity>\n"
-            "Example: /addbin 8888 15_fresh 416598 20"); return
+        await update.message.reply_text("Usage: /addbin <vendor_id> <base_key> <bin_number> <quantity>\nExample: /addbin 8888 15fresh 416598 20"); return
     STORE[vid]["bases"][bkey]["bins"][bin_num] = qty
-    await update.message.reply_text(
-        f"✅ BIN *{bin_num}* set to *{qty}* in `{vid}` / `{bkey}`", parse_mode="Markdown")
+    await update.message.reply_text(f"✅ BIN *{bin_num}* = *{qty}* in `{vid}` / `{bkey}`", parse_mode="Markdown")
 
 async def cmd_removebin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update):
-        await update.message.reply_text("❌ Not authorised. Use /adminlogin <password>"); return
-    try:
-        vid = context.args[0]; bkey = context.args[1]; bin_num = context.args[2]
-        assert vid in STORE and bkey in STORE[vid]["bases"]
-    except (IndexError, AssertionError):
-        await update.message.reply_text("Usage: /removebin <vendor_id> <base_key> <bin_number>"); return
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
+    try: vid = context.args[0]; bkey = context.args[1]; bin_num = context.args[2]; assert vid in STORE and bkey in STORE[vid]["bases"]
+    except (IndexError, AssertionError): await update.message.reply_text("Usage: /removebin <vendor_id> <base_key> <bin_number>"); return
     STORE[vid]["bases"][bkey]["bins"].pop(bin_num, None)
     await update.message.reply_text(f"✅ Removed BIN *{bin_num}*", parse_mode="Markdown")
 
 async def cmd_listbins(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update):
-        await update.message.reply_text("❌ Not authorised. Use /adminlogin <password>"); return
-    try:
-        vid = context.args[0]; bkey = context.args[1]
-        assert vid in STORE and bkey in STORE[vid]["bases"]
-    except (IndexError, AssertionError):
-        await update.message.reply_text("Usage: /listbins <vendor_id> <base_key>"); return
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
+    try: vid = context.args[0]; bkey = context.args[1]; assert vid in STORE and bkey in STORE[vid]["bases"]
+    except (IndexError, AssertionError): await update.message.reply_text("Usage: /listbins <vendor_id> <base_key>"); return
     bins  = STORE[vid]["bases"][bkey]["bins"]
     label = STORE[vid]["bases"][bkey]["label"]
-    if not bins:
-        await update.message.reply_text(f"No BINs in *{label}*", parse_mode="Markdown"); return
+    if not bins: await update.message.reply_text(f"No BINs in *{label}*", parse_mode="Markdown"); return
     lines = [f"📦 *{label}* — {sum(bins.values())} total\n"]
-    for b, q in sorted(bins.items()):
-        lines.append(f"`{b}` — {q} cards")
+    for b, q in sorted(bins.items()): lines.append(f"`{b}` — {q} cards")
     await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
 
 async def cmd_clearbase(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update):
-        await update.message.reply_text("❌ Not authorised. Use /adminlogin <password>"); return
-    try:
-        vid = context.args[0]; bkey = context.args[1]
-        assert vid in STORE and bkey in STORE[vid]["bases"]
-    except (IndexError, AssertionError):
-        await update.message.reply_text("Usage: /clearbase <vendor_id> <base_key>"); return
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
+    try: vid = context.args[0]; bkey = context.args[1]; assert vid in STORE and bkey in STORE[vid]["bases"]
+    except (IndexError, AssertionError): await update.message.reply_text("Usage: /clearbase <vendor_id> <base_key>"); return
     STORE[vid]["bases"][bkey]["bins"].clear()
     await update.message.reply_text(f"✅ Cleared all BINs from `{vid}` / `{bkey}`")
 
 async def cmd_listusers(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update):
-        await update.message.reply_text("❌ Not authorised. Use /adminlogin <password>"); return
-    if not user_balances:
-        await update.message.reply_text("No users with balances yet."); return
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
+    if not user_balances: await update.message.reply_text("No users with balances yet."); return
     lines = ["👥 *All Users & Balances*\n"]
     for uid, bal in sorted(user_balances.items(), key=lambda x: -x[1]):
-        joined = user_join_dates.get(uid, "Unknown")
-        lines.append(f"`{uid}` — £{bal:.2f} (joined {joined})")
+        lines.append(f"`{uid}` — £{bal:.2f} (joined {user_join_dates.get(uid,'?')})")
     await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
 
 async def cmd_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update):
-        await update.message.reply_text("❌ Not authorised. Use /adminlogin <password>"); return
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
     msg = " ".join(context.args)
-    if not msg:
-        await update.message.reply_text("Usage: /broadcast <message>"); return
+    if not msg: await update.message.reply_text("Usage: /broadcast <message>"); return
     sent = 0
     for uid in list(agreed_users):
-        try:
-            await context.application.bot.send_message(chat_id=uid, text=msg, parse_mode="Markdown")
-            sent += 1
-        except Exception:
-            pass
+        try: await context.application.bot.send_message(chat_id=uid, text=msg, parse_mode="Markdown"); sent += 1
+        except Exception: pass
     await update.message.reply_text(f"✅ Broadcast sent to {sent} users.")
 
 # ═════════════════════════════════════════════════════════════════════════════
-# BUTTON HANDLER
+# BUTTON HANDLER  — all store callbacks use | separator to avoid key clashes
 # ═════════════════════════════════════════════════════════════════════════════
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -553,61 +460,20 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid  = query.from_user.id
     data = query.data
 
-    # Welcome / agree rules — verify channel membership first
+    # ── Welcome / join gate ───────────────────────────────────────────────────
     if data == "agree_rules":
         joined = await has_joined_channel(context.bot, uid)
         if not joined:
-            # Not in channel yet — bounce them back with alert
-            await query.answer(
-                "❌ You haven't joined the channel yet! Tap 'Join Channel' first, then try again.",
-                show_alert=True)
+            await query.answer("❌ You haven't joined the channel yet! Tap 'Join Channel' first.", show_alert=True)
             return
-        # Confirmed member — grant full access
         agreed_users.add(uid)
         channel_verified.add(uid)
-        await log(context.application,
-            f"✅ *User Joined & Verified*\n👤 {user_tag(update)}\n🪪 ID: `{uid}`\n"
-            f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
-        await query.edit_message_text(
-            main_menu_text(), reply_markup=main_menu_keyboard(), parse_mode="Markdown")
+        await log(context.application, f"✅ *User Verified & Joined*\n👤 {user_tag(update)}\n🪪 ID: `{uid}`")
+        await query.edit_message_text(main_menu_text(), reply_markup=main_menu_keyboard(), parse_mode="Markdown")
         return
 
     if data == "back":
         await query.edit_message_text(main_menu_text(), reply_markup=main_menu_keyboard(), parse_mode="Markdown")
-        return
-
-    # Check channel membership for store/leads/scanner
-    if data in ("store", "leads", "scanner"):
-        joined = await has_joined_channel(context.bot, uid)
-        if not joined:
-            await log(context.application,
-                f"🔒 *Channel Not Joined*\n👤 {user_tag(update)}\n🪪 ID: `{uid}`\nTried: {data}")
-            await query.edit_message_text(
-                not_joined_text(),
-                reply_markup=not_joined_keyboard(),
-                parse_mode="Markdown",
-                disable_web_page_preview=True)
-            return
-
-    # Check joined button — re-verify and send straight to store
-    if data == "check_joined":
-        joined = await has_joined_channel(context.bot, uid)
-        if joined:
-            await log(context.application,
-                f"📢 *Channel Joined — Verified*\n👤 {user_tag(update)}\n🪪 ID: `{uid}`")
-            await query.edit_message_text(
-                "✅ *Verified! Welcome to the store.*",
-                parse_mode="Markdown")
-            # Go straight to vendor select
-            await context.bot.send_message(
-                chat_id=uid,
-                text="👥 *Select a vendor:*",
-                reply_markup=vendor_select_keyboard(),
-                parse_mode="Markdown")
-        else:
-            await query.answer(
-                "❌ You haven't joined yet. Please join the channel first.",
-                show_alert=True)
         return
 
     # ── Wallet ────────────────────────────────────────────────────────────────
@@ -615,23 +481,21 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(wallet_profile_text(uid), reply_markup=amount_keyboard(), parse_mode="Markdown")
         return
 
-    if data.startswith("amount_"):
-        amount = data.split("_")[1]
-        await query.edit_message_text(
-            f"💠 *£{amount} Top-Up*\n\nChoose your payment method:",
+    if data.startswith("amt|"):
+        amount = data.split("|")[1]
+        await query.edit_message_text(f"💠 *£{amount} Top-Up*\n\nChoose your payment method:",
             reply_markup=coin_select_keyboard(amount), parse_mode="Markdown")
         return
 
     if data == "custom_amount":
         context.user_data["awaiting_custom"] = True
-        await query.edit_message_text(
-            "💰 *Custom Amount*\n\nType the £ amount (minimum £70):\nExample: `150`",
+        await query.edit_message_text("💰 *Custom Amount*\n\nType the £ amount (minimum £70):\nExample: `150`",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="wallet")]]),
             parse_mode="Markdown")
         return
 
-    if data.startswith("pay_"):
-        parts = data.split("_"); coin = parts[1]; amount = int(parts[2])
+    if data.startswith("pay|"):
+        _, coin, amount = data.split("|"); amount = int(amount)
         address = WALLETS.get(coin, "Address not configured")
         await query.edit_message_text("⏳ Fetching live price...")
         prices = await get_crypto_prices()
@@ -640,93 +504,112 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             price_line = f"Send *Exactly* `{crypto_amt}` {coin} to get *£{amount}* credit"
         else:
             price_line = f"Send the equivalent of *£{amount}* in {coin}"
-        await log(context.application,
-            f"💰 *Top-Up Requested*\n👤 {user_tag(update)}\n🪪 ID: `{uid}`\n💷 £{amount} via {coin}")
+        await log(context.application, f"💰 *Top-Up Requested*\n👤 {user_tag(update)}\n💷 £{amount} via {coin}")
         await query.edit_message_text(
             f"{price_line}\n\n🏦 Address:\n`{address}`\n\n"
             f"‼️ Deposits are permanent and *non refundable*\n"
             f"‼️ Double check the {coin} amount *before* sending\n"
             f"‼️ Anything UNDER or ABOVE = *Donation*\n\n"
-            f"💠 You will be funded when transaction is confirmed\n\n"
+            f"💠 Funded when transaction is confirmed\n\n"
             f"⚠️ *DO NOT SEND AS £ — only send as {coin}*\n"
             f"‼️ One payment per wallet address\n\n"
             f"_Your ID: `{uid}`_\n_DM @{SUPER_ADMIN} with TX ID after sending_",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data=f"amount_{amount}")]]),
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data=f"amt|{amount}")]]),
             parse_mode="Markdown")
         return
 
-    # ── Store ─────────────────────────────────────────────────────────────────
+    # ── Store — channel check ─────────────────────────────────────────────────
     if data == "store":
+        joined = await has_joined_channel(context.bot, uid)
+        if not joined:
+            await query.edit_message_text(
+                "🔒 *Access Restricted*\n\nJoin our channel to access the store.",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("📢 Join Channel", url=JOIN_CHANNEL_URL)],
+                    [InlineKeyboardButton("✅ I've Joined", callback_data="agree_rules")],
+                ]), parse_mode="Markdown")
+            return
         await query.edit_message_text("👥 *Select a vendor:*", reply_markup=vendor_select_keyboard(), parse_mode="Markdown")
         return
 
-    if data.startswith("vendor_"):
-        vid = data.split("_", 1)[1]
+    # Vendor
+    if data.startswith("vendor|"):
+        vid = data.split("|")[1]
         if vid not in STORE: await query.answer("Vendor not found."); return
-        await query.edit_message_text(
-            f"👤 *{STORE[vid]['label']}*\n\nSelect a base:",
+        await query.edit_message_text(f"👤 *{STORE[vid]['label']}*\n\nSelect a base:",
             reply_markup=base_select_keyboard(vid), parse_mode="Markdown")
         return
 
-    if data.startswith("base_"):
-        _, vid, bkey = data.split("_", 2)
+    # Base — show BIN list page 0
+    if data.startswith("base|"):
+        _, vid, bkey = data.split("|", 2)
         base = STORE[vid]["bases"][bkey]
         total_qty = sum(base["bins"].values())
         kbd, total_pages = bin_list_keyboard(vid, bkey, 0)
         await query.edit_message_text(
-            f"👤 *{STORE[vid]['label']}*\n📦 *Base:* {base['label']}\n"
-            f"🗂 *Available:* {total_qty}\n\nSelect BIN group:\n_Page 1 of {total_pages}_",
+            f"👤 *{STORE[vid]['label']}*\n"
+            f"📦 *Base:* {base['label']}\n"
+            f"🗂 *Available:* {total_qty}\n\n"
+            f"Select BIN group:\n_Page 1 of {total_pages}_",
             reply_markup=kbd, parse_mode="Markdown")
         return
 
-    if data.startswith("binpage_"):
-        _, vid, bkey, page = data.split("_", 3); page = int(page)
+    # Paginate BIN list
+    if data.startswith("bpage|"):
+        _, vid, bkey, page = data.split("|", 3); page = int(page)
         base = STORE[vid]["bases"][bkey]
         kbd, total_pages = bin_list_keyboard(vid, bkey, page)
         await query.edit_message_text(
-            f"👤 *{STORE[vid]['label']}*\n📦 *Base:* {base['label']}\n"
-            f"🗂 *Available:* {sum(base['bins'].values())}\n\nSelect BIN group:\n_Page {page+1} of {total_pages}_",
+            f"👤 *{STORE[vid]['label']}*\n"
+            f"📦 *Base:* {base['label']}\n"
+            f"🗂 *Available:* {sum(base['bins'].values())}\n\n"
+            f"Select BIN group:\n_Page {page+1} of {total_pages}_",
             reply_markup=kbd, parse_mode="Markdown")
         return
 
-    if data.startswith("binsearch_"):
-        vid = data.split("_", 1)[1]
+    # BIN search prompt
+    if data.startswith("bsearch|"):
+        vid = data.split("|")[1]
         context.user_data["bin_search_vendor"] = vid
         context.user_data["awaiting_bin_search"] = True
-        await query.edit_message_text(
-            f"🔍 *BIN Search — {STORE[vid]['label']}*\n\nType the BIN number:",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data=f"vendor_{vid}")]]),
+        await query.edit_message_text(f"🔍 *BIN Search — {STORE[vid]['label']}*\n\nType the BIN number:",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data=f"vendor|{vid}")]]),
             parse_mode="Markdown")
         return
 
-    if data.startswith("buybin_"):
-        parts = data.split("_", 4); _, vid, bkey, bin_num, page = parts
+    # BIN purchase confirm
+    if data.startswith("buybin|"):
+        _, vid, bkey, bin_num, page = data.split("|", 4)
         base = STORE[vid]["bases"][bkey]; qty = base["bins"].get(bin_num, 0)
         if qty == 0: await query.answer("Out of stock."); return
         total = base["price_per_card"] * qty; balance = user_balances.get(uid, 0)
         await query.edit_message_text(
             f"🛒 *Purchase Confirmation*\n\n"
-            f"👤 Vendor: *{STORE[vid]['label']}*\n📦 Base: *{base['label']}*\n"
-            f"💳 BIN: *{bin_num}*\n🗂 Qty: *{qty} cards*\n"
-            f"💰 Per card: *£{base['price_per_card']}*\n💷 *Total: £{total}*\n\n"
+            f"👤 Vendor: *{STORE[vid]['label']}*\n"
+            f"📦 Base: *{base['label']}*\n"
+            f"💳 BIN: *{bin_num}*\n"
+            f"🗂 Qty: *{qty} cards*\n"
+            f"💰 Per card: *£{base['price_per_card']}*\n"
+            f"💷 *Total: £{total}*\n\n"
             f"Your balance: *£{balance:.2f}*\n\nConfirm purchase?",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("✅ Confirm", callback_data=f"confirmbin_{vid}_{bkey}_{bin_num}_{page}"),
-                 InlineKeyboardButton("❌ Cancel",  callback_data=f"binpage_{vid}_{bkey}_{page}")]]),
+                [InlineKeyboardButton("✅ Confirm", callback_data=f"cfmbin|{vid}|{bkey}|{bin_num}|{page}"),
+                 InlineKeyboardButton("❌ Cancel",  callback_data=f"bpage|{vid}|{bkey}|{page}")]]),
             parse_mode="Markdown")
         return
 
-    if data.startswith("confirmbin_"):
-        parts = data.split("_", 4); _, vid, bkey, bin_num, page = parts
+    # BIN purchase confirmed
+    if data.startswith("cfmbin|"):
+        _, vid, bkey, bin_num, page = data.split("|", 4)
         base = STORE[vid]["bases"][bkey]; qty = base["bins"].get(bin_num, 0)
         total = base["price_per_card"] * qty; balance = user_balances.get(uid, 0)
         if qty == 0: await query.answer("Out of stock."); return
         if balance < total:
             await query.edit_message_text(
-                f"❌ *Insufficient Balance*\n\nRequired: £{total}\nYour balance: £{balance:.2f}\n\nTop up your wallet.",
+                f"❌ *Insufficient Balance*\n\nRequired: £{total}\nYour balance: £{balance:.2f}",
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton("💰 Wallet", callback_data="wallet"),
-                     InlineKeyboardButton("⬅️ Back", callback_data=f"binpage_{vid}_{bkey}_{page}")]]),
+                     InlineKeyboardButton("⬅️ Back",   callback_data=f"bpage|{vid}|{bkey}|{page}")]]),
                 parse_mode="Markdown"); return
         user_balances[uid] = round(balance - total, 2)
         del STORE[vid]["bases"][bkey]["bins"][bin_num]
@@ -746,27 +629,26 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(
             "💀 *Deads — Unspoofed Files*\n\n"
             "*Specific:*\n• 50+ Specific BIN, Gender & DOB — £225\n• 100+ Specific BIN, Gender & DOB — £350\n\n"
-            "*Random:*\n• 50+ File — £100\n• 100+ File — £150\n• 500 File — £500\n• 1k File — £700\n• 2k File — £1,200\n\n"
-            "_Select to purchase:_",
+            "*Random:*\n• 50+ File — £100\n• 100+ File — £150\n• 500 File — £500\n• 1k File — £700\n• 2k File — £1,200",
             reply_markup=deads_keyboard(), parse_mode="Markdown")
         return
 
-    if data.startswith("deadbuy_"):
-        key = data.replace("deadbuy_", "")
+    if data.startswith("dbuy|"):
+        key = data.split("|")[1]
         item = next(((l,p,k) for l,p,k in DEADS_ITEMS if k==key), None)
         if not item: await query.answer("Not found."); return
         label, price, _ = item; balance = user_balances.get(uid, 0)
         await query.edit_message_text(
             f"🛒 *Purchase Confirmation*\n\n📁 *{label}*\n💷 *Price: £{price:,}*\n\n"
-            f"Your balance: *£{balance:.2f}*\n\nConfirm purchase?",
+            f"Your balance: *£{balance:.2f}*\n\nConfirm?",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("✅ Confirm", callback_data=f"deadconfirm_{key}"),
+                [InlineKeyboardButton("✅ Confirm", callback_data=f"dcfm|{key}"),
                  InlineKeyboardButton("❌ Cancel",  callback_data="deads")]]),
             parse_mode="Markdown")
         return
 
-    if data.startswith("deadconfirm_"):
-        key = data.replace("deadconfirm_", "")
+    if data.startswith("dcfm|"):
+        key = data.split("|")[1]
         item = next(((l,p,k) for l,p,k in DEADS_ITEMS if k==key), None)
         if not item: await query.answer("Not found."); return
         label, price, _ = item; balance = user_balances.get(uid, 0)
@@ -791,28 +673,23 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ── Leads / Scanner ───────────────────────────────────────────────────────
     back_btn = InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="back")]])
     if data == "leads":
-        await query.edit_message_text(
-            f"🌍 *Leads*\n\nAvailable: *{live_stock['leads']:,}*\n\nContact @{SUPER_ADMIN}.",
+        await query.edit_message_text(f"🌍 *Leads*\n\nAvailable: *{live_stock['leads']:,}*\n\nContact @{SUPER_ADMIN}.",
             reply_markup=back_btn, parse_mode="Markdown")
     elif data == "scanner":
-        await query.edit_message_text(
-            f"🔍 *Scanner*\n\nContact @{SUPER_ADMIN} with the value to scan.",
+        await query.edit_message_text(f"🔍 *Scanner*\n\nContact @{SUPER_ADMIN} with the value to scan.",
             reply_markup=back_btn, parse_mode="Markdown")
 
-# ── Text handler ──────────────────────────────────────────────────────────────
+# ── Text message handler ──────────────────────────────────────────────────────
 
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get("awaiting_custom"):
         text = update.message.text.strip().replace("£","")
         try:
             amount = int(float(text))
-            if amount < MIN_TOPUP:
-                await update.message.reply_text(f"Minimum top-up is £{MIN_TOPUP}."); return
-        except ValueError:
-            await update.message.reply_text("Enter a valid number e.g. 150"); return
+            if amount < MIN_TOPUP: await update.message.reply_text(f"Minimum is £{MIN_TOPUP}."); return
+        except ValueError: await update.message.reply_text("Enter a number e.g. 150"); return
         context.user_data["awaiting_custom"] = False
-        await update.message.reply_text(
-            f"💠 *£{amount} Top-Up*\n\nChoose payment method:",
+        await update.message.reply_text(f"💠 *£{amount} Top-Up*\n\nChoose payment method:",
             reply_markup=coin_select_keyboard(amount), parse_mode="Markdown")
         return
 
@@ -823,25 +700,17 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         results = []
         for bkey, base in STORE.get(vid,{}).get("bases",{}).items():
             qty = base["bins"].get(bin_num)
-            if qty:
-                results.append(f"📦 *{base['label']}* — {qty} @ £{base['price_per_card']}/card")
-        if results:
-            await update.message.reply_text(
-                f"🔍 *BIN {bin_num}*\n\n" + "\n".join(results),
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data=f"vendor_{vid}")]]),
-                parse_mode="Markdown")
-        else:
-            await update.message.reply_text(
-                f"❌ BIN *{bin_num}* not found.",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data=f"vendor_{vid}")]]),
-                parse_mode="Markdown")
+            if qty: results.append(f"📦 *{base['label']}* — {qty} @ £{base['price_per_card']}/card")
+        msg = f"🔍 *BIN {bin_num}*\n\n" + "\n".join(results) if results else f"❌ BIN *{bin_num}* not found."
+        await update.message.reply_text(msg,
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data=f"vendor|{vid}")]]),
+            parse_mode="Markdown")
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 def main():
     if not BOT_TOKEN: raise ValueError("BOT_TOKEN is not set!")
     app = Application.builder().token(BOT_TOKEN).build()
-
     app.add_handler(CommandHandler("start",         cmd_start))
     app.add_handler(CommandHandler("adminlogin",    cmd_adminlogin))
     app.add_handler(CommandHandler("adminlogout",   cmd_adminlogout))
@@ -863,7 +732,6 @@ def main():
     app.add_handler(CommandHandler("broadcast",     cmd_broadcast))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
-
     logger.info("Bot started ✅")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
