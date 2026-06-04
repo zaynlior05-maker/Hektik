@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 # ── Config ────────────────────────────────────────────────────────────────────
 BOT_TOKEN      = os.environ.get("BOT_TOKEN")
-ADMIN_USER     = os.environ.get("ADMIN_USERNAME", "hektik")
+ADMIN_USER     = os.environ.get("ADMIN_USERNAME", "hektikz")
 LOG_CHANNEL_ID = os.environ.get("LOG_CHANNEL_ID")   # e.g. -1001234567890
 MIN_BALANCE    = 70
 
