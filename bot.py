@@ -27,10 +27,11 @@ WALLETS = {
 }
 
 # ── Storage ───────────────────────────────────────────────────────────────────
-user_balances    = {}
-agreed_users     = set()
-user_join_dates  = {}
-logged_in_admins = set()   # user IDs who have authenticated with admin password
+user_balances         = {}
+agreed_users          = set()
+user_join_dates       = {}
+logged_in_admins      = set()   # user IDs who authenticated with admin password
+channel_verified      = set()   # users confirmed to have joined the channel
 
 live_stock = {"leads": 63_629_085, "stock": 183}
 TOPUP_AMOUNTS = [70, 100, 150, 200, 250, 300, 350, 400, 450, 500, 750, 1000]
@@ -111,18 +112,25 @@ async def log(app, text: str):
 # ── Channel membership check ──────────────────────────────────────────────────
 
 async def has_joined_channel(bot, user_id: int) -> bool:
-    """Returns True if user is a member of the required channel."""
+    """Check if user has joined the required channel. Caches successful checks."""
     if not JOIN_CHANNEL:
-        return True   # no channel set = open access
+        return True                    # no channel configured = open access
+
+    if user_id in channel_verified:
+        return True                    # already confirmed before, skip API call
+
     try:
         member = await bot.get_chat_member(chat_id=JOIN_CHANNEL, user_id=user_id)
-        return member.status in [
-            ChatMember.MEMBER,
-            ChatMember.ADMINISTRATOR,
-            ChatMember.OWNER,
-        ]
-    except Exception:
-        return False
+        # Accept any active membership status
+        if member.status in ("member", "administrator", "creator", "restricted"):
+            channel_verified.add(user_id)   # cache so we don't keep checking
+            return True
+        return False                   # left or banned
+    except Exception as e:
+        logger.warning(f"Channel membership check error: {e}")
+        # If check fails (bot not admin, network issue etc.) let the user through
+        # rather than blocking everyone. Remove this line to be strict instead.
+        return True
 
 # ── Admin auth ────────────────────────────────────────────────────────────────
 
