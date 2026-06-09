@@ -742,29 +742,40 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ── Welcome / join gate ───────────────────────────────────────────────────
     # MUST be handled BEFORE query.answer() so we can use show_alert=True
     if data == "agree_rules":
-        is_member, reason = await check_channel_membership(context.bot, uid)
+        try:
+            is_member, reason = await check_channel_membership(context.bot, uid)
 
-        if reason == "error":
-            await query.answer(
-                "⚠️ Could not verify membership.\n\nMake sure the bot is an Admin in the channel, then try again.",
-                show_alert=True)
-            return
+            if reason == "error":
+                await query.answer(
+                    "⚠️ Could not verify. Make sure the bot is Admin in the channel.",
+                    show_alert=True)
+                return
 
-        if not is_member:
-            await query.answer(
-                "⛔️ You haven't joined our channel yet!\n\nTap 'Join Channel to Continue' first, then try again.",
-                show_alert=True)
-            return
+            if not is_member:
+                await query.answer(
+                    "⛔️ You haven't joined our channel yet! Tap 'Join Channel to Continue' first.",
+                    show_alert=True)
+                return
 
-        # Verified member — grant full access
-        agreed_users.add(uid)
-        channel_verified.add(uid)
-        await query.answer("✅ Access granted! Welcome.", show_alert=False)
-        await log(context.application,
-            f"✅ *User Verified & Entered*\n👤 {user_tag(update)}\n🪪 ID: `{uid}`\n"
-            f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
-        await query.edit_message_text(
-            main_menu_text(), reply_markup=main_menu_keyboard(), parse_mode="Markdown")
+            # Verified — grant access
+            agreed_users.add(uid)
+            channel_verified.add(uid)
+            await query.answer()
+
+            await log(context.application,
+                f"✅ *User Verified*\n👤 {user_tag(update)}\n🪪 ID: `{uid}`\n"
+                f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+
+            # Send main menu as a fresh new message
+            await context.bot.send_message(
+                chat_id=uid,
+                text=main_menu_text(),
+                reply_markup=main_menu_keyboard(),
+                parse_mode="Markdown"
+            )
+
+        except Exception as e:
+            logger.error(f"agree_rules error: {e}")
         return
 
     # All other callbacks — answer immediately to remove loading spinner
