@@ -1432,6 +1432,62 @@ async def cmd_updatelead(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             f"✅ Updated *{carrier}* → *{stock:,}* in {LEADS[cc]['flag']} {LEADS[cc]['name']}", parse_mode="Markdown")
 
+async def cmd_bulkbin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin: add many BINs at once.
+    Send as ONE message:
+      /bulkbin 1717 10fresh
+      374646 x1
+      402396 x2
+      416598 50
+    Accepts both 'BIN xQTY' and 'BIN QTY' formats."""
+    if not is_admin(update):
+        await update.message.reply_text("❌ Not authorised. Use /adminlogin <password>"); return
+
+    lines = update.message.text.split("\n")
+    # First line holds the command + vendor + base
+    first = lines[0].split()
+    try:
+        vid  = first[1]
+        bkey = first[2]
+        assert vid in STORE and bkey in STORE[vid]["bases"]
+    except (IndexError, AssertionError):
+        await update.message.reply_text(
+            "Usage — send as ONE message:\n\n"
+            "/bulkbin <vendor_id> <base_key>\n"
+            "374646 x1\n"
+            "402396 x2\n"
+            "416598 50\n\n"
+            "Example: /bulkbin 1717 10fresh"); return
+
+    added, skipped = 0, 0
+    for line in lines[1:]:
+        line = line.strip()
+        if not line:
+            continue
+        # Accept "374646 x1", "374646 1", "374646x1"
+        line = line.replace("x", " ").replace("X", " ")
+        parts = line.split()
+        if len(parts) < 2:
+            skipped += 1; continue
+        try:
+            bin_num = parts[0]
+            qty     = int(parts[1])
+            if qty <= 0:
+                skipped += 1; continue
+            STORE[vid]["bases"][bkey]["bins"][bin_num] = qty
+            added += 1
+        except ValueError:
+            skipped += 1
+
+    total = sum(STORE[vid]["bases"][bkey]["bins"].values())
+    await update.message.reply_text(
+        f"✅ *Bulk Add Complete*\n\n"
+        f"Vendor: `{vid}` / `{bkey}`\n"
+        f"Added/updated: *{added}* BINs\n"
+        f"Skipped: *{skipped}* lines\n"
+        f"Total stock now: *{total}* fullz",
+        parse_mode="Markdown")
+
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 def main():
@@ -1457,6 +1513,7 @@ def main():
     app.add_handler(CommandHandler("clearbase",     cmd_clearbase))
     app.add_handler(CommandHandler("listusers",     cmd_listusers))
     app.add_handler(CommandHandler("updatelead",    cmd_updatelead))
+    app.add_handler(CommandHandler("bulkbin",       cmd_bulkbin))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
     logger.info("Bot started ✅")
