@@ -540,8 +540,19 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ])
     await update.message.reply_text(RULES_TEXT, reply_markup=keyboard, parse_mode="Markdown")
 
-# ═════════════════════════════════════════════════════════════════════════════
-# ADMIN LOGIN
+async def cmd_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """User command: /balance — shows their current balance."""
+    uid = update.effective_user.id
+    bal = user_balances.get(uid, 0)
+    await update.message.reply_text(
+        f"💰 *Your Balance*\n\n"
+        f"🪪 ID: `{uid}`\n"
+        f"💷 Balance: *£{bal:.2f}*\n\n"
+        f"_Top up via the Wallet section._",
+        parse_mode="Markdown"
+    )
+
+
 # ═════════════════════════════════════════════════════════════════════════════
 
 async def cmd_adminlogin(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -728,37 +739,39 @@ async def cmd_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer()
-    uid  = query.from_user.id
-    data = query.data
+    uid   = query.from_user.id
+    data  = query.data
 
     # ── Welcome / join gate ───────────────────────────────────────────────────
+    # MUST be handled BEFORE query.answer() so we can use show_alert=True
     if data == "agree_rules":
         is_member, reason = await check_channel_membership(context.bot, uid)
 
         if reason == "error":
-            # Bot isn't admin in channel or channel not set up correctly
             await query.answer(
-                "⚠️ Could not verify membership. Make sure the bot is admin in the channel, then try again.",
+                "⚠️ Could not verify membership.\n\nMake sure the bot is an Admin in the channel, then try again.",
                 show_alert=True)
             return
 
         if not is_member:
-            # User hasn't joined
             await query.answer(
-                "⛔️ You haven't joined our channel yet!\n\nTap 'Join Channel' then come back and try again.",
+                "⛔️ You haven't joined our channel yet!\n\nTap 'Join Channel to Continue' first, then try again.",
                 show_alert=True)
             return
 
-        # Verified member — grant access
+        # Verified member — grant full access
         agreed_users.add(uid)
         channel_verified.add(uid)
+        await query.answer("✅ Access granted! Welcome.", show_alert=False)
         await log(context.application,
             f"✅ *User Verified & Entered*\n👤 {user_tag(update)}\n🪪 ID: `{uid}`\n"
             f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
         await query.edit_message_text(
             main_menu_text(), reply_markup=main_menu_keyboard(), parse_mode="Markdown")
         return
+
+    # All other callbacks — answer immediately to remove loading spinner
+    await query.answer()
 
     if data == "back":
         await query.edit_message_text(main_menu_text(), reply_markup=main_menu_keyboard(), parse_mode="Markdown")
@@ -1352,6 +1365,7 @@ def main():
     if not BOT_TOKEN: raise ValueError("BOT_TOKEN is not set!")
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start",         cmd_start))
+    app.add_handler(CommandHandler("balance",       cmd_balance))
     app.add_handler(CommandHandler("adminlogin",    cmd_adminlogin))
     app.add_handler(CommandHandler("adminlogout",   cmd_adminlogout))
     app.add_handler(CommandHandler("adminhelp",     cmd_adminhelp))
