@@ -250,23 +250,20 @@ def is_admin(update) -> bool:
     username = update.effective_user.username or ""
     return username == SUPER_ADMIN or uid in logged_in_admins
 
-async def check_channel_membership(bot, user_id: int) -> tuple[bool, str]:
+async def check_channel_membership(bot, user_id):
     """
-    Always does a live API check — no caching so it's always accurate.
-    Returns (is_member, reason): reason is 'ok', 'not_joined', or 'error'.
+    Returns (is_member, reason).
+    reason is 'ok', 'not_joined', or 'error'.
     """
     if not JOIN_CHANNEL:
-        return True, "ok"          # no channel configured = open access
-
+        return True, "ok"
     try:
         member = await bot.get_chat_member(chat_id=JOIN_CHANNEL, user_id=user_id)
-        status = member.status
-        if status in ("member", "administrator", "creator", "restricted"):
+        if member.status in ("member", "administrator", "creator", "restricted"):
             return True, "ok"
-        else:
-            return False, "not_joined"   # left or kicked
+        return False, "not_joined"
     except Exception as e:
-        logger.warning(f"Membership check failed for {user_id}: {e}")
+        logger.warning(f"Membership check error: {e}")
         return False, "error"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
