@@ -200,6 +200,21 @@ LEADS = {
     "UK": {"flag":"🇬🇧","name":"United Kingdom", "carriers":{"EE":3_544_000,"MIX":221_000,"O2":1_831_000,"Sky":553_000,"Three":4_515_000,"Virgin":114_000,"Vodafone":530_000}},
 }
 
+# ── Targeted Source Pricing ───────────────────────────────────────────────────
+AGED_LEADS_PRICING = [
+    (1_000,   70),
+    (5_000,   300),
+    (10_000,  500),
+    (25_000,  1100),
+]
+
+CRYPTO_LEADS_PRICING = [
+    (1_000,   200),
+    (5_000,   800),
+    (10_000,  1500),
+    (25_000,  2500),
+]
+
 RULES_TEXT = (
     "🛍 *Welcome to HekTik's Store!*\n\n"
     "To access the store, you are required to join our channel below.\n\n"
@@ -389,12 +404,35 @@ def qty_keyboard(cc, carrier):
     rows.append([InlineKeyboardButton("⬅️ Back", callback_data=f"lc|{cc}")])
     return InlineKeyboardMarkup(rows)
 
-def main_menu_keyboard():
+# ── Targeted Source keyboards ─────────────────────────────────────────────────
+
+def tsource_main_keyboard():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("🌍 Leads",   callback_data="leads"),
-         InlineKeyboardButton("🛍️ Store",   callback_data="store")],
-        [InlineKeyboardButton("💰 Wallet",  callback_data="wallet"),
-         InlineKeyboardButton("🔍 Scanner", callback_data="scanner")],
+        [InlineKeyboardButton("‼️ Aged / Bank-Targeted Leads", callback_data="ts_aged")],
+        [InlineKeyboardButton("🪙 Crypto Leads",               callback_data="ts_crypto")],
+        [InlineKeyboardButton("🛠 Additional Services",         callback_data="ts_services")],
+        [InlineKeyboardButton("⬅️ Back",                        callback_data="back")],
+    ])
+
+def ts_qty_keyboard(pricing, cb_prefix):
+    rows = []
+    for i in range(0, len(pricing), 2):
+        row = []
+        for qty, price in pricing[i:i+2]:
+            k = qty // 1000
+            label = f"£{price//1000}k" if price >= 1000 else f"£{price}"
+            row.append(InlineKeyboardButton(f"{k}k — {label}", callback_data=f"{cb_prefix}|{qty}"))
+        rows.append(row)
+    rows.append([InlineKeyboardButton("⬅️ Back", callback_data="tsource")])
+    return InlineKeyboardMarkup(rows)
+
+
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🌍 Leads",            callback_data="leads"),
+         InlineKeyboardButton("🛍️ Store",            callback_data="store")],
+        [InlineKeyboardButton("💰 Wallet",           callback_data="wallet"),
+         InlineKeyboardButton("🔍 Scanner",          callback_data="scanner")],
+        [InlineKeyboardButton("🎯 Targeted Source",  callback_data="tsource")],
     ])
 
 def main_menu_text():
@@ -1091,6 +1129,170 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"💰 Remaining: *£{user_balances[uid]:.2f}*\n\n"
             f"Contact @{SUPER_ADMIN} to receive your data.",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back to Scanner", callback_data="scanner")]]),
+            parse_mode="Markdown")
+        return
+
+    # ── Targeted Source ───────────────────────────────────────────────────────
+    if data == "tsource":
+        await query.edit_message_text(
+            "🎯 *Targeted Source*\n\n"
+            "Select a category below:",
+            reply_markup=tsource_main_keyboard(),
+            parse_mode="Markdown")
+        return
+
+    if data == "ts_aged":
+        await query.edit_message_text(
+            "‼️ *Aged Leads / Bank-Targeted Leads*\n\n"
+            "• Fresh leads added daily\n"
+            "• Targeted bank leads available\n"
+            "• Demographic filtering: Female (60+) & Male (60+)\n\n"
+            "👵 *Age-Filtered Leads:*\n"
+            "• Choose specific age groups (Male or Female)\n\n"
+            "🏦 *Bank-Targeted Leads:*\n"
+            "✉️ *Details Provided:*\n"
+            "• Full Name\n"
+            "• Bank Name\n"
+            "• Card Type (Credit/Debit)\n"
+            "• Phone Number\n"
+            "• Address\n"
+            "• Email\n\n"
+            "💰 *Pricing:*\n"
+            "• 1k — £70\n"
+            "• 5k — £300\n"
+            "• 10k — £500\n"
+            "• 25k — £1.1k\n\n"
+            "_Select a quantity to purchase:_",
+            reply_markup=ts_qty_keyboard(AGED_LEADS_PRICING, "tsaged"),
+            parse_mode="Markdown")
+        return
+
+    if data == "ts_crypto":
+        await query.edit_message_text(
+            "🪙 *Crypto Leads* _(AVAILABLE IN STOCK)_\n\n"
+            "*Available Platforms:*\n"
+            "• KuCoin | Binance | CoinSpot | Crypto.com\n"
+            "• Shakepay | Coinbase | OKX | MetaMask\n"
+            "• USA iOS / Checked Crypto Leads — Verified & Crypto-Ready 24/7\n\n"
+            "✉️ *Details Provided:*\n"
+            "• Email | Phone | Full Name | DOB\n"
+            "• Country | Full Address | IP\n\n"
+            "💰 *Pricing:*\n"
+            "• 1k — £200\n"
+            "• 5k — £800\n"
+            "• 10k — £1.5k\n"
+            "• 25k — £2.5k\n\n"
+            "_Select a quantity to purchase:_",
+            reply_markup=ts_qty_keyboard(CRYPTO_LEADS_PRICING, "tscrypto"),
+            parse_mode="Markdown")
+        return
+
+    if data == "ts_services":
+        await query.edit_message_text(
+            "🛠 *Additional Services*\n\n"
+            "💬 *Sender Services:*\n"
+            "• Book your SMS send-out\n"
+            "• Email send-outs also available\n\n"
+            "💻 *Development Services:*\n"
+            "• Systems, development panels, specialised pages\n"
+            "• Script updates available upon request\n\n"
+            f"📩 PM Admin @{SUPER_ADMIN} to discuss your requirements.",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("📩 Contact Admin", url=f"https://t.me/{SUPER_ADMIN}")],
+                [InlineKeyboardButton("⬅️ Back", callback_data="tsource")],
+            ]),
+            parse_mode="Markdown")
+        return
+
+    # Aged leads qty → confirm
+    if data.startswith("tsaged|"):
+        qty   = int(data.split("|")[1])
+        price = dict(AGED_LEADS_PRICING).get(qty, 0)
+        k     = qty // 1000
+        label = f"£{price//1000}k" if price >= 1000 else f"£{price}"
+        balance = user_balances.get(uid, 0)
+        await query.edit_message_text(
+            f"🛒 *Purchase Confirmation*\n\n"
+            f"‼️ *Aged / Bank-Targeted Leads*\n"
+            f"🗂 Quantity: *{k}k leads*\n"
+            f"💷 *Total: {label}*\n\n"
+            f"Your balance: *£{balance:.2f}*\n\nConfirm purchase?",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("✅ Confirm", callback_data=f"tsaged_confirm|{qty}"),
+                 InlineKeyboardButton("❌ Cancel",  callback_data="ts_aged")]]),
+            parse_mode="Markdown")
+        return
+
+    if data.startswith("tsaged_confirm|"):
+        qty     = int(data.split("|")[1])
+        price   = dict(AGED_LEADS_PRICING).get(qty, 0)
+        k       = qty // 1000
+        balance = user_balances.get(uid, 0)
+        if balance < price:
+            await query.edit_message_text(
+                f"❌ *Insufficient Balance*\n\nRequired: £{price:,}\nYour balance: £{balance:.2f}",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("💰 Wallet", callback_data="wallet"),
+                     InlineKeyboardButton("⬅️ Back",   callback_data="ts_aged")]]),
+                parse_mode="Markdown"); return
+        user_balances[uid] = round(balance - price, 2)
+        await log(context.application,
+            f"🛒 *Purchase — Aged Leads*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
+            f"🗂 {k}k leads\n💷 Paid: £{price:,}\n💰 Remaining: £{user_balances[uid]:.2f}")
+        await query.edit_message_text(
+            f"✅ *Purchase Successful!*\n\n"
+            f"‼️ *Aged / Bank-Targeted Leads*\n"
+            f"🗂 *{k}k leads*\n"
+            f"💷 Paid: *£{price:,}*\n"
+            f"💰 Remaining: *£{user_balances[uid]:.2f}*\n\n"
+            f"Contact @{SUPER_ADMIN} to receive your leads.",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="tsource")]]),
+            parse_mode="Markdown")
+        return
+
+    # Crypto leads qty → confirm
+    if data.startswith("tscrypto|"):
+        qty   = int(data.split("|")[1])
+        price = dict(CRYPTO_LEADS_PRICING).get(qty, 0)
+        k     = qty // 1000
+        label = f"£{price//1000}k" if price >= 1000 else f"£{price}"
+        balance = user_balances.get(uid, 0)
+        await query.edit_message_text(
+            f"🛒 *Purchase Confirmation*\n\n"
+            f"🪙 *Crypto Leads*\n"
+            f"🗂 Quantity: *{k}k leads*\n"
+            f"💷 *Total: {label}*\n\n"
+            f"Your balance: *£{balance:.2f}*\n\nConfirm purchase?",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("✅ Confirm", callback_data=f"tscrypto_confirm|{qty}"),
+                 InlineKeyboardButton("❌ Cancel",  callback_data="ts_crypto")]]),
+            parse_mode="Markdown")
+        return
+
+    if data.startswith("tscrypto_confirm|"):
+        qty     = int(data.split("|")[1])
+        price   = dict(CRYPTO_LEADS_PRICING).get(qty, 0)
+        k       = qty // 1000
+        balance = user_balances.get(uid, 0)
+        if balance < price:
+            await query.edit_message_text(
+                f"❌ *Insufficient Balance*\n\nRequired: £{price:,}\nYour balance: £{balance:.2f}",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("💰 Wallet", callback_data="wallet"),
+                     InlineKeyboardButton("⬅️ Back",   callback_data="ts_crypto")]]),
+                parse_mode="Markdown"); return
+        user_balances[uid] = round(balance - price, 2)
+        await log(context.application,
+            f"🛒 *Purchase — Crypto Leads*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
+            f"🗂 {k}k leads\n💷 Paid: £{price:,}\n💰 Remaining: £{user_balances[uid]:.2f}")
+        await query.edit_message_text(
+            f"✅ *Purchase Successful!*\n\n"
+            f"🪙 *Crypto Leads*\n"
+            f"🗂 *{k}k leads*\n"
+            f"💷 Paid: *£{price:,}*\n"
+            f"💰 Remaining: *£{user_balances[uid]:.2f}*\n\n"
+            f"Contact @{SUPER_ADMIN} to receive your leads.",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="tsource")]]),
             parse_mode="Markdown")
         return
 
