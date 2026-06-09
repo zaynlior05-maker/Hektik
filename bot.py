@@ -788,6 +788,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # All other callbacks — answer immediately to remove loading spinner
     await query.answer()
 
+    # Clear any pending text-input modes — user navigated away, so cancel them.
+    # The handlers below (custom_amount, bsearch, buybin) re-set their own flag after this.
+    for _k in ("awaiting_custom", "awaiting_bin_search", "awaiting_qty"):
+        context.user_data.pop(_k, None)
+
     if data == "back":
         await query.edit_message_text(main_menu_text(), reply_markup=main_menu_keyboard(), parse_mode="Markdown")
         return
