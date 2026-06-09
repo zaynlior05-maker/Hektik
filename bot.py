@@ -90,7 +90,60 @@ DEADS_ITEMS = [
     ("2k Random File",                       1200, "drand2k"),
 ]
 
-# ── Leads Pricing Tiers ───────────────────────────────────────────────────────
+# ── Scanner Items ─────────────────────────────────────────────────────────────
+# Format: (label, category, price_per_k_usd)
+# Categories: all | socials | crypto | shopping | carrier
+SCANNER_ITEMS = [
+    # ── Crypto ───────────────────────────────────────────────────────────────
+    ("Binance · Email",       "crypto",   3.00),
+    ("Binance · Filter",      "crypto",   1.50),
+    ("CoinW · Email",         "crypto",   1.50),
+    ("CoinW · Mobile",        "crypto",   1.50),
+    ("HTX · Email",           "crypto",   1.50),
+    ("HTX · Mobile",          "crypto",   1.50),
+    ("KuCoin · Email",        "crypto",   1.50),
+    ("KuCoin · Mobile",       "crypto",   1.00),
+    ("OKX · Filter",          "crypto",   3.00),
+    ("Robinhood · Check",     "crypto",   2.50),
+    # ── Socials ──────────────────────────────────────────────────────────────
+    ("Facebook · Email",      "socials",  1.00),
+    ("Instagram · Mobile",    "socials",  1.00),
+    ("LinkedIn · Profile",    "socials",  15.00),
+    ("Signal",                "socials",  1.00),
+    ("Snapchat",              "socials",  2.00),
+    ("iMessage · Filter",     "socials",  0.35),
+    # ── Shopping ─────────────────────────────────────────────────────────────
+    ("DHL",                   "shopping", 1.50),
+    ("Shein",                 "shopping", 15.00),
+    # ── Carrier ──────────────────────────────────────────────────────────────
+    ("Carrier · Any",         "carrier",  1.50),
+    ("Carrier · Bangladesh",  "carrier",  0.75),
+    ("Carrier · Belgium",     "carrier",  0.75),
+    ("Carrier · Brazil",      "carrier",  0.75),
+    ("Carrier · France",      "carrier",  0.75),
+    ("Carrier · Germany",     "carrier",  0.75),
+    ("Carrier · HK",          "carrier",  0.75),
+    ("Carrier · Indonesia",   "carrier",  0.75),
+    ("Carrier · Italy",       "carrier",  0.75),
+    ("Carrier · Japan",       "carrier",  0.75),
+    ("Carrier · Pakistan",    "carrier",  0.75),
+    ("Carrier · Portugal",    "carrier",  0.75),
+    ("Carrier · Russia",      "carrier",  0.75),
+    ("Carrier · Spain",       "carrier",  0.75),
+    ("Carrier · Sweden",      "carrier",  0.75),
+    ("Carrier · UK",          "carrier",  0.75),
+    ("Carrier · US",          "carrier",  0.75),
+    ("Carrier · Ukraine",     "carrier",  0.75),
+    ("Carrier · Uzbekistan",  "carrier",  0.75),
+    ("Carrier · Vietnam",     "carrier",  0.75),
+]
+
+SCANNER_PER_PAGE = 10   # items shown per page
+
+# Scanner quantity tiers: (qty_k, label)
+SCANNER_QTYS = [1, 5, 10, 25, 50, 100]   # in thousands
+
+
 LEADS_PRICING = [
     (1_000,   15),  (2_000,  30),  (3_000,   45),  (4_000,  50),
     (5_000,   60),  (6_000,  65),  (7_000,   70),  (8_000,  80),
@@ -217,6 +270,70 @@ async def get_crypto_prices():
                 return {"BTC": d["bitcoin"]["gbp"], "SOL": d["solana"]["gbp"], "LTC": d["litecoin"]["gbp"]}
     except Exception:
         return None
+
+# ── Scanner keyboards ─────────────────────────────────────────────────────────
+
+SCAN_CATS = {
+    "all":      "All •",
+    "socials":  "Socials",
+    "crypto":   "Crypto",
+    "shopping": "Shop...",
+    "carrier":  "Carrier",
+}
+
+def scanner_items_for_cat(cat):
+    if cat == "all":
+        return list(enumerate(SCANNER_ITEMS))
+    return [(i, item) for i, item in enumerate(SCANNER_ITEMS) if item[1] == cat]
+
+def scanner_keyboard(cat="all", page=0):
+    """Category tabs + paginated item list."""
+    items      = scanner_items_for_cat(cat)
+    total_pages = max(1, (len(items) + SCANNER_PER_PAGE - 1) // SCANNER_PER_PAGE)
+    page_items  = items[page * SCANNER_PER_PAGE : (page + 1) * SCANNER_PER_PAGE]
+
+    rows = []
+
+    # ── Category tab row ────────────────────────────────────────────────────
+    tab_row = []
+    for key, label in SCAN_CATS.items():
+        display = f"› {label}" if key == cat else label
+        tab_row.append(InlineKeyboardButton(display, callback_data=f"scan|{key}|0"))
+    rows.append(tab_row)
+
+    # ── Item buttons (1 per row, full width) ────────────────────────────────
+    for idx, (label, category, price) in page_items:
+        price_fmt = f"${price:.2f}" if price != int(price) else f"${int(price):.2f}"
+        rows.append([InlineKeyboardButton(
+            f"{label} — {price_fmt} / k",
+            callback_data=f"sni|{idx}")])
+
+    # ── Pagination row ───────────────────────────────────────────────────────
+    nav = []
+    if page > 0:
+        nav.append(InlineKeyboardButton("← Prev", callback_data=f"scan|{cat}|{page-1}"))
+    if page < total_pages - 1:
+        nav.append(InlineKeyboardButton("Next →", callback_data=f"scan|{cat}|{page+1}"))
+    if nav:
+        rows.append(nav)
+
+    rows.append([InlineKeyboardButton("⬅️ Back", callback_data="back")])
+    return InlineKeyboardMarkup(rows)
+
+def scanner_qty_keyboard(idx, cat="all", page=0):
+    """Quantity selector for a scanner item."""
+    label, category, price = SCANNER_ITEMS[idx]
+    rows = []
+    for i in range(0, len(SCANNER_QTYS), 2):
+        row = []
+        for qty_k in SCANNER_QTYS[i:i+2]:
+            total = qty_k * price
+            row.append(InlineKeyboardButton(
+                f"{qty_k}k — £{total:.2f}",
+                callback_data=f"snq|{idx}|{qty_k}"))
+        rows.append(row)
+    rows.append([InlineKeyboardButton("⬅️ Back", callback_data=f"scan|{cat}|{page}")])
+    return InlineKeyboardMarkup(rows)
 
 def user_tag(update):
     u = update.effective_user
@@ -896,9 +1013,86 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ── Scanner ───────────────────────────────────────────────────────────────
     if data == "scanner":
         await query.edit_message_text(
-            f"🔍 *Scanner*\n\nContact @{SUPER_ADMIN} with the value to scan.",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="back")]]),
+            "🔍 *Scanner*\n\n"
+            "👆 Select a scanner to verify your data.",
+            reply_markup=scanner_keyboard("all", 0),
             parse_mode="Markdown")
+        return
+
+    # Category tab or page navigation
+    if data.startswith("scan|"):
+        _, cat, pg = data.split("|"); pg = int(pg)
+        items = scanner_items_for_cat(cat)
+        await query.edit_message_text(
+            "🔍 *Scanner*\n\n"
+            "👆 Select a scanner to verify your data.",
+            reply_markup=scanner_keyboard(cat, pg),
+            parse_mode="Markdown")
+        return
+
+    # Scanner item selected — show qty options
+    if data.startswith("sni|"):
+        idx = int(data.split("|")[1])
+        if idx >= len(SCANNER_ITEMS): await query.answer("Item not found."); return
+        label, category, price = SCANNER_ITEMS[idx]
+        balance = user_balances.get(uid, 0)
+        await query.edit_message_text(
+            f"🔍 *{label}*\n\n"
+            f"💰 Price: *${price:.2f} / k*\n"
+            f"Your balance: *£{balance:.2f}*\n\n"
+            f"Select quantity:",
+            reply_markup=scanner_qty_keyboard(idx, category),
+            parse_mode="Markdown")
+        return
+
+    # Quantity selected — confirm
+    if data.startswith("snq|"):
+        _, idx_s, qty_s = data.split("|"); idx = int(idx_s); qty_k = int(qty_s)
+        if idx >= len(SCANNER_ITEMS): await query.answer("Not found."); return
+        label, category, price = SCANNER_ITEMS[idx]
+        total_gbp = round(qty_k * price, 2)
+        balance   = user_balances.get(uid, 0)
+        await query.edit_message_text(
+            f"🛒 *Purchase Confirmation*\n\n"
+            f"🔍 *{label}*\n"
+            f"🗂 Quantity: *{qty_k}k*\n"
+            f"💷 *Total: £{total_gbp:.2f}*\n\n"
+            f"Your balance: *£{balance:.2f}*\n\nConfirm purchase?",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("✅ Confirm", callback_data=f"snc|{idx}|{qty_k}"),
+                 InlineKeyboardButton("❌ Cancel",  callback_data=f"sni|{idx}")]]),
+            parse_mode="Markdown")
+        return
+
+    # Scanner purchase confirmed
+    if data.startswith("snc|"):
+        _, idx_s, qty_s = data.split("|"); idx = int(idx_s); qty_k = int(qty_s)
+        if idx >= len(SCANNER_ITEMS): await query.answer("Not found."); return
+        label, category, price = SCANNER_ITEMS[idx]
+        total_gbp = round(qty_k * price, 2)
+        balance   = user_balances.get(uid, 0)
+        if balance < total_gbp:
+            await query.edit_message_text(
+                f"❌ *Insufficient Balance*\n\nRequired: £{total_gbp:.2f}\nYour balance: £{balance:.2f}",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("💰 Wallet",  callback_data="wallet"),
+                     InlineKeyboardButton("⬅️ Back",    callback_data=f"sni|{idx}")]]),
+                parse_mode="Markdown")
+            return
+        user_balances[uid] = round(balance - total_gbp, 2)
+        await log(context.application,
+            f"🔍 *Purchase — Scanner*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
+            f"Item: {label} | {qty_k}k\n💷 Paid: £{total_gbp:.2f}\n💰 Remaining: £{user_balances[uid]:.2f}")
+        await query.edit_message_text(
+            f"✅ *Purchase Successful!*\n\n"
+            f"🔍 *{label}*\n"
+            f"🗂 *{qty_k}k records*\n"
+            f"💷 Paid: *£{total_gbp:.2f}*\n"
+            f"💰 Remaining: *£{user_balances[uid]:.2f}*\n\n"
+            f"Contact @{SUPER_ADMIN} to receive your data.",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back to Scanner", callback_data="scanner")]]),
+            parse_mode="Markdown")
+        return
 
 # ── Text message handler ──────────────────────────────────────────────────────
 
