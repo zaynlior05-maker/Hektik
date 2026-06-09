@@ -90,6 +90,63 @@ DEADS_ITEMS = [
     ("2k Random File",                       1200, "drand2k"),
 ]
 
+# ── Leads Pricing Tiers ───────────────────────────────────────────────────────
+LEADS_PRICING = [
+    (1_000,   15),  (2_000,  30),  (3_000,   45),  (4_000,  50),
+    (5_000,   60),  (6_000,  65),  (7_000,   70),  (8_000,  80),
+    (10_000, 100),  (15_000,125),  (20_000, 150),  (25_000,175),
+    (30_000, 200),  (50_000,300),  (100_000,600),
+]
+
+# ── Leads Country & Carrier Data ─────────────────────────────────────────────
+# Format: "CC": {"flag":"🏳️","name":"Country","carriers":{"Carrier":stock}}
+# Admin: use /updatelead CC CarrierName stock  to change any value live
+LEADS = {
+    "AU": {"flag":"🇦🇺","name":"Australia",      "carriers":{"Telstra":4_200_000,"Optus":3_100_000,"Vodafone":1_800_000,"Boost Mobile":620_000,"TPG":430_000}},
+    "AT": {"flag":"🇦🇹","name":"Austria",        "carriers":{"A1":1_540_000,"Magenta":890_000,"Drei":760_000,"Spusu":210_000}},
+    "BH": {"flag":"🇧🇭","name":"Bahrain",        "carriers":{"Batelco":480_000,"Zain":390_000,"STC":210_000,"Viva":170_000}},
+    "BE": {"flag":"🇧🇪","name":"Belgium",        "carriers":{"Proximus":1_920_000,"Orange":1_340_000,"Base":980_000}},
+    "BR": {"flag":"🇧🇷","name":"Brazil",         "carriers":{"Vivo":7_800_000,"Claro":6_500_000,"TIM":5_200_000,"Oi":2_100_000}},
+    "BG": {"flag":"🇧🇬","name":"Bulgaria",       "carriers":{"A1":1_100_000,"Telenor":890_000,"Vivacom":760_000}},
+    "CA": {"flag":"🇨🇦","name":"Canada",         "carriers":{"Rogers":4_100_000,"Bell":3_800_000,"Telus":3_500_000,"Fido":980_000,"Koodo":760_000}},
+    "CY": {"flag":"🇨🇾","name":"Cyprus",         "carriers":{"Cyta":340_000,"MTN":210_000,"Epic":180_000}},
+    "CZ": {"flag":"🇨🇿","name":"Czech Republic", "carriers":{"T-Mobile":2_100_000,"O2":1_800_000,"Vodafone":1_400_000}},
+    "DK": {"flag":"🇩🇰","name":"Denmark",        "carriers":{"TDC":1_540_000,"Telenor":1_100_000,"Telia":980_000,"Tre":760_000}},
+    "ET": {"flag":"🇪🇪","name":"Estonia",        "carriers":{"Telia":430_000,"Elisa":380_000,"Tele2":290_000}},
+    "FI": {"flag":"🇫🇮","name":"Finland",        "carriers":{"Elisa":1_800_000,"DNA":1_500_000,"Telia":1_200_000}},
+    "FR": {"flag":"🇫🇷","name":"France",         "carriers":{"Orange":6_200_000,"SFR":4_800_000,"Bouygues":4_100_000,"Free Mobile":3_500_000}},
+    "DE": {"flag":"🇩🇪","name":"Germany",        "carriers":{"Telekom":8_900_000,"Vodafone":7_200_000,"O2":5_800_000,"1&1":1_400_000}},
+    "GR": {"flag":"🇬🇷","name":"Greece",         "carriers":{"Cosmote":2_800_000,"Vodafone":1_900_000,"Wind Hellas":1_400_000,"Nova":680_000}},
+    "HU": {"flag":"🇭🇺","name":"Hungary",        "carriers":{"Telekom":2_100_000,"Yettel":1_400_000,"Vodafone":980_000}},
+    "IS": {"flag":"🇮🇸","name":"Iceland",        "carriers":{"Siminn":180_000,"Vodafone":140_000,"Nova":110_000}},
+    "IE": {"flag":"🇮🇪","name":"Ireland",        "carriers":{"Eir":833_503,"Tesco Mobile":520_700,"Three A":351_645,"Three B":861_444,"Vodafone":1_720_550}},
+    "IT": {"flag":"🇮🇹","name":"Italy",          "carriers":{"TIM":5_900_000,"Vodafone":4_200_000,"WindTre":5_100_000,"Iliad":1_800_000,"PosteMobile":890_000}},
+    "LV": {"flag":"🇱🇻","name":"Latvia",         "carriers":{"LMT":540_000,"Tele2":430_000,"Bite":320_000}},
+    "LT": {"flag":"🇱🇹","name":"Lithuania",      "carriers":{"Tele2":890_000,"Bite":760_000,"Telia":540_000}},
+    "MY": {"flag":"🇲🇾","name":"Malaysia",       "carriers":{"Maxis":4_200_000,"Celcom":3_100_000,"Digi":3_800_000,"U Mobile":1_400_000,"Unifi":980_000}},
+    "MT": {"flag":"🇲🇹","name":"Malta",          "carriers":{"GO":180_000,"Melita":140_000,"Epic":110_000}},
+    "NL": {"flag":"🇳🇱","name":"Netherlands",    "carriers":{"KPN":3_200_000,"VodafoneZiggo":2_800_000,"T-Mobile":2_100_000,"Tele2":890_000}},
+    "NZ": {"flag":"🇳🇿","name":"New Zealand",    "carriers":{"Spark":1_800_000,"One NZ":1_400_000,"2degrees":980_000}},
+    "NO": {"flag":"🇳🇴","name":"Norway",         "carriers":{"Telenor":2_400_000,"Telia":1_800_000,"Ice":760_000}},
+    "PL": {"flag":"🇵🇱","name":"Poland",         "carriers":{"Orange":4_100_000,"Play":3_800_000,"Plus":3_200_000,"T-Mobile":2_900_000}},
+    "PT": {"flag":"🇵🇹","name":"Portugal",       "carriers":{"NOS":2_800_000,"MEO":2_400_000,"Vodafone":1_900_000}},
+    "PR": {"flag":"🇵🇷","name":"Puerto Rico",    "carriers":{"Claro":1_100_000,"Liberty":540_000,"T-Mobile":890_000}},
+    "QA": {"flag":"🇶🇦","name":"Qatar",          "carriers":{"Ooredoo":980_000,"Vodafone Qatar":760_000}},
+    "RO": {"flag":"🇷🇴","name":"Romania",        "carriers":{"Orange":3_200_000,"Vodafone":2_800_000,"Digi":2_100_000,"Telekom":1_400_000}},
+    "SG": {"flag":"🇸🇬","name":"Singapore",      "carriers":{"Singtel":2_100_000,"StarHub":1_400_000,"M1":980_000,"TPG":320_000}},
+    "SK": {"flag":"🇸🇰","name":"Slovakia",       "carriers":{"Slovak Telekom":1_400_000,"Orange":1_100_000,"O2":760_000}},
+    "SI": {"flag":"🇸🇮","name":"Slovenia",       "carriers":{"A1":540_000,"Telekom SI":430_000,"T-2":210_000}},
+    "ZA": {"flag":"🇿🇦","name":"South Africa",   "carriers":{"Vodacom":5_200_000,"MTN":4_800_000,"Cell C":2_100_000,"Telkom":1_400_000}},
+    "ES": {"flag":"🇪🇸","name":"Spain",          "carriers":{"Movistar":7_200_000,"Orange":5_800_000,"Vodafone":4_900_000,"MásMóvil":2_100_000,"Yoigo":1_400_000}},
+    "SE": {"flag":"🇸🇪","name":"Sweden",         "carriers":{"Telia":3_200_000,"Tele2":2_800_000,"Tre":1_900_000,"Telenor":1_400_000}},
+    "CH": {"flag":"🇨🇭","name":"Switzerland",    "carriers":{"Swisscom":2_800_000,"Sunrise":1_900_000,"Salt":980_000}},
+    "TW": {"flag":"🇹🇼","name":"Taiwan",         "carriers":{"Chunghwa":4_100_000,"Taiwan Mobile":3_200_000,"FarEasTone":2_800_000,"TSTAR":1_100_000}},
+    "TR": {"flag":"🇹🇷","name":"Turkey",         "carriers":{"Turkcell":6_800_000,"Vodafone":4_900_000,"Türk Telekom":4_200_000}},
+    "AE": {"flag":"🇦🇪","name":"UAE",            "carriers":{"Etisalat (e&)":2_400_000,"du":1_800_000}},
+    "UA": {"flag":"🇺🇦","name":"Ukraine",        "carriers":{"Kyivstar":4_800_000,"Vodafone":3_200_000,"lifecell":2_100_000}},
+    "UK": {"flag":"🇬🇧","name":"United Kingdom", "carriers":{"EE":3_544_000,"MIX":221_000,"O2":1_831_000,"Sky":553_000,"Three":4_515_000,"Virgin":114_000,"Vodafone":530_000}},
+}
+
 RULES_TEXT = (
     "🛍 *Welcome to HekTik's Store!*\n\n"
     "To access the store, you are required to join our channel below.\n\n"
@@ -165,6 +222,55 @@ def user_tag(update):
     u = update.effective_user
     uname = f"@{u.username}" if u.username else f"ID:`{u.id}`"
     return f"{u.full_name or 'Unknown'} ({uname})"
+
+# ── Leads keyboards ───────────────────────────────────────────────────────────
+
+def leads_pricing_text():
+    lines = ["📊 *Pricing*"]
+    for qty, price in LEADS_PRICING:
+        k = qty // 1000
+        lines.append(f"{k}k — £{price}")
+    return "\n".join(lines)
+
+def country_keyboard():
+    """Grid of all countries, 2 per row, alphabetical."""
+    countries = sorted(LEADS.items(), key=lambda x: x[1]["name"])
+    rows = []
+    for i in range(0, len(countries), 2):
+        row = [InlineKeyboardButton(
+            f"{d['flag']} {d['name']}",
+            callback_data=f"lc|{cc}")
+            for cc, d in countries[i:i+2]]
+        rows.append(row)
+    rows.append([InlineKeyboardButton("⬅️ Back", callback_data="back")])
+    return InlineKeyboardMarkup(rows)
+
+def carrier_keyboard(cc):
+    """Grid of carriers for a country, 2 per row."""
+    data = LEADS[cc]
+    rows = []
+    carriers = list(data["carriers"].items())
+    for i in range(0, len(carriers), 2):
+        row = [InlineKeyboardButton(
+            f"{name} ({stock:,})",
+            callback_data=f"lk|{cc}|{name}")
+            for name, stock in carriers[i:i+2]]
+        rows.append(row)
+    rows.append([InlineKeyboardButton("⬅️ Back", callback_data="leads")])
+    return InlineKeyboardMarkup(rows)
+
+def qty_keyboard(cc, carrier):
+    """Quantity/tier selection buttons, 2 per row."""
+    rows = []
+    tiers = LEADS_PRICING
+    for i in range(0, len(tiers), 2):
+        row = [InlineKeyboardButton(
+            f"{qty//1000}k — £{price}",
+            callback_data=f"lq|{cc}|{carrier}|{qty}")
+            for qty, price in tiers[i:i+2]]
+        rows.append(row)
+    rows.append([InlineKeyboardButton("⬅️ Back", callback_data=f"lc|{cc}")])
+    return InlineKeyboardMarkup(rows)
 
 def main_menu_keyboard():
     return InlineKeyboardMarkup([
@@ -688,14 +794,111 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown")
         return
 
-    # ── Leads / Scanner ───────────────────────────────────────────────────────
-    back_btn = InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="back")]])
+    # ── Leads ─────────────────────────────────────────────────────────────────
     if data == "leads":
-        await query.edit_message_text(f"🌍 *Leads*\n\nAvailable: *{live_stock['leads']:,}*\n\nContact @{SUPER_ADMIN}.",
-            reply_markup=back_btn, parse_mode="Markdown")
-    elif data == "scanner":
-        await query.edit_message_text(f"🔍 *Scanner*\n\nContact @{SUPER_ADMIN} with the value to scan.",
-            reply_markup=back_btn, parse_mode="Markdown")
+        total = sum(sum(d["carriers"].values()) for d in LEADS.values())
+        pricing = leads_pricing_text()
+        await query.edit_message_text(
+            f"🌍 *Leads*\n\n"
+            f"{pricing}\n\n"
+            f"_Select a country below:_",
+            reply_markup=country_keyboard(),
+            parse_mode="Markdown")
+        return
+
+    # Country selected → show carriers
+    if data.startswith("lc|"):
+        cc = data.split("|")[1]
+        if cc not in LEADS: await query.answer("Country not found."); return
+        d = LEADS[cc]
+        total = sum(d["carriers"].values())
+        await query.edit_message_text(
+            f"*Country:* {d['flag']} {d['name']}\n"
+            f"*Stock:* {total:,} numbers\n\n"
+            f"Available carriers:",
+            reply_markup=carrier_keyboard(cc),
+            parse_mode="Markdown")
+        return
+
+    # Carrier selected → show qty tiers
+    if data.startswith("lk|"):
+        _, cc, carrier = data.split("|", 2)
+        if cc not in LEADS: await query.answer("Not found."); return
+        stock = LEADS[cc]["carriers"].get(carrier, 0)
+        d = LEADS[cc]
+        await query.edit_message_text(
+            f"*Country:* {d['flag']} {d['name']}\n"
+            f"*Carrier:* {carrier}\n"
+            f"*Available:* {stock:,} numbers\n\n"
+            f"Select quantity:",
+            reply_markup=qty_keyboard(cc, carrier),
+            parse_mode="Markdown")
+        return
+
+    # Qty selected → confirm screen
+    if data.startswith("lq|"):
+        _, cc, carrier, qty_str = data.split("|", 3)
+        qty     = int(qty_str)
+        price   = dict(LEADS_PRICING).get(qty, 0)
+        d       = LEADS[cc]
+        stock   = LEADS[cc]["carriers"].get(carrier, 0)
+        balance = user_balances.get(uid, 0)
+        if stock < qty:
+            await query.answer(f"Not enough stock. Only {stock:,} available.", show_alert=True)
+            return
+        await query.edit_message_text(
+            f"🛒 *Purchase Confirmation*\n\n"
+            f"🌍 *Country:* {d['flag']} {d['name']}\n"
+            f"📡 *Carrier:* {carrier}\n"
+            f"🗂 *Quantity:* {qty:,} numbers\n"
+            f"💷 *Price: £{price}*\n\n"
+            f"Your balance: *£{balance:.2f}*\n\nConfirm purchase?",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("✅ Confirm", callback_data=f"lb|{cc}|{carrier}|{qty}"),
+                 InlineKeyboardButton("❌ Cancel",  callback_data=f"lk|{cc}|{carrier}")]]),
+            parse_mode="Markdown")
+        return
+
+    # Leads purchase confirmed
+    if data.startswith("lb|"):
+        _, cc, carrier, qty_str = data.split("|", 3)
+        qty     = int(qty_str)
+        price   = dict(LEADS_PRICING).get(qty, 0)
+        balance = user_balances.get(uid, 0)
+        d       = LEADS[cc]
+        if balance < price:
+            await query.edit_message_text(
+                f"❌ *Insufficient Balance*\n\nRequired: £{price}\nYour balance: £{balance:.2f}",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("💰 Wallet", callback_data="wallet"),
+                     InlineKeyboardButton("⬅️ Back",   callback_data=f"lk|{cc}|{carrier}")]]),
+                parse_mode="Markdown")
+            return
+        user_balances[uid] = round(balance - price, 2)
+        # Deduct from carrier stock
+        if cc in LEADS and carrier in LEADS[cc]["carriers"]:
+            LEADS[cc]["carriers"][carrier] = max(0, LEADS[cc]["carriers"][carrier] - qty)
+        await log(context.application,
+            f"🛒 *Purchase — Leads*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
+            f"🌍 {d['flag']} {d['name']} | {carrier}\n"
+            f"🗂 {qty:,} numbers\n💷 Paid: £{price}\n💰 Remaining: £{user_balances[uid]:.2f}")
+        await query.edit_message_text(
+            f"✅ *Purchase Successful!*\n\n"
+            f"🌍 *{d['flag']} {d['name']}* — {carrier}\n"
+            f"🗂 *{qty:,} numbers*\n"
+            f"💷 Paid: *£{price}*\n"
+            f"💰 Remaining: *£{user_balances[uid]:.2f}*\n\n"
+            f"Contact @{SUPER_ADMIN} to receive your leads.",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back to Leads", callback_data="leads")]]),
+            parse_mode="Markdown")
+        return
+
+    # ── Scanner ───────────────────────────────────────────────────────────────
+    if data == "scanner":
+        await query.edit_message_text(
+            f"🔍 *Scanner*\n\nContact @{SUPER_ADMIN} with the value to scan.",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="back")]]),
+            parse_mode="Markdown")
 
 # ── Text message handler ──────────────────────────────────────────────────────
 
@@ -724,6 +927,29 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data=f"vendor|{vid}")]]),
             parse_mode="Markdown")
 
+async def cmd_updatelead(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin: /updatelead <CC> <CarrierName> <stock>
+    Example: /updatelead UK EE 4000000
+    Use 0 to remove a carrier."""
+    if not is_admin(update): await update.message.reply_text("❌ Not authorised."); return
+    try:
+        cc      = context.args[0].upper()
+        carrier = context.args[1]
+        stock   = int(context.args[2])
+        assert cc in LEADS
+    except (IndexError, ValueError, AssertionError):
+        await update.message.reply_text(
+            "Usage: /updatelead <CC> <Carrier> <stock>\n"
+            "Example: /updatelead UK EE 4000000\n"
+            "Country codes: UK, IE, AU, DE, FR, ES..."); return
+    if stock <= 0:
+        LEADS[cc]["carriers"].pop(carrier, None)
+        await update.message.reply_text(f"✅ Removed *{carrier}* from {LEADS[cc]['flag']} {LEADS[cc]['name']}", parse_mode="Markdown")
+    else:
+        LEADS[cc]["carriers"][carrier] = stock
+        await update.message.reply_text(
+            f"✅ Updated *{carrier}* → *{stock:,}* in {LEADS[cc]['flag']} {LEADS[cc]['name']}", parse_mode="Markdown")
+
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 def main():
@@ -747,7 +973,7 @@ def main():
     app.add_handler(CommandHandler("listbins",      cmd_listbins))
     app.add_handler(CommandHandler("clearbase",     cmd_clearbase))
     app.add_handler(CommandHandler("listusers",     cmd_listusers))
-    app.add_handler(CommandHandler("broadcast",     cmd_broadcast))
+    app.add_handler(CommandHandler("updatelead",    cmd_updatelead))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
     logger.info("Bot started ✅")
