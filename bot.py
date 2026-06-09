@@ -884,48 +884,60 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown")
         return
 
-    # BIN purchase confirm
+    # BIN selected → show quantity entry screen
     if data.startswith("buybin|"):
         _, vid, bkey, bin_num, page = data.split("|", 4)
         base = STORE[vid]["bases"][bkey]; qty = base["bins"].get(bin_num, 0)
         if qty == 0: await query.answer("Out of stock."); return
-        total = base["price_per_card"] * qty; balance = user_balances.get(uid, 0)
+        price   = base["price_per_card"]
+        # Save what they're buying so the text handler can process the quantity
+        context.user_data["buy_bin"] = {
+            "vid": vid, "bkey": bkey, "bin_num": bin_num, "page": page,
+            "price": price, "available": qty
+        }
+        context.user_data["awaiting_qty"] = True
         await query.edit_message_text(
-            f"🛒 *Purchase Confirmation*\n\n"
-            f"👤 Vendor: *{STORE[vid]['label']}*\n"
-            f"📦 Base: *{base['label']}*\n"
-            f"💳 BIN: *{bin_num}*\n"
-            f"🗂 Qty: *{qty} cards*\n"
-            f"💰 Per card: *£{base['price_per_card']}*\n"
-            f"💷 *Total: £{total}*\n\n"
-            f"Your balance: *£{balance:.2f}*\n\nConfirm purchase?",
+            f"👤 *Vendor:* {STORE[vid]['label']}\n"
+            f"📦 *Base:* {base['label']}\n"
+            f"💳 *BIN:* {bin_num}\n"
+            f"🗂 *Available:* {qty} fullz\n\n"
+            f"💷 *Price:* £{price:.2f} per fullz\n\n"
+            f"Enter quantity (1-{qty}):",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("✅ Confirm", callback_data=f"cfmbin|{vid}|{bkey}|{bin_num}|{page}"),
-                 InlineKeyboardButton("❌ Cancel",  callback_data=f"bpage|{vid}|{bkey}|{page}")]]),
+                [InlineKeyboardButton("⬅️ Back", callback_data=f"bpage|{vid}|{bkey}|{page}")]]),
             parse_mode="Markdown")
         return
 
-    # BIN purchase confirmed
-    if data.startswith("cfmbin|"):
-        _, vid, bkey, bin_num, page = data.split("|", 4)
-        base = STORE[vid]["bases"][bkey]; qty = base["bins"].get(bin_num, 0)
-        total = base["price_per_card"] * qty; balance = user_balances.get(uid, 0)
-        if qty == 0: await query.answer("Out of stock."); return
+    # Quantity confirmed → process purchase
+    if data.startswith("cfmqty|"):
+        _, vid, bkey, bin_num, qty_s = data.split("|", 4)
+        buy_qty = int(qty_s)
+        base    = STORE[vid]["bases"][bkey]
+        stock   = base["bins"].get(bin_num, 0)
+        price   = base["price_per_card"]
+        total   = round(price * buy_qty, 2)
+        balance = user_balances.get(uid, 0)
+        if buy_qty > stock:
+            await query.answer(f"Only {stock} available now.", show_alert=True); return
         if balance < total:
             await query.edit_message_text(
-                f"❌ *Insufficient Balance*\n\nRequired: £{total}\nYour balance: £{balance:.2f}",
+                f"❌ *Insufficient Balance*\n\nRequired: £{total:.2f}\nYour balance: £{balance:.2f}",
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton("💰 Wallet", callback_data="wallet"),
-                     InlineKeyboardButton("⬅️ Back",   callback_data=f"bpage|{vid}|{bkey}|{page}")]]),
+                     InlineKeyboardButton("⬅️ Back",   callback_data=f"vendor|{vid}")]]),
                 parse_mode="Markdown"); return
+        # Deduct balance and reduce stock by the bought quantity
         user_balances[uid] = round(balance - total, 2)
-        del STORE[vid]["bases"][bkey]["bins"][bin_num]
+        base["bins"][bin_num] = stock - buy_qty
+        if base["bins"][bin_num] <= 0:
+            del base["bins"][bin_num]
         await log(context.application,
             f"🛒 *Purchase — BIN*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"Vendor: {STORE[vid]['label']}\nBase: {base['label']}\n"
-            f"BIN: {bin_num} x{qty}\n💷 Paid: £{total}\n💰 Remaining: £{user_balances[uid]:.2f}")
+            f"BIN: {bin_num} x{buy_qty}\n💷 Paid: £{total:.2f}\n💰 Remaining: £{user_balances[uid]:.2f}")
         await query.edit_message_text(
-            f"✅ *Purchase Successful!*\n\nBIN: *{bin_num}* | Qty: *{qty}* | Paid: *£{total}*\n"
+            f"✅ *Purchase Successful!*\n\n"
+            f"💳 BIN: *{bin_num}*\n🗂 Qty: *{buy_qty} fullz*\n💷 Paid: *£{total:.2f}*\n"
             f"💰 Remaining: *£{user_balances[uid]:.2f}*\n\nContact @{SUPER_ADMIN} for your files.",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back to Store", callback_data="store")]]),
             parse_mode="Markdown")
@@ -1327,6 +1339,38 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ── Text message handler ──────────────────────────────────────────────────────
 
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # ── Quantity entry for a BIN purchase ──────────────────────────────────────
+    if context.user_data.get("awaiting_qty"):
+        info = context.user_data.get("buy_bin", {})
+        text = update.message.text.strip()
+        try:
+            buy_qty = int(text)
+        except ValueError:
+            await update.message.reply_text("Please enter a valid number."); return
+
+        available = info.get("available", 0)
+        if buy_qty < 1 or buy_qty > available:
+            await update.message.reply_text(f"Please enter a number between 1 and {available}."); return
+
+        context.user_data["awaiting_qty"] = False
+        vid, bkey, bin_num = info["vid"], info["bkey"], info["bin_num"]
+        price = info["price"]
+        total = round(price * buy_qty, 2)
+        balance = user_balances.get(update.effective_user.id, 0)
+
+        await update.message.reply_text(
+            f"🛒 *Purchase Confirmation*\n\n"
+            f"💳 BIN: *{bin_num}*\n"
+            f"🗂 Quantity: *{buy_qty} fullz*\n"
+            f"💰 Per fullz: *£{price:.2f}*\n"
+            f"💷 *Total: £{total:.2f}*\n\n"
+            f"Your balance: *£{balance:.2f}*\n\nConfirm purchase?",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("✅ Confirm", callback_data=f"cfmqty|{vid}|{bkey}|{bin_num}|{buy_qty}"),
+                 InlineKeyboardButton("❌ Cancel",  callback_data=f"vendor|{vid}")]]),
+            parse_mode="Markdown")
+        return
+
     if context.user_data.get("awaiting_custom"):
         text = update.message.text.strip().replace("£","")
         try:
@@ -1342,14 +1386,28 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         bin_num = update.message.text.strip()
         vid = context.user_data.get("bin_search_vendor")
         context.user_data["awaiting_bin_search"] = False
-        results = []
-        for bkey, base in STORE.get(vid,{}).get("bases",{}).items():
+
+        buttons = []
+        for bkey, base in STORE.get(vid, {}).get("bases", {}).items():
             qty = base["bins"].get(bin_num)
-            if qty: results.append(f"📦 *{base['label']}* — {qty} @ £{base['price_per_card']}/card")
-        msg = f"🔍 *BIN {bin_num}*\n\n" + "\n".join(results) if results else f"❌ BIN *{bin_num}* not found."
-        await update.message.reply_text(msg,
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data=f"vendor|{vid}")]]),
-            parse_mode="Markdown")
+            if qty:
+                buttons.append([InlineKeyboardButton(
+                    f"{base['label']} - {bin_num} ({qty})",
+                    callback_data=f"buybin|{vid}|{bkey}|{bin_num}|0")])
+
+        if buttons:
+            buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"vendor|{vid}")])
+            await update.message.reply_text(
+                f"👤 *Vendor:* {STORE[vid]['label']}\n\n"
+                f"🔍 *Search results for {bin_num}:*\n\n"
+                f"Tap a result below to purchase:",
+                reply_markup=InlineKeyboardMarkup(buttons),
+                parse_mode="Markdown")
+        else:
+            await update.message.reply_text(
+                f"❌ BIN *{bin_num}* not found in {STORE.get(vid,{}).get('label','this vendor')}.",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data=f"vendor|{vid}")]]),
+                parse_mode="Markdown")
 
 async def cmd_updatelead(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Admin: /updatelead <CC> <CarrierName> <stock>
