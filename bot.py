@@ -423,7 +423,7 @@ def ts_qty_keyboard(pricing, cb_prefix):
     rows.append([InlineKeyboardButton("⬅️ Back", callback_data="tsource")])
     return InlineKeyboardMarkup(rows)
 
-
+def main_menu_keyboard():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("🌍 Leads",            callback_data="leads"),
          InlineKeyboardButton("🛍️ Store",            callback_data="store")],
