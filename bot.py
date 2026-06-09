@@ -454,7 +454,7 @@ def wallet_profile_text(uid):
 def amount_keyboard():
     rows, row = [], []
     for a in TOPUP_AMOUNTS:
-        row.append(InlineKeyboardButton(f"💠 £{a} 💠", callback_data=f"amt|{a}"))
+        row.append(InlineKeyboardButton(f"🔶 £{a} 🔶", callback_data=f"amt|{a}"))
         if len(row) == 2:
             rows.append(row); row = []
     if row: rows.append(row)
@@ -794,12 +794,13 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # ── Wallet ────────────────────────────────────────────────────────────────
     if data == "wallet":
+        await log(context.application, f"💰 *Opened Wallet*\n👤 {user_tag(update)}")
         await query.edit_message_text(wallet_profile_text(uid), reply_markup=amount_keyboard(), parse_mode="Markdown")
         return
 
     if data.startswith("amt|"):
         amount = data.split("|")[1]
-        await query.edit_message_text(f"💠 *£{amount} Top-Up*\n\nChoose your payment method:",
+        await query.edit_message_text(f"🔶 *£{amount} Top-Up*\n\nChoose your payment method:",
             reply_markup=coin_select_keyboard(amount), parse_mode="Markdown")
         return
 
@@ -836,6 +837,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # ── Store ─────────────────────────────────────────────────────────────────
     if data == "store":
+        await log(context.application, f"🛍️ *Opened Store*\n👤 {user_tag(update)}")
         await query.edit_message_text("👥 *Select a vendor:*", reply_markup=vendor_select_keyboard(), parse_mode="Markdown")
         return
 
@@ -843,6 +845,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if data.startswith("vendor|"):
         vid = data.split("|")[1]
         if vid not in STORE: await query.answer("Vendor not found."); return
+        await log(context.application, f"👤 *Viewed Vendor {vid}*\n👤 {user_tag(update)}")
         await query.edit_message_text(f"👤 *{STORE[vid]['label']}*\n\nSelect a base:",
             reply_markup=base_select_keyboard(vid), parse_mode="Markdown")
         return
@@ -852,6 +855,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         _, vid, bkey = data.split("|", 2)
         base = STORE[vid]["bases"][bkey]
         total_qty = sum(base["bins"].values())
+        await log(context.application,
+            f"📦 *Viewed Base*\n👤 {user_tag(update)}\nVendor {vid} — {base['label']}")
         kbd, total_pages = bin_list_keyboard(vid, bkey, 0)
         await query.edit_message_text(
             f"👤 *{STORE[vid]['label']}*\n"
@@ -879,6 +884,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         vid = data.split("|")[1]
         context.user_data["bin_search_vendor"] = vid
         context.user_data["awaiting_bin_search"] = True
+        await log(context.application, f"🔍 *Opened BIN Search*\n👤 {user_tag(update)}\nVendor {vid}")
         await query.edit_message_text(f"🔍 *BIN Search — {STORE[vid]['label']}*\n\nType the BIN number:",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data=f"vendor|{vid}")]]),
             parse_mode="Markdown")
@@ -991,6 +997,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # ── Leads ─────────────────────────────────────────────────────────────────
     if data == "leads":
+        await log(context.application, f"🌍 *Opened Leads*\n👤 {user_tag(update)}")
         total = sum(sum(d["carriers"].values()) for d in LEADS.values())
         pricing = leads_pricing_text()
         await query.edit_message_text(
@@ -1007,6 +1014,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if cc not in LEADS: await query.answer("Country not found."); return
         d = LEADS[cc]
         total = sum(d["carriers"].values())
+        await log(context.application, f"🌍 *Leads — {d['name']}*\n👤 {user_tag(update)}")
         await query.edit_message_text(
             f"*Country:* {d['flag']} {d['name']}\n"
             f"*Stock:* {total:,} numbers\n\n"
@@ -1021,6 +1029,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if cc not in LEADS: await query.answer("Not found."); return
         stock = LEADS[cc]["carriers"].get(carrier, 0)
         d = LEADS[cc]
+        await log(context.application, f"📡 *Leads Carrier — {d['name']} / {carrier}*\n👤 {user_tag(update)}")
         await query.edit_message_text(
             f"*Country:* {d['flag']} {d['name']}\n"
             f"*Carrier:* {carrier}\n"
@@ -1090,6 +1099,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # ── Scanner ───────────────────────────────────────────────────────────────
     if data == "scanner":
+        await log(context.application, f"🔍 *Opened Scanner*\n👤 {user_tag(update)}")
         await query.edit_message_text(
             "🔍 *Scanner*\n\n"
             "👆 Select a scanner to verify your data.",
@@ -1174,6 +1184,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # ── Targeted Source ───────────────────────────────────────────────────────
     if data == "tsource":
+        await log(context.application, f"🎯 *Opened Targeted Source*\n👤 {user_tag(update)}")
         await query.edit_message_text(
             "🎯 *Targeted Source*\n\n"
             "Select a category below:",
@@ -1378,7 +1389,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if amount < MIN_TOPUP: await update.message.reply_text(f"Minimum is £{MIN_TOPUP}."); return
         except ValueError: await update.message.reply_text("Enter a number e.g. 150"); return
         context.user_data["awaiting_custom"] = False
-        await update.message.reply_text(f"💠 *£{amount} Top-Up*\n\nChoose payment method:",
+        await update.message.reply_text(f"🔶 *£{amount} Top-Up*\n\nChoose payment method:",
             reply_markup=coin_select_keyboard(amount), parse_mode="Markdown")
         return
 
@@ -1394,6 +1405,10 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 buttons.append([InlineKeyboardButton(
                     f"{base['label']} - {bin_num} ({qty})",
                     callback_data=f"buybin|{vid}|{bkey}|{bin_num}|0")])
+
+        found = "✅ found" if buttons else "❌ not found"
+        await log(context.application,
+            f"🔍 *BIN Searched*\n👤 {user_tag(update)}\nVendor {vid} | BIN: `{bin_num}` ({found})")
 
         if buttons:
             buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"vendor|{vid}")])
