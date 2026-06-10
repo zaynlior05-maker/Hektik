@@ -1,4 +1,5 @@
 import os
+import json
 import logging
 import aiohttp
 from datetime import datetime
@@ -10,6 +11,11 @@ from telegram.ext import (
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Where data is saved. Set DATA_DIR=/data in Railway (with a Volume mounted at /data)
+# so it survives restarts AND redeploys.
+DATA_DIR  = os.environ.get("DATA_DIR", ".")
+DATA_FILE = os.path.join(DATA_DIR, "botdata.json")
 
 # ── Config ────────────────────────────────────────────────────────────────────
 BOT_TOKEN      = os.environ.get("BOT_TOKEN")
@@ -232,6 +238,49 @@ RULES_TEXT = (
     "By continuing, you agree to the rules.\n"
     "Note: withdrawals can be made at any time!"
 )
+
+# ── Persistence (save/load data so it survives restarts & redeploys) ──────────
+
+def save_data():
+    """Write all mutable state to disk as JSON."""
+    try:
+        data = {
+            "user_balances":   {str(k): v for k, v in user_balances.items()},
+            "agreed_users":    list(agreed_users),
+            "user_join_dates": {str(k): v for k, v in user_join_dates.items()},
+            "channel_verified":list(channel_verified),
+            "live_stock":      live_stock,
+            "STORE":           STORE,
+            "LEADS":           LEADS,
+        }
+        tmp = DATA_FILE + ".tmp"
+        with open(tmp, "w") as f:
+            json.dump(data, f)
+        os.replace(tmp, DATA_FILE)   # atomic write — never corrupts the file
+    except Exception as e:
+        logger.error(f"save_data failed: {e}")
+
+def load_data():
+    """Load saved state from disk on startup, if it exists."""
+    global user_balances, agreed_users, user_join_dates, channel_verified, live_stock, STORE, LEADS
+    if not os.path.exists(DATA_FILE):
+        logger.info("No saved data file yet — starting fresh.")
+        return
+    try:
+        with open(DATA_FILE) as f:
+            data = json.load(f)
+        user_balances    = {int(k): v for k, v in data.get("user_balances", {}).items()}
+        agreed_users     = set(data.get("agreed_users", []))
+        user_join_dates  = {int(k): v for k, v in data.get("user_join_dates", {}).items()}
+        channel_verified = set(data.get("channel_verified", []))
+        live_stock.update(data.get("live_stock", {}))
+        if data.get("STORE"):
+            STORE.clear(); STORE.update(data["STORE"])
+        if data.get("LEADS"):
+            LEADS.clear(); LEADS.update(data["LEADS"])
+        logger.info("✅ Loaded saved data from disk.")
+    except Exception as e:
+        logger.error(f"load_data failed: {e}")
 
 # ── Channel Logger ────────────────────────────────────────────────────────────
 
@@ -549,6 +598,23 @@ async def cmd_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown"
     )
 
+async def cmd_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """User command: /wallet — jump straight to top-up screen."""
+    uid = update.effective_user.id
+    await update.message.reply_text(
+        wallet_profile_text(uid),
+        reply_markup=amount_keyboard(),
+        parse_mode="Markdown"
+    )
+
+async def cmd_targeted(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """User command: /targeted — jump straight to Targeted Source."""
+    await update.message.reply_text(
+        "🎯 *Targeted Source*\n\nSelect a category below:",
+        reply_markup=tsource_main_keyboard(),
+        parse_mode="Markdown"
+    )
+
 
 # ═════════════════════════════════════════════════════════════════════════════
 
@@ -613,6 +679,7 @@ async def cmd_addbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try: tid = int(context.args[0]); amt = float(context.args[1])
     except (IndexError, ValueError): await update.message.reply_text("Usage: /addbalance <user_id> <amount>"); return
     user_balances[tid] = round(user_balances.get(tid, 0) + amt, 2)
+    save_data()
     await update.message.reply_text(f"✅ Added *£{amt:.2f}* to `{tid}`\nNew balance: *£{user_balances[tid]:.2f}*", parse_mode="Markdown")
     await log(context.application, f"💳 *Balance Added*\nBy: {user_tag(update)}\nUser: `{tid}`\nAmount: £{amt:.2f}\nNew balance: £{user_balances[tid]:.2f}")
 
@@ -621,6 +688,7 @@ async def cmd_removebalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try: tid = int(context.args[0]); amt = float(context.args[1])
     except (IndexError, ValueError): await update.message.reply_text("Usage: /removebalance <user_id> <amount>"); return
     user_balances[tid] = round(max(0, user_balances.get(tid, 0) - amt), 2)
+    save_data()
     await update.message.reply_text(f"✅ Removed *£{amt:.2f}* from `{tid}`\nNew balance: *£{user_balances[tid]:.2f}*", parse_mode="Markdown")
 
 async def cmd_setbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -628,6 +696,7 @@ async def cmd_setbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try: tid = int(context.args[0]); amt = float(context.args[1])
     except (IndexError, ValueError): await update.message.reply_text("Usage: /setbalance <user_id> <amount>"); return
     user_balances[tid] = round(amt, 2)
+    save_data()
     await update.message.reply_text(f"✅ Set `{tid}` balance to *£{amt:.2f}*", parse_mode="Markdown")
 
 async def cmd_checkbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -641,6 +710,7 @@ async def cmd_setstock(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try: key = context.args[0].lower(); val = int(context.args[1]); assert key in ("leads","stock")
     except (IndexError, ValueError, AssertionError): await update.message.reply_text("Usage: /setstock leads <number>"); return
     live_stock[key] = val
+    save_data()
     await update.message.reply_text(f"✅ Updated *{key}* to *{val:,}*", parse_mode="Markdown")
 
 async def cmd_addvendor(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -656,6 +726,7 @@ async def cmd_removevendor(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try: vid = context.args[0]; assert vid in STORE
     except (IndexError, AssertionError): await update.message.reply_text("Usage: /removevendor <vendor_id>"); return
     del STORE[vid]
+    save_data()
     await update.message.reply_text(f"✅ Removed vendor `{vid}`")
 
 async def cmd_addbase(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -674,6 +745,7 @@ async def cmd_removebase(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try: vid = context.args[0]; bkey = context.args[1]; assert vid in STORE and bkey in STORE[vid]["bases"]
     except (IndexError, AssertionError): await update.message.reply_text("Usage: /removebase <vendor_id> <base_key>"); return
     del STORE[vid]["bases"][bkey]
+    save_data()
     await update.message.reply_text(f"✅ Removed base `{bkey}` from vendor `{vid}`")
 
 async def cmd_addbin(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -685,6 +757,7 @@ async def cmd_addbin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except (IndexError, ValueError, AssertionError):
         await update.message.reply_text("Usage: /addbin <vendor_id> <base_key> <bin_number> <quantity>\nExample: /addbin 8888 15fresh 416598 20"); return
     STORE[vid]["bases"][bkey]["bins"][bin_num] = qty
+    save_data()
     await update.message.reply_text(f"✅ BIN *{bin_num}* = *{qty}* in `{vid}` / `{bkey}`", parse_mode="Markdown")
 
 async def cmd_removebin(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -692,6 +765,7 @@ async def cmd_removebin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try: vid = context.args[0]; bkey = context.args[1]; bin_num = context.args[2]; assert vid in STORE and bkey in STORE[vid]["bases"]
     except (IndexError, AssertionError): await update.message.reply_text("Usage: /removebin <vendor_id> <base_key> <bin_number>"); return
     STORE[vid]["bases"][bkey]["bins"].pop(bin_num, None)
+    save_data()
     await update.message.reply_text(f"✅ Removed BIN *{bin_num}*", parse_mode="Markdown")
 
 async def cmd_listbins(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -710,6 +784,7 @@ async def cmd_clearbase(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try: vid = context.args[0]; bkey = context.args[1]; assert vid in STORE and bkey in STORE[vid]["bases"]
     except (IndexError, AssertionError): await update.message.reply_text("Usage: /clearbase <vendor_id> <base_key>"); return
     STORE[vid]["bases"][bkey]["bins"].clear()
+    save_data()
     await update.message.reply_text(f"✅ Cleared all BINs from `{vid}` / `{bkey}`")
 
 async def cmd_listusers(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -762,6 +837,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Verified — grant access
         agreed_users.add(uid)
         channel_verified.add(uid)
+        save_data()
         await query.answer()
 
         try:
@@ -942,6 +1018,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         base["bins"][bin_num] = stock - buy_qty
         if base["bins"][bin_num] <= 0:
             del base["bins"][bin_num]
+        save_data()
         await log(context.application,
             f"🛒 *Purchase — BIN*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"Vendor: {STORE[vid]['label']}\nBase: {base['label']}\n"
@@ -990,6 +1067,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                      InlineKeyboardButton("⬅️ Back", callback_data="deads")]]),
                 parse_mode="Markdown"); return
         user_balances[uid] = round(balance - price, 2)
+        save_data()
         await log(context.application,
             f"🛒 *Purchase — Deads*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"📁 {label}\n💷 Paid: £{price:,}\n💰 Remaining: £{user_balances[uid]:.2f}")
@@ -1084,6 +1162,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode="Markdown")
             return
         user_balances[uid] = round(balance - price, 2)
+        save_data()
         # Deduct from carrier stock
         if cc in LEADS and carrier in LEADS[cc]["carriers"]:
             LEADS[cc]["carriers"][carrier] = max(0, LEADS[cc]["carriers"][carrier] - qty)
@@ -1173,6 +1252,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode="Markdown")
             return
         user_balances[uid] = round(balance - total_gbp, 2)
+        save_data()
         await log(context.application,
             f"🔍 *Purchase — Scanner*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"Item: {label} | {qty_k}k\n💷 Paid: £{total_gbp:.2f}\n💰 Remaining: £{user_balances[uid]:.2f}")
@@ -1229,7 +1309,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "*Available Platforms:*\n"
             "• KuCoin | Binance | CoinSpot | Crypto.com\n"
             "• Shakepay | Coinbase | OKX | MetaMask\n"
-            "• Worldwide iOS / Checked Crypto Leads — Verified & Ready 24/7\n\n"
+            "• USA iOS / Checked Crypto Leads — Verified & Crypto-Ready 24/7\n\n"
             "✉️ *Details Provided:*\n"
             "• Email | Phone | Full Name | DOB\n"
             "• Country | Full Address | IP\n\n"
@@ -1292,6 +1372,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                      InlineKeyboardButton("⬅️ Back",   callback_data="ts_aged")]]),
                 parse_mode="Markdown"); return
         user_balances[uid] = round(balance - price, 2)
+        save_data()
         await log(context.application,
             f"🛒 *Purchase — Aged Leads*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"🗂 {k}k leads\n💷 Paid: £{price:,}\n💰 Remaining: £{user_balances[uid]:.2f}")
@@ -1338,6 +1419,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                      InlineKeyboardButton("⬅️ Back",   callback_data="ts_crypto")]]),
                 parse_mode="Markdown"); return
         user_balances[uid] = round(balance - price, 2)
+        save_data()
         await log(context.application,
             f"🛒 *Purchase — Crypto Leads*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"🗂 {k}k leads\n💷 Paid: £{price:,}\n💰 Remaining: £{user_balances[uid]:.2f}")
@@ -1446,9 +1528,11 @@ async def cmd_updatelead(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Country codes: UK, IE, AU, DE, FR, ES..."); return
     if stock <= 0:
         LEADS[cc]["carriers"].pop(carrier, None)
+        save_data()
         await update.message.reply_text(f"✅ Removed *{carrier}* from {LEADS[cc]['flag']} {LEADS[cc]['name']}", parse_mode="Markdown")
     else:
         LEADS[cc]["carriers"][carrier] = stock
+        save_data()
         await update.message.reply_text(
             f"✅ Updated *{carrier}* → *{stock:,}* in {LEADS[cc]['flag']} {LEADS[cc]['name']}", parse_mode="Markdown")
 
@@ -1500,6 +1584,7 @@ async def cmd_bulkbin(update: Update, context: ContextTypes.DEFAULT_TYPE):
             skipped += 1
 
     total = sum(STORE[vid]["bases"][bkey]["bins"].values())
+    save_data()
     await update.message.reply_text(
         f"✅ *Bulk Add Complete*\n\n"
         f"Vendor: `{vid}` / `{bkey}`\n"
@@ -1512,9 +1597,12 @@ async def cmd_bulkbin(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     if not BOT_TOKEN: raise ValueError("BOT_TOKEN is not set!")
+    load_data()   # restore saved BINs, balances, stock from disk
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start",         cmd_start))
     app.add_handler(CommandHandler("balance",       cmd_balance))
+    app.add_handler(CommandHandler("wallet",        cmd_wallet))
+    app.add_handler(CommandHandler("targeted",      cmd_targeted))
     app.add_handler(CommandHandler("adminlogin",    cmd_adminlogin))
     app.add_handler(CommandHandler("adminlogout",   cmd_adminlogout))
     app.add_handler(CommandHandler("adminhelp",     cmd_adminhelp))
