@@ -208,11 +208,16 @@ LEADS = {
 }
 
 # ── Auto-add a "MIX" carrier to every country ─────────────────────────────────
-# MIX = a blended pool roughly 60% of the sum of all that country's real carriers
+# MIX is always the LARGEST option — set higher than the biggest single carrier
 for _cc, _d in LEADS.items():
     if "MIX" not in _d["carriers"]:
-        _real_total = sum(_d["carriers"].values())
-        _d["carriers"]["MIX"] = int(_real_total * 0.6)
+        _biggest = max(_d["carriers"].values())
+        _d["carriers"]["MIX"] = int(_biggest * 1.25)   # 25% bigger than the top carrier
+
+# Snapshots of the code defaults, used to merge in NEW countries/vendors on load
+import copy as _copy
+DEFAULT_LEADS = _copy.deepcopy(LEADS)
+DEFAULT_STORE = None  # set after STORE is defined below
 
 # ── Targeted Source Pricing ───────────────────────────────────────────────────
 AGED_LEADS_PRICING = [
@@ -286,6 +291,17 @@ def load_data():
             STORE.clear(); STORE.update(data["STORE"])
         if data.get("LEADS"):
             LEADS.clear(); LEADS.update(data["LEADS"])
+
+        # Merge in any NEW countries/carriers added in the code since last save
+        # (so additions like United States or MIX always appear)
+        for cc, d in DEFAULT_LEADS.items():
+            if cc not in LEADS:
+                LEADS[cc] = _copy.deepcopy(d)          # whole new country
+            else:
+                for carrier, stock in d["carriers"].items():
+                    if carrier not in LEADS[cc]["carriers"]:
+                        LEADS[cc]["carriers"][carrier] = stock   # new carrier (e.g. MIX)
+
         logger.info("✅ Loaded saved data from disk.")
     except Exception as e:
         logger.error(f"load_data failed: {e}")
