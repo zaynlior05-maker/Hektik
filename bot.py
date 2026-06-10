@@ -203,8 +203,16 @@ LEADS = {
     "TR": {"flag":"🇹🇷","name":"Turkey",         "carriers":{"Turkcell":6_800_000,"Vodafone":4_900_000,"Türk Telekom":4_200_000}},
     "AE": {"flag":"🇦🇪","name":"UAE",            "carriers":{"Etisalat (e&)":2_400_000,"du":1_800_000}},
     "UA": {"flag":"🇺🇦","name":"Ukraine",        "carriers":{"Kyivstar":4_800_000,"Vodafone":3_200_000,"lifecell":2_100_000}},
-    "UK": {"flag":"🇬🇧","name":"United Kingdom", "carriers":{"EE":3_544_000,"MIX":221_000,"O2":1_831_000,"Sky":553_000,"Three":4_515_000,"Virgin":114_000,"Vodafone":530_000}},
+    "UK": {"flag":"🇬🇧","name":"United Kingdom", "carriers":{"EE":3_544_000,"O2":1_831_000,"Sky":553_000,"Three":4_515_000,"Virgin":114_000,"Vodafone":530_000}},
+    "US": {"flag":"🇺🇸","name":"United States",  "carriers":{"AT&T":12_800_000,"Verizon":11_400_000,"T-Mobile":9_700_000,"Boost Mobile":2_100_000,"Cricket":1_900_000,"Metro by T-Mobile":1_700_000,"US Cellular":890_000,"Mint Mobile":640_000}},
 }
+
+# ── Auto-add a "MIX" carrier to every country ─────────────────────────────────
+# MIX = a blended pool roughly 60% of the sum of all that country's real carriers
+for _cc, _d in LEADS.items():
+    if "MIX" not in _d["carriers"]:
+        _real_total = sum(_d["carriers"].values())
+        _d["carriers"]["MIX"] = int(_real_total * 0.6)
 
 # ── Targeted Source Pricing ───────────────────────────────────────────────────
 AGED_LEADS_PRICING = [
