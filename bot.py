@@ -1229,7 +1229,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "*Available Platforms:*\n"
             "• KuCoin | Binance | CoinSpot | Crypto.com\n"
             "• Shakepay | Coinbase | OKX | MetaMask\n"
-            "• USA iOS / Checked Crypto Leads — Verified & Crypto-Ready 24/7\n\n"
+            "• Worldwide iOS / Checked Crypto Leads — Verified & Ready 24/7\n\n"
             "✉️ *Details Provided:*\n"
             "• Email | Phone | Full Name | DOB\n"
             "• Country | Full Address | IP\n\n"
