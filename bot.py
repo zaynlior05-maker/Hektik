@@ -55,8 +55,8 @@ STORE = {
         "label": "Vendor 8888",
         "bases": {
             "15fresh": {
-                "label": "£15 Base - Fresh Lives 🇬🇧",
-                "price_per_card": 15,
+                "label": "£5 Base - Fresh Lives 🇬🇧",
+                "price_per_card": 5,
                 "bins": {
                     "371789": 6,  "374288": 1,  "377383": 3,  "377390": 9,
                     "379006": 1,  "402396": 1,  "402399": 1,  "404972": 2,
@@ -73,9 +73,9 @@ STORE = {
     "1717": {
         "label": "Vendor 1717",
         "bases": {
-            "10fresh": {
-                "label": "£10 Base - Fresh Lives 🇬🇧",
-                "price_per_card": 10,
+            "5fresh": {
+                "label": "£5 Base - Fresh Lives 🇬🇧",
+                "price_per_card": 5,
                 "bins": {
                     "400115": 4,  "401178": 2,  "402601": 3,  "403628": 1,
                     "410076": 5,  "411929": 2,  "415530": 6,  "419740": 1,
