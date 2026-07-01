@@ -1,10 +1,3 @@
-Both of these issues are caused by bugs in the current bot code.
-### Why this is happening:
- 1. **The Store Count Bug:** The "🛍️ Stock: 183" displayed in **image_2.png** is completely hardcoded right now. It doesn't actually count your real items—it just prints whatever is in live_stock["stock"].
- 2. **The Deletion Bug:** In your original /addbase command, whenever you change a base name or price, the script completely resets that base and blanks out your files by setting "bins": {} to empty. It also forgot to auto-save to disk when you used it.
-### The Fixed Code
-Here is your updated script. It dynamically sums up all your uploaded cards automatically so that the **Store** count updates perfectly in real-time, and it patches /addbase so your old data never disappears when modifying prices or names:
-```python
 import os
 import json
 import logging
