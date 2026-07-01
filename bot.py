@@ -1,5 +1,4 @@
-### 📝 Complete bot.py Code
-```python
+
 import os
 import json
 import logging
