@@ -1,4 +1,3 @@
-Here is the complete, updated code. It incorporates the dynamic stock tracking and the fixed /addbase command that preserves your BIN data.
 ### 📝 Complete bot.py Code
 ```python
 import os
