@@ -1788,5 +1788,8 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
     logger.info("Bot started ✅")
 
+    # This is the line that keeps the bot alive!
+    app.run_polling()
+
 if __name__ == "__main__":
     main()
