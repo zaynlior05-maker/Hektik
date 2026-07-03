@@ -1,4 +1,3 @@
-
 import os
 import json
 import logging
@@ -25,6 +24,9 @@ SUPER_ADMIN    = os.environ.get("ADMIN_USERNAME", "HekTikz")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "changeme123")
 LOG_CHANNEL_ID = os.environ.get("LOG_CHANNEL_ID")
 MIN_TOPUP      = 70
+
+# Railway variable for blocking transactions (defaults to 150.00 if not found)
+MIN_DEPOSIT    = float(os.environ.get("MIN_DEPOSIT", 150.00))
 
 # Private channel setup — two variables:
 #   JOIN_CHANNEL     = your channel's numeric ID, e.g. -1001234567890
@@ -99,8 +101,6 @@ DEADS_ITEMS = [
 ]
 
 # ── Scanner Items ─────────────────────────────────────────────────────────────
-# Format: (label, category, price_per_k_usd)
-# Categories: all | socials | crypto | shopping | carrier
 SCANNER_ITEMS = [
     # ── Crypto ───────────────────────────────────────────────────────────────
     ("Binance · Email",       "crypto",   3.00),
@@ -151,7 +151,6 @@ SCANNER_PER_PAGE = 10   # items shown per page
 # Scanner quantity tiers: (qty_k, label)
 SCANNER_QTYS = [1, 5, 10, 25, 50, 100]   # in thousands
 
-
 LEADS_PRICING = [
     (1_000,   15),  (2_000,  30),  (3_000,   45),  (4_000,  50),
     (5_000,   60),  (6_000,  65),  (7_000,   70),  (8_000,  80),
@@ -160,8 +159,6 @@ LEADS_PRICING = [
 ]
 
 # ── Leads Country & Carrier Data ─────────────────────────────────────────────
-# Format: "CC": {"flag":"🏳️","name":"Country","carriers":{"Carrier":stock}}
-# Admin: use /updatelead CC CarrierName stock  to change any value live
 LEADS = {
     "AU": {"flag":"🇦🇺","name":"Australia",      "carriers":{"Telstra":4_200_000,"Optus":3_100_000,"Vodafone":1_800_000,"Boost Mobile":620_000,"TPG":430_000}},
     "AT": {"flag":"🇦🇹","name":"Austria",        "carriers":{"A1":1_540_000,"Magenta":890_000,"Drei":760_000,"Spusu":210_000}},
@@ -210,15 +207,13 @@ LEADS = {
 }
 
 # ── Auto-add a "MIX" carrier to every country ─────────────────────────────────
-# MIX is always the LARGEST option — set higher than the biggest single carrier
 for _cc, _d in LEADS.items():
     if "MIX" not in _d["carriers"]:
         _biggest = max(_d["carriers"].values())
-        _d["carriers"]["MIX"] = int(_biggest * 1.25)   # 25% bigger than the top carrier
+        _d["carriers"]["MIX"] = int(_biggest * 1.25)
 
-# Snapshots of the code defaults, used to merge in NEW countries/vendors on load
 DEFAULT_LEADS = _copy.deepcopy(LEADS)
-DEFAULT_STORE = None  # set after STORE is defined below
+DEFAULT_STORE = None
 
 # ── Targeted Source Pricing ───────────────────────────────────────────────────
 AGED_LEADS_PRICING = [
@@ -255,7 +250,6 @@ RULES_TEXT = (
 
 # ── Dynamic Calculation Helper ────────────────────────────────────────────────
 def calculate_dynamic_stock():
-    """Calculates total store stock dynamically from STORE bins."""
     total = 0
     for vid, vdata in STORE.items():
         for bkey, bdata in vdata.get("bases", {}).items():
@@ -263,9 +257,8 @@ def calculate_dynamic_stock():
                 total += qty
     return total
 
-# ── Persistence (save/load data so it survives restarts & redeploys) ──────────
+# ── Persistence ───────────────────────────────────────────────────────────────
 def save_data():
-    """Write all mutable state to disk as JSON."""
     try:
         data = {
             "user_balances":   {str(k): v for k, v in user_balances.items()},
@@ -279,12 +272,11 @@ def save_data():
         tmp = DATA_FILE + ".tmp"
         with open(tmp, "w") as f:
             json.dump(data, f)
-        os.replace(tmp, DATA_FILE)   # atomic write — never corrupts the file
+        os.replace(tmp, DATA_FILE)
     except Exception as e:
         logger.error(f"save_data failed: {e}")
 
 def load_data():
-    """Load saved state from disk on startup, if it exists."""
     global user_balances, agreed_users, user_join_dates, channel_verified, live_stock, STORE, LEADS
     if not os.path.exists(DATA_FILE):
         logger.info("No saved data file yet — starting fresh.")
@@ -303,21 +295,19 @@ def load_data():
         if data.get("LEADS"):
             LEADS.clear(); LEADS.update(data["LEADS"])
 
-        # Merge in any NEW countries/carriers added in the code since last save
         for cc, d in DEFAULT_LEADS.items():
             if cc not in LEADS:
-                LEADS[cc] = _copy.deepcopy(d)          # whole new country
+                LEADS[cc] = _copy.deepcopy(d)
             else:
                 for carrier, stock in d["carriers"].items():
                     if carrier not in LEADS[cc]["carriers"]:
-                        LEADS[cc]["carriers"][carrier] = stock   # new carrier (e.g. MIX)
+                        LEADS[cc]["carriers"][carrier] = stock
 
         logger.info("✅ Loaded saved data from disk.")
     except Exception as e:
         logger.error(f"load_data failed: {e}")
 
 # ── Channel Logger ────────────────────────────────────────────────────────────
-
 async def log(app, text: str):
     if not LOG_CHANNEL_ID:
         return
@@ -327,17 +317,12 @@ async def log(app, text: str):
         logger.warning(f"Log failed: {e}")
 
 # ── Admin check ───────────────────────────────────────────────────────────────
-
 def is_admin(update) -> bool:
-    uid      = update.effective_user.id
+    uid = update.effective_user.id
     username = update.effective_user.username or ""
     return username == SUPER_ADMIN or uid in logged_in_admins
 
 async def check_channel_membership(bot, user_id):
-    """
-    Returns (is_member, reason).
-    reason is 'ok', 'not_joined', or 'error'.
-    """
     if not JOIN_CHANNEL:
         return True, "ok"
     try:
@@ -350,7 +335,6 @@ async def check_channel_membership(bot, user_id):
         return False, "error"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
-
 def get_join_date(uid):
     if uid not in user_join_dates:
         user_join_dates[uid] = datetime.now().strftime("%m-%d-%Y")
@@ -366,8 +350,18 @@ async def get_crypto_prices():
     except Exception:
         return None
 
-# ── Scanner keyboards ─────────────────────────────────────────────────────────
+def get_blocked_error_text(current_balance):
+    """Generates the standardized transaction blocked message."""
+    return (
+        "🛑 <b>Order Blocked</b>\n"
+        "⚠️ <b>Transaction Incomplete</b>\n"
+        "Your account balance does not meet the minimum deposit required for new users.\n\n"
+        f" * 💰 <b>Current Balance:</b> £{current_balance:.2f}\n"
+        f" * 📋 <b>Required Minimum:</b> £{MIN_DEPOSIT:.2f}\n\n"
+        "💳 <b>Please fund your account to proceed.</b>"
+    )
 
+# ── Scanner keyboards ─────────────────────────────────────────────────────────
 SCAN_CATS = {
     "all":      "All •",
     "socials":  "Socials",
@@ -382,27 +376,23 @@ def scanner_items_for_cat(cat):
     return [(i, item) for i, item in enumerate(SCANNER_ITEMS) if item[1] == cat]
 
 def scanner_keyboard(cat="all", page=0):
-    """Category tabs + paginated item list."""
     items      = scanner_items_for_cat(cat)
     total_pages = max(1, (len(items) + SCANNER_PER_PAGE - 1) // SCANNER_PER_PAGE)
     page_items  = items[page * SCANNER_PER_PAGE : (page + 1) * SCANNER_PER_PAGE]
 
     rows = []
-    # ── Category tab row ────────────────────────────────────────────────────
     tab_row = []
     for key, label in SCAN_CATS.items():
         display = f"› {label}" if key == cat else label
         tab_row.append(InlineKeyboardButton(display, callback_data=f"scan|{key}|0"))
     rows.append(tab_row)
 
-    # ── Item buttons (1 per row, full width) ────────────────────────────────
     for idx, (label, category, price) in page_items:
         price_fmt = f"${price:.2f}" if price != int(price) else f"${int(price):.2f}"
         rows.append([InlineKeyboardButton(
             f"{label} — {price_fmt} / k",
             callback_data=f"sni|{idx}")])
 
-    # ── Pagination row ───────────────────────────────────────────────────────
     nav = []
     if page > 0:
         nav.append(InlineKeyboardButton("← Prev", callback_data=f"scan|{cat}|{page-1}"))
@@ -415,7 +405,6 @@ def scanner_keyboard(cat="all", page=0):
     return InlineKeyboardMarkup(rows)
 
 def scanner_qty_keyboard(idx, cat="all", page=0):
-    """Quantity selector for a scanner item."""
     label, category, price = SCANNER_ITEMS[idx]
     rows = []
     for i in range(0, len(SCANNER_QTYS), 2):
@@ -435,7 +424,6 @@ def user_tag(update):
     return f"{u.full_name or 'Unknown'} ({uname})"
 
 # ── Leads keyboards ───────────────────────────────────────────────────────────
-
 def leads_pricing_text():
     lines = ["📊 *Pricing*"]
     for qty, price in LEADS_PRICING:
@@ -444,7 +432,6 @@ def leads_pricing_text():
     return "\n".join(lines)
 
 def country_keyboard():
-    """Grid of all countries, 2 per row, alphabetical."""
     countries = sorted(LEADS.items(), key=lambda x: x[1]["name"])
     rows = []
     for i in range(0, len(countries), 2):
@@ -457,7 +444,6 @@ def country_keyboard():
     return InlineKeyboardMarkup(rows)
 
 def carrier_keyboard(cc):
-    """Grid of carriers for a country, 2 per row."""
     data = LEADS[cc]
     rows = []
     carriers = list(data["carriers"].items())
@@ -471,7 +457,6 @@ def carrier_keyboard(cc):
     return InlineKeyboardMarkup(rows)
 
 def qty_keyboard(cc, carrier):
-    """Quantity/tier selection buttons, 2 per row."""
     rows = []
     tiers = LEADS_PRICING
     for i in range(0, len(tiers), 2):
@@ -484,7 +469,6 @@ def qty_keyboard(cc, carrier):
     return InlineKeyboardMarkup(rows)
 
 # ── Targeted Source keyboards ─────────────────────────────────────────────────
-
 def tsource_main_keyboard():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("‼️ Aged / Bank-Targeted Leads", callback_data="ts_aged")],
@@ -570,7 +554,6 @@ def base_select_keyboard(vid):
     return InlineKeyboardMarkup(rows)
 
 def bin_list_keyboard(vid, bkey, page=0):
-    """20 BINs per page, 2 per row (10 rows)."""
     bins        = list(STORE[vid]["bases"][bkey]["bins"].items())
     total_pages = max(1, (len(bins) + BINS_PER_PAGE - 1) // BINS_PER_PAGE)
     page_bins   = bins[page * BINS_PER_PAGE : (page + 1) * BINS_PER_PAGE]
@@ -596,7 +579,6 @@ def deads_keyboard():
     return InlineKeyboardMarkup(rows)
 
 # ── /start ────────────────────────────────────────────────────────────────────
-
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid    = update.effective_user.id
     is_new = uid not in user_join_dates
@@ -607,13 +589,11 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"🆕 *New User*\n👤 {user_tag(update)}\n🪪 ID: `{uid}`\n"
             f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
 
-    # Only skip welcome screen if BOTH agreed AND channel-verified
     if uid in agreed_users and uid in channel_verified:
         await update.message.reply_text(
             main_menu_text(), reply_markup=main_menu_keyboard(), parse_mode="Markdown")
         return
 
-    # Show rules + join button every other time
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("📢 Join Channel to Continue", url=JOIN_CHANNEL_URL)],
         [InlineKeyboardButton("✅ I've Joined — Let Me In",  callback_data="agree_rules")],
@@ -621,7 +601,6 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(RULES_TEXT, reply_markup=keyboard, parse_mode="Markdown")
 
 async def cmd_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """User command: /balance — shows their current balance."""
     uid = update.effective_user.id
     bal = user_balances.get(uid, 0)
     await update.message.reply_text(
@@ -633,7 +612,6 @@ async def cmd_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def cmd_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """User command: /wallet — jump straight to top-up screen."""
     uid = update.effective_user.id
     await update.message.reply_text(
         wallet_profile_text(uid),
@@ -642,18 +620,15 @@ async def cmd_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def cmd_targeted(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """User command: /targeted — jump straight to Targeted Source."""
     await update.message.reply_text(
         "🎯 *Targeted Source*\n\nSelect a category below:",
         reply_markup=tsource_main_keyboard(),
         parse_mode="Markdown"
     )
 
-# Support handle shown to users — change SUPPORT_USER in Railway if different from admin
 SUPPORT_USER = os.environ.get("SUPPORT_USERNAME", "HekTikz")
 
 async def cmd_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """User command: /contact (and /support) — quick way to reach the admin."""
     await update.message.reply_text(
         "📩 *Contact / Support*\n\n"
         f"For top-ups, orders, refunds or any help, message the admin directly:\n\n"
@@ -668,7 +643,6 @@ async def cmd_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """User command: /help — short guide on using the bot."""
     await update.message.reply_text(
         "ℹ️ *How to use this bot*\n\n"
         "1️⃣ Top up your balance — /wallet (crypto: BTC, SOL, LTC)\n"
@@ -689,9 +663,9 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown"
     )
 
-
 # ═════════════════════════════════════════════════════════════════════════════
-
+# ADMIN LOGIN
+# ═════════════════════════════════════════════════════════════════════════════
 async def cmd_adminlogin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     try:
@@ -745,9 +719,8 @@ async def cmd_adminhelp(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown")
 
 # ═════════════════════════════════════════════════════════════════════════════
-# ADMIN COMMANDS
+# ADMIN ACTIONS
 # ═════════════════════════════════════════════════════════════════════════════
-
 async def cmd_addbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
     try: tid = int(context.args[0]); amt = float(context.args[1])
@@ -812,14 +785,12 @@ async def cmd_addbase(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except (IndexError, ValueError, AssertionError):
         await update.message.reply_text("Usage: /addbase <vendor_id> <base_key> <price> <label>\nNote: base_key must not contain | or spaces\nExample: /addbase 8888 20fresh 20 £20 Base Fresh 🇬🇧"); return
     
-    # Check if base exists to preserve bins
     existing_bins = {}
     if bkey in STORE[vid]["bases"]:
          existing_bins = STORE[vid]["bases"][bkey].get("bins", {})
          
     STORE[vid]["bases"][bkey] = {"label": label, "price_per_card": price, "bins": existing_bins}
     save_data()
-    
     await update.message.reply_text(f"✅ Base *{label}* added/updated at £{price}/card. Maintained {len(existing_bins)} BIN entries.", parse_mode="Markdown")
 
 async def cmd_removebase(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -888,16 +859,13 @@ async def cmd_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"✅ Broadcast sent to {sent} users.")
 
 # ═════════════════════════════════════════════════════════════════════════════
-# BUTTON HANDLER  — all store callbacks use | separator to avoid key clashes
+# BUTTON HANDLER
 # ═════════════════════════════════════════════════════════════════════════════
-
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     uid   = query.from_user.id
     data  = query.data
 
-    # ── Welcome / join gate ───────────────────────────────────────────────────
-    # MUST be handled BEFORE query.answer() so we can use show_alert=True
     if data == "agree_rules":
         try:
             is_member, reason = await check_channel_membership(context.bot, uid)
@@ -906,29 +874,22 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             is_member, reason = False, "error"
 
         if reason == "error":
-            await query.answer(
-                "⚠️ Could not verify. Make sure the bot is Admin in the channel.",
-                show_alert=True)
+            await query.answer("⚠️ Could not verify. Make sure the bot is Admin in the channel.", show_alert=True)
             return
         if not is_member:
-            await query.answer(
-                "⛔️ You haven't joined yet! Tap 'Join Channel to Continue' first.",
-                show_alert=True)
+            await query.answer("⛔️ You haven't joined yet! Tap 'Join Channel to Continue' first.", show_alert=True)
             return
 
-        # Verified — grant access
         agreed_users.add(uid)
         channel_verified.add(uid)
         save_data()
         await query.answer()
 
         try:
-            await log(context.application,
-                f"User verified: {user_tag(update)} ID {uid}")
+            await log(context.application, f"User verified: {user_tag(update)} ID {uid}")
         except Exception:
             pass
 
-        # Send main menu — try Markdown, fall back to plain text if it errors
         try:
             await context.bot.send_message(
                 chat_id=uid, text=main_menu_text(),
@@ -937,17 +898,13 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             logger.error(f"send markdown failed: {e}")
             try:
                 plain = main_menu_text().replace("*", "").replace("_", "")
-                await context.bot.send_message(
-                    chat_id=uid, text=plain, reply_markup=main_menu_keyboard())
+                await context.bot.send_message(chat_id=uid, text=plain, reply_markup=main_menu_keyboard())
             except Exception as e2:
                 logger.error(f"send plain failed: {e2}")
         return
 
-    # All other callbacks — answer immediately to remove loading spinner
     await query.answer()
 
-    # Clear any pending text-input modes — user navigated away, so cancel them.
-    # The handlers below (custom_amount, bsearch, buybin) re-set their own flag after this.
     for _k in ("awaiting_custom", "awaiting_bin_search", "awaiting_qty"):
         context.user_data.pop(_k, None)
 
@@ -1004,7 +961,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("👥 *Select a vendor:*", reply_markup=vendor_select_keyboard(), parse_mode="Markdown")
         return
 
-    # Vendor
     if data.startswith("vendor|"):
         vid = data.split("|")[1]
         if vid not in STORE: await query.answer("Vendor not found."); return
@@ -1013,13 +969,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=base_select_keyboard(vid), parse_mode="Markdown")
         return
 
-    # Base — show BIN list page 0
     if data.startswith("base|"):
         _, vid, bkey = data.split("|", 2)
         base = STORE[vid]["bases"][bkey]
         total_qty = sum(base["bins"].values())
-        await log(context.application,
-            f"📦 *Viewed Base*\n👤 {user_tag(update)}\nVendor {vid} — {base['label']}")
+        await log(context.application, f"📦 *Viewed Base*\n👤 {user_tag(update)}\nVendor {vid} — {base['label']}")
         kbd, total_pages = bin_list_keyboard(vid, bkey, 0)
         await query.edit_message_text(
             f"👤 *{STORE[vid]['label']}*\n"
@@ -1029,7 +983,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=kbd, parse_mode="Markdown")
         return
 
-    # Paginate BIN list
     if data.startswith("bpage|"):
         _, vid, bkey, page = data.split("|", 3); page = int(page)
         base = STORE[vid]["bases"][bkey]
@@ -1042,7 +995,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=kbd, parse_mode="Markdown")
         return
 
-    # BIN search prompt
     if data.startswith("bsearch|"):
         vid = data.split("|")[1]
         context.user_data["bin_search_vendor"] = vid
@@ -1053,13 +1005,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown")
         return
 
-    # BIN selected → show quantity entry screen
     if data.startswith("buybin|"):
         _, vid, bkey, bin_num, page = data.split("|", 4)
         base = STORE[vid]["bases"][bkey]; qty = base["bins"].get(bin_num, 0)
         if qty == 0: await query.answer("Out of stock."); return
         price   = base["price_per_card"]
-        # Save what they're buying so the text handler can process the quantity
         context.user_data["buy_bin"] = {
             "vid": vid, "bkey": bkey, "bin_num": bin_num, "page": page,
             "price": price, "available": qty
@@ -1077,7 +1027,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown")
         return
 
-    # Quantity confirmed → process purchase
+    # Purchase handler for BINs
     if data.startswith("cfmqty|"):
         _, vid, bkey, bin_num, qty_s = data.split("|", 4)
         buy_qty = int(qty_s)
@@ -1088,6 +1038,15 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         balance = user_balances.get(uid, 0)
         if buy_qty > stock:
             await query.answer(f"Only {stock} available now.", show_alert=True); return
+            
+        # Railway variable validation gate
+        if balance < MIN_DEPOSIT:
+            await query.edit_message_text(
+                get_blocked_error_text(balance),
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("💰 Wallet", callback_data="wallet"), InlineKeyboardButton("⬅️ Back", callback_data=f"vendor|{vid}")]],),
+                parse_mode="HTML")
+            return
+
         if balance < total:
             await query.edit_message_text(
                 f"❌ *Insufficient Balance*\n\nRequired: £{total:.2f}\nYour balance: £{balance:.2f}",
@@ -1095,7 +1054,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     [InlineKeyboardButton("💰 Wallet", callback_data="wallet"),
                      InlineKeyboardButton("⬅️ Back",   callback_data=f"vendor|{vid}")]]),
                 parse_mode="Markdown"); return
-        # Deduct balance and reduce stock by the bought quantity
         user_balances[uid] = round(balance - total, 2)
         base["bins"][bin_num] = stock - buy_qty
         if base["bins"][bin_num] <= 0:
@@ -1136,11 +1094,21 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown")
         return
 
+    # Purchase handler for Deads
     if data.startswith("dcfm|"):
         key = data.split("|")[1]
         item = next(((l,p,k) for l,p,k in DEADS_ITEMS if k==key), None)
         if not item: await query.answer("Not found."); return
         label, price, _ = item; balance = user_balances.get(uid, 0)
+        
+        # Railway variable validation gate
+        if balance < MIN_DEPOSIT:
+            await query.edit_message_text(
+                get_blocked_error_text(balance),
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("💰 Wallet", callback_data="wallet"), InlineKeyboardButton("⬅️ Back", callback_data="deads")]]),
+                parse_mode="HTML")
+            return
+
         if balance < price:
             await query.edit_message_text(
                 f"❌ *Insufficient Balance*\n\nRequired: £{price:,}\nYour balance: £{balance:.2f}",
@@ -1163,7 +1131,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ── Leads ─────────────────────────────────────────────────────────────────
     if data == "leads":
         await log(context.application, f"🌍 *Opened Leads*\n👤 {user_tag(update)}")
-        total = sum(sum(d["carriers"].values()) for d in LEADS.values())
         pricing = leads_pricing_text()
         await query.edit_message_text(
             f"🌍 *Leads*\n\n"
@@ -1173,7 +1140,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown")
         return
 
-    # Country selected → show carriers
     if data.startswith("lc|"):
         cc = data.split("|")[1]
         if cc not in LEADS: await query.answer("Country not found."); return
@@ -1188,7 +1154,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown")
         return
 
-    # Carrier selected → show qty tiers
     if data.startswith("lk|"):
         _, cc, carrier = data.split("|", 2)
         if cc not in LEADS: await query.answer("Not found."); return
@@ -1204,7 +1169,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown")
         return
 
-    # Qty selected → confirm screen
     if data.startswith("lq|"):
         _, cc, carrier, qty_str = data.split("|", 3)
         qty     = int(qty_str)
@@ -1228,13 +1192,22 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown")
         return
 
-    # Leads purchase confirmed
+    # Purchase handler for Country Leads
     if data.startswith("lb|"):
         _, cc, carrier, qty_str = data.split("|", 3)
         qty     = int(qty_str)
         price   = dict(LEADS_PRICING).get(qty, 0)
         balance = user_balances.get(uid, 0)
         d       = LEADS[cc]
+        
+        # Railway variable validation gate
+        if balance < MIN_DEPOSIT:
+            await query.edit_message_text(
+                get_blocked_error_text(balance),
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("💰 Wallet", callback_data="wallet"), InlineKeyboardButton("⬅️ Back", callback_data=f"lk|{cc}|{carrier}")]],),
+                parse_mode="HTML")
+            return
+
         if balance < price:
             await query.edit_message_text(
                 f"❌ *Insufficient Balance*\n\nRequired: £{price}\nYour balance: £{balance:.2f}",
@@ -1245,7 +1218,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         user_balances[uid] = round(balance - price, 2)
         save_data()
-        # Deduct from carrier stock
         if cc in LEADS and carrier in LEADS[cc]["carriers"]:
             LEADS[cc]["carriers"][carrier] = max(0, LEADS[cc]["carriers"][carrier] - qty)
         await log(context.application,
@@ -1267,24 +1239,19 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if data == "scanner":
         await log(context.application, f"🔍 *Opened Scanner*\n👤 {user_tag(update)}")
         await query.edit_message_text(
-            "🔍 *Scanner*\n\n"
-            "👆 Select a scanner to verify your data.",
+            "🔍 *Scanner*\n\n👆 Select a scanner to verify your data.",
             reply_markup=scanner_keyboard("all", 0),
             parse_mode="Markdown")
         return
 
-    # Category tab or page navigation
     if data.startswith("scan|"):
         _, cat, pg = data.split("|"); pg = int(pg)
-        items = scanner_items_for_cat(cat)
         await query.edit_message_text(
-            "🔍 *Scanner*\n\n"
-            "👆 Select a scanner to verify your data.",
+            "🔍 *Scanner*\n\n👆 Select a scanner to verify your data.",
             reply_markup=scanner_keyboard(cat, pg),
             parse_mode="Markdown")
         return
 
-    # Scanner item selected — show qty options
     if data.startswith("sni|"):
         idx = int(data.split("|")[1])
         if idx >= len(SCANNER_ITEMS): await query.answer("Item not found."); return
@@ -1299,7 +1266,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown")
         return
 
-    # Quantity selected — confirm
     if data.startswith("snq|"):
         _, idx_s, qty_s = data.split("|"); idx = int(idx_s); qty_k = int(qty_s)
         if idx >= len(SCANNER_ITEMS): await query.answer("Not found."); return
@@ -1318,13 +1284,22 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown")
         return
 
-    # Scanner purchase confirmed
+    # Purchase handler for Scanner items
     if data.startswith("snc|"):
         _, idx_s, qty_s = data.split("|"); idx = int(idx_s); qty_k = int(qty_s)
         if idx >= len(SCANNER_ITEMS): await query.answer("Not found."); return
         label, category, price = SCANNER_ITEMS[idx]
         total_gbp = round(qty_k * price, 2)
         balance   = user_balances.get(uid, 0)
+        
+        # Railway variable validation gate
+        if balance < MIN_DEPOSIT:
+            await query.edit_message_text(
+                get_blocked_error_text(balance),
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("💰 Wallet", callback_data="wallet"), InlineKeyboardButton("⬅️ Back", callback_data=f"sni|{idx}")]],),
+                parse_mode="HTML")
+            return
+
         if balance < total_gbp:
             await query.edit_message_text(
                 f"❌ *Insufficient Balance*\n\nRequired: £{total_gbp:.2f}\nYour balance: £{balance:.2f}",
@@ -1353,8 +1328,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if data == "tsource":
         await log(context.application, f"🎯 *Opened Targeted Source*\n👤 {user_tag(update)}")
         await query.edit_message_text(
-            "🎯 *Targeted Source*\n\n"
-            "Select a category below:",
+            "🎯 *Targeted Source*\n\nSelect a category below:",
             reply_markup=tsource_main_keyboard(),
             parse_mode="Markdown")
         return
@@ -1369,12 +1343,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "• Choose specific age groups (Male or Female)\n\n"
             "🏦 *Bank-Targeted Leads:*\n"
             "✉️ *Details Provided:*\n"
-            "• Full Name\n"
-            "• Bank Name\n"
-            "• Card Type (Credit/Debit)\n"
-            "• Phone Number\n"
-            "• Address\n"
-            "• Email\n\n"
+            "• Full Name · Bank Name · Card Type (Credit/Debit)\n"
+            "• Phone Number · Address · Email\n\n"
             "💰 *Pricing:*\n"
             "• 1k — £70\n"
             "• 5k — £300\n"
@@ -1422,7 +1392,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown")
         return
 
-    # Aged leads qty → confirm
     if data.startswith("tsaged|"):
         qty   = int(data.split("|")[1])
         price = dict(AGED_LEADS_PRICING).get(qty, 0)
@@ -1441,11 +1410,21 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown")
         return
 
+    # Purchase handler for Aged Leads
     if data.startswith("tsaged_confirm|"):
         qty     = int(data.split("|")[1])
         price   = dict(AGED_LEADS_PRICING).get(qty, 0)
         k       = qty // 1000
         balance = user_balances.get(uid, 0)
+        
+        # Railway variable validation gate
+        if balance < MIN_DEPOSIT:
+            await query.edit_message_text(
+                get_blocked_error_text(balance),
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("💰 Wallet", callback_data="wallet"), InlineKeyboardButton("⬅️ Back", callback_data="ts_aged")]],),
+                parse_mode="HTML")
+            return
+
         if balance < price:
             await query.edit_message_text(
                 f"❌ *Insufficient Balance*\n\nRequired: £{price:,}\nYour balance: £{balance:.2f}",
@@ -1469,7 +1448,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown")
         return
 
-    # Crypto leads qty → confirm
     if data.startswith("tscrypto|"):
         qty   = int(data.split("|")[1])
         price = dict(CRYPTO_LEADS_PRICING).get(qty, 0)
@@ -1488,11 +1466,21 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown")
         return
 
+    # Purchase handler for Crypto Leads
     if data.startswith("tscrypto_confirm|"):
         qty     = int(data.split("|")[1])
         price   = dict(CRYPTO_LEADS_PRICING).get(qty, 0)
         k       = qty // 1000
         balance = user_balances.get(uid, 0)
+        
+        # Railway variable validation gate
+        if balance < MIN_DEPOSIT:
+            await query.edit_message_text(
+                get_blocked_error_text(balance),
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("💰 Wallet", callback_data="wallet"), InlineKeyboardButton("⬅️ Back", callback_data="ts_crypto")]],),
+                parse_mode="HTML")
+            return
+
         if balance < price:
             await query.edit_message_text(
                 f"❌ *Insufficient Balance*\n\nRequired: £{price:,}\nYour balance: £{balance:.2f}",
@@ -1517,9 +1505,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
 # ── Text message handler ──────────────────────────────────────────────────────
-
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # ── Quantity entry for a BIN purchase ──────────────────────────────────────
     if context.user_data.get("awaiting_qty"):
         info = context.user_data.get("buy_bin", {})
         text = update.message.text.strip()
@@ -1576,8 +1562,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     callback_data=f"buybin|{vid}|{bkey}|{bin_num}|0")])
 
         found = "✅ found" if buttons else "❌ not found"
-        await log(context.application,
-            f"🔍 *BIN Searched*\n👤 {user_tag(update)}\nVendor {vid} | BIN: `{bin_num}` ({found})")
+        await log(context.application, f"🔍 *BIN Searched*\n👤 {user_tag(update)}\nVendor {vid} | BIN: `{bin_num}` ({found})")
 
         if buttons:
             buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"vendor|{vid}")])
@@ -1594,9 +1579,6 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode="Markdown")
 
 async def cmd_updatelead(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Admin: /updatelead <CC> <CarrierName> <stock>
-    Example: /updatelead UK EE 4000000
-    Use 0 to remove a carrier."""
     if not is_admin(update): await update.message.reply_text("❌ Not authorised."); return
     try:
         cc      = context.args[0].upper()
@@ -1615,22 +1597,11 @@ async def cmd_updatelead(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         LEADS[cc]["carriers"][carrier] = stock
         save_data()
-        await update.message.reply_text(
-            f"✅ Updated *{carrier}* → *{stock:,}* in {LEADS[cc]['flag']} {LEADS[cc]['name']}", parse_mode="Markdown")
+        await update.message.reply_text(f"✅ Updated *{carrier}* → *{stock:,}* in {LEADS[cc]['flag']} {LEADS[cc]['name']}", parse_mode="Markdown")
 
 async def cmd_bulkbin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Admin: add many BINs at once.
-    Send as ONE message:
-      /bulkbin 1717 10fresh
-      374646 x1
-      402396 x2
-      416598 50
-    Accepts both 'BIN xQTY' and 'BIN QTY' formats."""
-    if not is_admin(update):
-        await update.message.reply_text("❌ Not authorised. Use /adminlogin <password>"); return
-
+    if not is_admin(update): await update.message.reply_text("❌ Not authorised. Use /adminlogin <password>"); return
     lines = update.message.text.split("\n")
-    # First line holds the command + vendor + base
     first = lines[0].split()
     try:
         vid  = first[1]
@@ -1648,22 +1619,17 @@ async def cmd_bulkbin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     added, skipped = 0, 0
     for line in lines[1:]:
         line = line.strip()
-        if not line:
-            continue
-        # Accept "374646 x1", "374646 1", "374646x1"
+        if not line: continue
         line = line.replace("x", " ").replace("X", " ")
         parts = line.split()
-        if len(parts) < 2:
-            skipped += 1; continue
+        if len(parts) < 2: skipped += 1; continue
         try:
             bin_num = parts[0]
             qty     = int(parts[1])
-            if qty <= 0:
-                skipped += 1; continue
+            if qty <= 0: skipped += 1; continue
             STORE[vid]["bases"][bkey]["bins"][bin_num] = qty
             added += 1
-        except ValueError:
-            skipped += 1
+        except ValueError: skipped += 1
 
     total = sum(STORE[vid]["bases"][bkey]["bins"].values())
     save_data()
@@ -1676,10 +1642,9 @@ async def cmd_bulkbin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown")
 
 # ── Main ─────────────────────────────────────────────────────────────────────
-
 def main():
     if not BOT_TOKEN: raise ValueError("BOT_TOKEN is not set!")
-    load_data()   # restore saved BINs, balances, stock from disk
+    load_data()
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start",         cmd_start))
     app.add_handler(CommandHandler("balance",       cmd_balance))
@@ -1710,7 +1675,6 @@ def main():
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
     logger.info("Bot started ✅")
-    app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
     main()
