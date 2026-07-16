@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import asyncio
 import aiohttp
 from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -881,14 +882,56 @@ async def cmd_listusers(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
 
 async def cmd_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
-    msg = " ".join(context.args)
-    if not msg: await update.message.reply_text("Usage: /broadcast <message>"); return
-    sent = 0
-    for uid in list(agreed_users):
-        try: await context.application.bot.send_message(chat_id=uid, text=msg, parse_mode="Markdown"); sent += 1
-        except Exception: pass
-    await update.message.reply_text(f"✅ Broadcast sent to {sent} users.")
+    try:
+        if not is_admin(update):
+            await update.message.reply_text("❌ Use /adminlogin <password>")
+            return
+
+        # Use the raw message text (not context.args) so newlines/formatting survive —
+        # context.args splits on ALL whitespace and collapses multi-line messages.
+        full_text = update.message.text or ""
+        parts = full_text.split(None, 1)
+        msg = parts[1] if len(parts) > 1 else ""
+        if not msg:
+            await update.message.reply_text("Usage: /broadcast <message>\n\nTip: multi-line also works — put your message on the line(s) after the command.")
+            return
+
+        # Broadcast to EVERY user who has ever started the bot — not just those
+        # who accepted the rules + passed channel verification (agreed_users is
+        # a much smaller subset and was the reason broadcasts felt broken).
+        targets = set(user_join_dates.keys()) | set(user_balances.keys()) | agreed_users
+
+        # Immediate ack — proves the handler actually fired, even before any
+        # sends complete. If you never see even THIS, the command isn't
+        # reaching this handler at all (stale/duplicate deployment, wrong bot token, etc).
+        status_msg = await update.message.reply_text(f"⏳ Broadcasting to {len(targets)} user(s)...")
+
+        sent, failed = 0, 0
+        for uid in targets:
+            try:
+                await context.application.bot.send_message(chat_id=uid, text=msg, parse_mode="Markdown")
+                sent += 1
+            except Exception:
+                # Likely a Markdown parse error (stray * _ ` [ ]) — retry as plain text
+                try:
+                    plain = msg.replace("*", "").replace("_", "").replace("`", "")
+                    await context.application.bot.send_message(chat_id=uid, text=plain)
+                    sent += 1
+                except Exception:
+                    # User blocked the bot, deleted their account, chat not found, etc.
+                    failed += 1
+            await asyncio.sleep(0.05)  # gentle throttle — avoids Telegram flood limits on large lists
+
+        await status_msg.edit_text(
+            f"✅ Broadcast sent to {sent} user(s).\n"
+            f"❌ Failed: {failed} (blocked bot, deleted account, etc.)"
+        )
+    except Exception as e:
+        logger.exception("Broadcast crashed")
+        try:
+            await update.message.reply_text(f"⚠️ Broadcast error: {type(e).__name__}: {e}")
+        except Exception:
+            pass
 
 # ═════════════════════════════════════════════════════════════════════════════
 # SECURITY & ORDER BLOCK
