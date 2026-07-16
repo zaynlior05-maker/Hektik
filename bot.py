@@ -894,25 +894,64 @@ async def cmd_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # SECURITY & ORDER BLOCK
 # ═════════════════════════════════════════════════════════════════════════════
 
-def get_blocked_message(balance, back_cb):
+def get_blocked_message(balance, item_price, back_cb):
     """
-    Checks if a user's balance is below the required deposit minimum.
-    Returns (text, reply_markup) if they are blocked, or (None, None) if cleared.
+    Determines whether a purchase should be blocked, and returns the
+    appropriate (text, reply_markup) pair. Returns (None, None) if the
+    purchase should proceed to normal price-vs-balance handling... actually
+    this function now fully owns that check too, so callers can just use
+    its result directly.
+
+    Validation order:
+      1. balance == 0                -> Insufficient Balance (top-up only)
+      2. 0 < balance < MIN_DEPOSIT    -> Minimum Deposit Required
+      3. balance >= MIN_DEPOSIT:
+           - balance < item_price     -> Insufficient Balance (with real price)
+           - balance >= item_price    -> (None, None) -> allow purchase
     """
-    if balance < MIN_DEPOSIT_REQUIRED:
+    # 1. Zero balance — insufficient balance message, no mention of minimum deposit
+    if balance == 0:
         text = (
-            "### 🛑 Order Blocked\n"
-            "⚠️ *Transaction Incomplete*\n"
-            "Your account balance does not meet the minimum deposit required for new users.\n"
-            f" * 💰 *Current Balance:* £{balance:.2f}\n"
-            f" * 📋 *Required Minimum:* £{MIN_DEPOSIT_REQUIRED:.2f}\n"
-            "💳 *Please fund your account to proceed.*"
+            "❌ *Insufficient Balance!*\n\n"
+            f"This item costs £{item_price:.2f} but your wallet balance is £{balance:.2f}.\n\n"
+            "Please top up your wallet first."
         )
         kbd = InlineKeyboardMarkup([
-            [InlineKeyboardButton("💰 Fund Account", callback_data="wallet")],
-            [InlineKeyboardButton("⬅️ Back", callback_data=back_cb)]
+            [InlineKeyboardButton("💳 Top Up Wallet", callback_data="wallet")]
         ])
         return text, kbd
+
+    # 2. Positive balance below the minimum deposit requirement
+    if balance < MIN_DEPOSIT_REQUIRED:
+        text = (
+            "🛑 *Order Blocked*\n"
+            "⚠️ *Transaction Incomplete*\n"
+            "Your account balance does not meet the minimum deposit required for new users.\n"
+            f" • 💰 *Current Balance:* £{balance:.2f}\n"
+            f" • 📋 *Required Minimum:* £{MIN_DEPOSIT_REQUIRED:.2f}\n"
+            "Please fund your account to proceed."
+        )
+        kbd = InlineKeyboardMarkup([
+            [InlineKeyboardButton("➕ Top Up", callback_data="wallet")],
+            [InlineKeyboardButton("⬅️ Back", callback_data=back_cb)],
+            [InlineKeyboardButton("🌍 Menu", callback_data="back")],
+        ])
+        return text, kbd
+
+    # 3. Balance meets the minimum deposit — fall back to normal price check
+    if balance < item_price:
+        text = (
+            "❌ *Insufficient Balance!*\n\n"
+            f"This item costs £{item_price:.2f} but your wallet balance is £{balance:.2f}.\n\n"
+            "Please top up your wallet first."
+        )
+        kbd = InlineKeyboardMarkup([
+            [InlineKeyboardButton("💰 Wallet", callback_data="wallet"),
+             InlineKeyboardButton("⬅️ Back",   callback_data=back_cb)]
+        ])
+        return text, kbd
+
+    # Balance is sufficient — purchase can proceed
     return None, None
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -1118,19 +1157,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if buy_qty > stock:
             await query.answer(f"Only {stock} available now.", show_alert=True); return
         
-        # Security Block Check
-        blocked_text, blocked_kbd = get_blocked_message(balance, f"vendor|{vid}")
+        # Security Block Check (handles zero balance / min deposit / insufficient funds)
+        blocked_text, blocked_kbd = get_blocked_message(balance, total, f"vendor|{vid}")
         if blocked_text:
             await query.edit_message_text(blocked_text, reply_markup=blocked_kbd, parse_mode="Markdown")
             return
-            
-        if balance < total:
-            await query.edit_message_text(
-                f"❌ *Insufficient Balance*\n\nRequired: £{total:.2f}\nYour balance: £{balance:.2f}",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("💰 Wallet", callback_data="wallet"),
-                     InlineKeyboardButton("⬅️ Back",   callback_data=f"vendor|{vid}")]]),
-                parse_mode="Markdown"); return
                 
         # Deduct balance and reduce stock by the bought quantity
         user_balances[uid] = round(balance - total, 2)
@@ -1180,18 +1211,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         label, price, _ = item; balance = user_balances.get(uid, 0)
         
         # Security Block Check
-        blocked_text, blocked_kbd = get_blocked_message(balance, "deads")
+        blocked_text, blocked_kbd = get_blocked_message(balance, price, "deads")
         if blocked_text:
             await query.edit_message_text(blocked_text, reply_markup=blocked_kbd, parse_mode="Markdown")
             return
-            
-        if balance < price:
-            await query.edit_message_text(
-                f"❌ *Insufficient Balance*\n\nRequired: £{price:,}\nYour balance: £{balance:.2f}",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("💰 Wallet", callback_data="wallet"),
-                     InlineKeyboardButton("⬅️ Back", callback_data="deads")]]),
-                parse_mode="Markdown"); return
                 
         user_balances[uid] = round(balance - price, 2)
         save_data()
@@ -1282,18 +1305,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         d       = LEADS[cc]
         
         # Security Block Check
-        blocked_text, blocked_kbd = get_blocked_message(balance, f"lk|{cc}|{carrier}")
+        blocked_text, blocked_kbd = get_blocked_message(balance, price, f"lk|{cc}|{carrier}")
         if blocked_text:
             await query.edit_message_text(blocked_text, reply_markup=blocked_kbd, parse_mode="Markdown")
-            return
-            
-        if balance < price:
-            await query.edit_message_text(
-                f"❌ *Insufficient Balance*\n\nRequired: £{price}\nYour balance: £{balance:.2f}",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("💰 Wallet", callback_data="wallet"),
-                     InlineKeyboardButton("⬅️ Back",   callback_data=f"lk|{cc}|{carrier}")]]),
-                parse_mode="Markdown")
             return
             
         user_balances[uid] = round(balance - price, 2)
@@ -1380,18 +1394,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         balance   = user_balances.get(uid, 0)
         
         # Security Block Check
-        blocked_text, blocked_kbd = get_blocked_message(balance, f"sni|{idx}")
+        blocked_text, blocked_kbd = get_blocked_message(balance, total_gbp, f"sni|{idx}")
         if blocked_text:
             await query.edit_message_text(blocked_text, reply_markup=blocked_kbd, parse_mode="Markdown")
-            return
-            
-        if balance < total_gbp:
-            await query.edit_message_text(
-                f"❌ *Insufficient Balance*\n\nRequired: £{total_gbp:.2f}\nYour balance: £{balance:.2f}",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("💰 Wallet",  callback_data="wallet"),
-                     InlineKeyboardButton("⬅️ Back",    callback_data=f"sni|{idx}")]]),
-                parse_mode="Markdown")
             return
             
         user_balances[uid] = round(balance - total_gbp, 2)
@@ -1509,18 +1514,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         balance = user_balances.get(uid, 0)
         
         # Security Block Check
-        blocked_text, blocked_kbd = get_blocked_message(balance, "ts_aged")
+        blocked_text, blocked_kbd = get_blocked_message(balance, price, "ts_aged")
         if blocked_text:
             await query.edit_message_text(blocked_text, reply_markup=blocked_kbd, parse_mode="Markdown")
             return
-            
-        if balance < price:
-            await query.edit_message_text(
-                f"❌ *Insufficient Balance*\n\nRequired: £{price:,}\nYour balance: £{balance:.2f}",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("💰 Wallet", callback_data="wallet"),
-                     InlineKeyboardButton("⬅️ Back",   callback_data="ts_aged")]]),
-                parse_mode="Markdown"); return
                 
         user_balances[uid] = round(balance - price, 2)
         save_data()
@@ -1564,18 +1561,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         balance = user_balances.get(uid, 0)
         
         # Security Block Check
-        blocked_text, blocked_kbd = get_blocked_message(balance, "ts_crypto")
+        blocked_text, blocked_kbd = get_blocked_message(balance, price, "ts_crypto")
         if blocked_text:
             await query.edit_message_text(blocked_text, reply_markup=blocked_kbd, parse_mode="Markdown")
             return
-            
-        if balance < price:
-            await query.edit_message_text(
-                f"❌ *Insufficient Balance*\n\nRequired: £{price:,}\nYour balance: £{balance:.2f}",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("💰 Wallet", callback_data="wallet"),
-                     InlineKeyboardButton("⬅️ Back",   callback_data="ts_crypto")]]),
-                parse_mode="Markdown"); return
                 
         user_balances[uid] = round(balance - price, 2)
         save_data()
