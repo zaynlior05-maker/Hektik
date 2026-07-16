@@ -5,6 +5,7 @@ import asyncio
 import aiohttp
 from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.error import Forbidden, BadRequest
 from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler,
     MessageHandler, filters, ContextTypes,
@@ -717,36 +718,41 @@ async def cmd_adminlogout(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logged_in_admins.discard(update.effective_user.id)
     await update.message.reply_text("🔒 Logged out of admin access.")
 
+ADMIN_HELP_TEXT = (
+    "🛠 *Admin Commands*\n\n"
+    "*Login*\n"
+    "`/adminlogin <password>`\n`/adminlogout`\n\n"
+    "*Balance*\n"
+    "`/addbalance <user_id> <amount>`\n"
+    "`/removebalance <user_id> <amount>`\n"
+    "`/setbalance <user_id> <amount>`\n"
+    "`/checkbalance <user_id>`\n\n"
+    "*Stock*\n"
+    "`/setstock leads <number>`\n"
+    "`/setstock stock <number>` (legacy - use dynamic calculation)\n\n"
+    "*Vendors*\n"
+    "`/addvendor <id> <label>`\n"
+    "`/removevendor <id>`\n\n"
+    "*Bases*\n"
+    "`/addbase <vendor_id> <base_key> <price> <label>`\n"
+    "`/removebase <vendor_id> <base_key>`\n\n"
+    "*BINs*\n"
+    "`/addbin <vendor_id> <base_key> <bin> <qty>`\n"
+    "`/removebin <vendor_id> <base_key> <bin>`\n"
+    "`/listbins <vendor_id> <base_key>`\n"
+    "`/clearbase <vendor_id> <base_key>`\n\n"
+    "*Users*\n"
+    "`/listusers`\n"
+    "`/broadcast <message>`"
+)
+
+def admin_menu_keyboard():
+    return InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Admin Menu", callback_data="admin_menu")]])
+
 async def cmd_adminhelp(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update):
         await update.message.reply_text("❌ Use /adminlogin <password> first."); return
-    await update.message.reply_text(
-        "🛠 *Admin Commands*\n\n"
-        "*Login*\n"
-        "`/adminlogin <password>`\n`/adminlogout`\n\n"
-        "*Balance*\n"
-        "`/addbalance <user_id> <amount>`\n"
-        "`/removebalance <user_id> <amount>`\n"
-        "`/setbalance <user_id> <amount>`\n"
-        "`/checkbalance <user_id>`\n\n"
-        "*Stock*\n"
-        "`/setstock leads <number>`\n"
-        "`/setstock stock <number>` (legacy - use dynamic calculation)\n\n"
-        "*Vendors*\n"
-        "`/addvendor <id> <label>`\n"
-        "`/removevendor <id>`\n\n"
-        "*Bases*\n"
-        "`/addbase <vendor_id> <base_key> <price> <label>`\n"
-        "`/removebase <vendor_id> <base_key>`\n\n"
-        "*BINs*\n"
-        "`/addbin <vendor_id> <base_key> <bin> <qty>`\n"
-        "`/removebin <vendor_id> <base_key> <bin>`\n"
-        "`/listbins <vendor_id> <base_key>`\n"
-        "`/clearbase <vendor_id> <base_key>`\n\n"
-        "*Users*\n"
-        "`/listusers`\n"
-        "`/broadcast <message>`",
-        parse_mode="Markdown")
+    await update.message.reply_text(ADMIN_HELP_TEXT, parse_mode="Markdown")
 
 # ═════════════════════════════════════════════════════════════════════════════
 # ADMIN COMMANDS
@@ -882,50 +888,69 @@ async def cmd_listusers(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
 
 async def cmd_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.info(f"📢 /broadcast received from uid={update.effective_user.id} text={update.message.text!r}")
     try:
+        # ── Admin-only ────────────────────────────────────────────────────────
         if not is_admin(update):
             await update.message.reply_text("❌ Use /adminlogin <password>")
             return
 
-        # Use the raw message text (not context.args) so newlines/formatting survive —
-        # context.args splits on ALL whitespace and collapses multi-line messages.
+        # ── Parse message (raw text, not context.args, so newlines survive) ───
         full_text = update.message.text or ""
         parts = full_text.split(None, 1)
         msg = parts[1] if len(parts) > 1 else ""
         if not msg:
-            await update.message.reply_text("Usage: /broadcast <message>\n\nTip: multi-line also works — put your message on the line(s) after the command.")
+            await update.message.reply_text(
+                "Please provide a message. Example: `/broadcast Bot under maintenance`",
+                parse_mode="Markdown")
             return
 
-        # Broadcast to EVERY user who has ever started the bot — not just those
-        # who accepted the rules + passed channel verification (agreed_users is
-        # a much smaller subset and was the reason broadcasts felt broken).
+        # ── Fetch all registered user IDs we know about ────────────────────────
+        # (This bot stores users in-memory / in botdata.json rather than a SQL
+        # DB, so "all registered users" = everyone who has ever started the bot,
+        # topped up, or agreed to the rules.)
         targets = set(user_join_dates.keys()) | set(user_balances.keys()) | agreed_users
+        total_users = len(targets)
 
-        # Immediate ack — proves the handler actually fired, even before any
-        # sends complete. If you never see even THIS, the command isn't
-        # reaching this handler at all (stale/duplicate deployment, wrong bot token, etc).
-        status_msg = await update.message.reply_text(f"⏳ Broadcasting to {len(targets)} user(s)...")
+        # ── Step 1: immediate feedback so the admin knows it's running ─────────
+        status_msg = await update.message.reply_text(
+            "📢 *Sending to all users...*\n\nPlease wait.",
+            reply_markup=admin_menu_keyboard(),
+            parse_mode="Markdown")
 
+        # ── Step 2: send to everyone, one at a time, with rate limiting ────────
         sent, failed = 0, 0
-        for uid in targets:
+        for target_uid in targets:
             try:
-                await context.application.bot.send_message(chat_id=uid, text=msg, parse_mode="Markdown")
+                await context.application.bot.send_message(chat_id=target_uid, text=msg, parse_mode="Markdown")
                 sent += 1
-            except Exception:
-                # Likely a Markdown parse error (stray * _ ` [ ]) — retry as plain text
+            except (Forbidden, BadRequest):
+                # Forbidden  -> user blocked the bot / deleted their account / never started a DM with it
+                # BadRequest -> e.g. invalid Markdown in the message, chat not found
+                # Try once more as plain text in case it was just a Markdown formatting issue
                 try:
                     plain = msg.replace("*", "").replace("_", "").replace("`", "")
-                    await context.application.bot.send_message(chat_id=uid, text=plain)
+                    await context.application.bot.send_message(chat_id=target_uid, text=plain)
                     sent += 1
                 except Exception:
-                    # User blocked the bot, deleted their account, chat not found, etc.
                     failed += 1
-            await asyncio.sleep(0.05)  # gentle throttle — avoids Telegram flood limits on large lists
+            except Exception:
+                # Any other unexpected error for this user — don't let it stop the broadcast
+                failed += 1
+            await asyncio.sleep(0.05)  # ~20 msg/sec, safely under Telegram's 30/sec limit
 
+        # ── Step 3: completion report ────────────────────────────────────────────
         await status_msg.edit_text(
-            f"✅ Broadcast sent to {sent} user(s).\n"
-            f"❌ Failed: {failed} (blocked bot, deleted account, etc.)"
-        )
+            "📢 *Broadcast Complete*\n\n"
+            f"✅ Sent: *{sent}*\n"
+            f"❌ Failed: {failed}\n"
+            f"Total: *{total_users}* users",
+            reply_markup=admin_menu_keyboard(),
+            parse_mode="Markdown")
+
+        await log(context.application,
+            f"📢 *Broadcast Sent*\nBy: {user_tag(update)}\n✅ {sent} | ❌ {failed} | Total {total_users}")
+
     except Exception as e:
         logger.exception("Broadcast crashed")
         try:
@@ -1063,6 +1088,13 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data == "back":
         await query.edit_message_text(main_menu_text(), reply_markup=main_menu_keyboard(), parse_mode="Markdown")
+        return
+
+    if data == "admin_menu":
+        if not is_admin(update):
+            await query.answer("❌ Use /adminlogin <password> first.", show_alert=True)
+            return
+        await query.edit_message_text(ADMIN_HELP_TEXT, parse_mode="Markdown")
         return
 
     # ── Wallet ────────────────────────────────────────────────────────────────
