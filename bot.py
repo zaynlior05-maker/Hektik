@@ -1883,6 +1883,7 @@ def main():
     app.add_handler(CommandHandler("listusers",     cmd_listusers))
     app.add_handler(CommandHandler("updatelead",    cmd_updatelead))
     app.add_handler(CommandHandler("bulkbin",       cmd_bulkbin))
+    app.add_handler(CommandHandler("broadcast",     cmd_broadcast))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
     app.add_error_handler(error_handler)
