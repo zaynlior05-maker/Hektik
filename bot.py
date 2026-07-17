@@ -6,6 +6,7 @@ import aiohttp
 from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import Forbidden, BadRequest
+from telegram.request import HTTPXRequest
 from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler,
     MessageHandler, filters, ContextTypes,
@@ -1818,10 +1819,44 @@ async def cmd_bulkbin(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 
+async def error_handler(update, context):
+    """Catches ANY unhandled exception raised while processing an update.
+    Without this, such errors are logged deep in PTB's internals and can be
+    easy to miss — this makes them impossible to miss in the Railway logs."""
+    logger.error("🔥 Unhandled exception while processing update:", exc_info=context.error)
+
 def main():
     if not BOT_TOKEN: raise ValueError("BOT_TOKEN is not set!")
     load_data()   # restore saved BINs, balances, stock from disk
-    app = Application.builder().token(BOT_TOKEN).build()
+
+    # ── Network resilience ────────────────────────────────────────────────────
+    # Railway's outbound network to api.telegram.org can be slow/flaky, and the
+    # library's default timeouts are too tight for that — causing httpx.ReadTimeout
+    # errors during long-polling that make the bot appear to "go silent" for
+    # stretches at a time. Give both regular requests and the getUpdates
+    # long-poll connection much more generous timeouts. Note: get_updates_read_timeout
+    # must stay comfortably ABOVE the `timeout=` value passed to run_polling() below,
+    # since that's how long Telegram holds the connection open waiting for updates.
+    request = HTTPXRequest(
+        connect_timeout=30.0,
+        read_timeout=30.0,
+        write_timeout=30.0,
+        pool_timeout=30.0,
+    )
+    get_updates_request = HTTPXRequest(
+        connect_timeout=30.0,
+        read_timeout=45.0,
+        write_timeout=30.0,
+        pool_timeout=30.0,
+    )
+    app = (
+        Application.builder()
+        .token(BOT_TOKEN)
+        .request(request)
+        .get_updates_request(get_updates_request)
+        .build()
+    )
+
     app.add_handler(CommandHandler("start",         cmd_start))
     app.add_handler(CommandHandler("balance",       cmd_balance))
     app.add_handler(CommandHandler("wallet",        cmd_wallet))
@@ -1850,10 +1885,19 @@ def main():
     app.add_handler(CommandHandler("bulkbin",       cmd_bulkbin))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
+    app.add_error_handler(error_handler)
     logger.info("Bot started ✅")
 
-    # This is the line that keeps the bot alive!
-    app.run_polling()
+    # timeout= here is how long Telegram holds each long-poll connection open;
+    # it must stay BELOW get_updates_read_timeout set above.
+    app.run_polling(timeout=30, drop_pending_updates=False)
 
 if __name__ == "__main__":
-    main()
+    import time
+    while True:
+        try:
+            main()
+            break  # main() only returns if run_polling stopped cleanly (e.g. Ctrl+C)
+        except Exception:
+            logger.exception("Fatal error — restarting bot in 5s")
+            time.sleep(5)
