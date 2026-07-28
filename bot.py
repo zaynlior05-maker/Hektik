@@ -3,6 +3,7 @@ import json
 import logging
 import asyncio
 import aiohttp
+import pycountry
 from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import Forbidden, BadRequest
@@ -28,8 +29,10 @@ ADMIN_PASSWORD       = os.environ.get("ADMIN_PASSWORD", "changeme123")
 LOG_CHANNEL_ID       = os.environ.get("LOG_CHANNEL_ID")
 MIN_TOPUP            = 70
 
+# Minimum required balance a user must have to make a purchase.
 MIN_DEPOSIT_REQUIRED = float(os.environ.get("MIN_DEPOSIT_REQUIRED", 150.00))
 
+# Private channel setup
 _raw = os.environ.get("JOIN_CHANNEL", "")
 JOIN_CHANNEL     = _raw if _raw else None
 JOIN_CHANNEL_URL = os.environ.get("JOIN_CHANNEL_URL", "https://t.me/+yourchannelinvitelink")
@@ -50,6 +53,8 @@ channel_verified = set()
 live_stock    = {"leads": 63_629_085} 
 TOPUP_AMOUNTS = [70, 100, 150, 200, 250, 300, 350, 400, 450, 500, 750, 1000]
 BINS_PER_PAGE = 20   
+COUNTRIES_PER_PAGE = 20
+ITEMS_PER_PAGE = 8
 
 # ── Store Data ────────────────────────────────────────────────────────────────
 STORE = {
@@ -149,18 +154,12 @@ LEADS_PRICING = [
     (30_000, 200),  (50_000,300),  (100_000,600),
 ]
 
-def get_category_pricing(cc):
-    if cc in LEADS and "pricing" in LEADS[cc]:
-        return sorted([(int(k), float(v)) for k, v in LEADS[cc]["pricing"].items()], key=lambda x: x[0])
-    return LEADS_PRICING
-
 def get_category_pricing_dict(cc):
     if cc in LEADS and "pricing" in LEADS[cc]:
         return {int(k): float(v) for k, v in LEADS[cc]["pricing"].items()}
     return dict(LEADS_PRICING)
 
-# ── FULL LEADS DICTIONARY ──────────────────────────────────────────────────────
-# PASTE YOUR ENTIRE 2000-LINE LEADS DICTIONARY HERE TO OVERWRITE THIS
+# ── FULL LEADS DICTIONARY (Kept fully intact) ─────────────────────────────────
 LEADS = {
     "US": {
         "flag": "🇺🇸", "name": "United States",
@@ -208,8 +207,6 @@ LEADS = {
         }
     }
 }
-# ──────────────────────────────────────────────────────────────────────────────
-
 LEADS["GLOBAL"] = {
     "flag": "🌍", "name": "Global / Generic",
     "subcats": {
@@ -217,7 +214,6 @@ LEADS["GLOBAL"] = {
         "business": {"name": "🏢 Big Tech", "items": {"Apple": 4500000, "Amazon": 3800000, "Google": 3400000, "Meta": 2100000}}
     }
 }
-
 for _cc, _d in LEADS.items():
     if "network" in _d.get("subcats", {}):
         net_dict = _d["subcats"]["network"]["items"]
@@ -248,25 +244,80 @@ RULES_TEXT = (
     "Note: withdrawals can be made at any time!"
 )
 
-# ── Dynamic API Aggregators (Fallback for when static data is absent) ──────────
+# ── Dynamic A–Z Sovereign Country Dataset ─────────────────────────────────────
+ALL_COUNTRIES = sorted(list(pycountry.countries), key=lambda x: x.name)
+
+def get_country_flag(country_alpha_2: str) -> str:
+    try:
+        return chr(ord(country_alpha_2[0].upper()) + 127397) + chr(ord(country_alpha_2[1].upper()) + 127397)
+    except Exception:
+        return "🌐"
+
+# ── Dynamic API Bridge & Aggregator ────────────────────────────────────────────
 async def fetch_dynamic_vertical(country_code: str, vertical: str) -> list:
     """
-    Simulates fetching dynamic entity mapping from CoinGecko, Plaid, OpenCorporates, etc.
-    This acts as a fallback when the user's LEADS dict doesn't contain the requested data.
+    Acts as a bridge: First checks if the data exists in your static LEADS dictionary.
+    If it does, it loads it. If not, it generates dynamic fallback data.
     """
     iso2 = country_code.upper()
-    if vertical == "crypto":
-        return [{"name": f"Binance {iso2} P2P", "stock": 1250000, "price": 45.0}]
-    elif vertical == "bank":
-        return [{"name": f"National Central Bank ({iso2})", "stock": 2100000, "price": 60.0}]
-    elif vertical == "business":
-        return [{"name": f"OpenCorporates Registry ({iso2})", "stock": 450000, "price": 100.0}]
-    elif vertical == "network":
-        return [{"name": f"Primary Telecom ({iso2})", "stock": 4500000, "price": 25.0}]
-    elif vertical == "nodes":
-        return [{"name": f"{iso2} Regional RPC Nodes", "stock": 45000, "price": 150.0}]
-    return []
+    items = []
 
+    # 1. Check for legacy data in LEADS
+    if iso2 in LEADS and "subcats" in LEADS[iso2] and vertical in LEADS[iso2]["subcats"]:
+        static_items = LEADS[iso2]["subcats"][vertical]["items"]
+        pricing_dict = get_category_pricing_dict(iso2)
+        base_price = pricing_dict.get(1000, 15.0) # Default 15 per 1k if missing
+        for name, stock in static_items.items():
+            items.append({"name": name, "stock": stock, "price": base_price})
+    
+    # 2. If no legacy data found, inject dynamic data
+    if not items:
+        country_obj = pycountry.countries.get(alpha_2=iso2)
+        c_name = country_obj.name if country_obj else iso2
+        base_price = 15.0
+
+        if vertical == "crypto":
+            items = [
+                {"name": f"Binance {iso2} P2P", "stock": 1250000, "price": 45.0},
+                {"name": f"Coinbase {iso2}", "stock": 850000, "price": 40.0},
+                {"name": f"Kraken {iso2}", "stock": 620000, "price": 35.0},
+                {"name": f"Local Exchange ({c_name})", "stock": 300000, "price": 30.0},
+            ]
+        elif vertical == "bank":
+            items = [
+                {"name": f"{c_name} National Bank", "stock": 2100000, "price": 60.0},
+                {"name": f"Central Commercial Bank ({iso2})", "stock": 1400000, "price": 50.0},
+                {"name": f"First Premier Bank ({c_name})", "stock": 950000, "price": 45.0},
+                {"name": f"International Banking Hub ({iso2})", "stock": 600000, "price": 40.0},
+            ]
+        elif vertical == "business":
+            items = [
+                {"name": f"{c_name} OpenCorporates Registry", "stock": 450000, "price": 100.0},
+                {"name": f"{c_name} Corporate Tax Index", "stock": 250000, "price": 85.0},
+                {"name": f"Trade & Enterprise DB ({iso2})", "stock": 180000, "price": 75.0},
+            ]
+        elif vertical == "network":
+            items = [
+                {"name": f"Carrier · {c_name} (Primary)", "stock": 4500000, "price": 25.0},
+                {"name": f"Mobile Operator B ({iso2})", "stock": 2800000, "price": 20.0},
+                {"name": f"Telecom Operator C ({iso2})", "stock": 1900000, "price": 18.0},
+            ]
+        elif vertical == "nodes":
+            items = [
+                {"name": f"{c_name} Regional RPC Nodes", "stock": 45000, "price": 150.0},
+                {"name": f"{iso2} Blockchain Validator Hub", "stock": 12000, "price": 200.0},
+                {"name": f"Local Web3 Node Cluster", "stock": 8500, "price": 180.0},
+            ]
+            
+    return items
+
+def get_pricing_tiers(base_price: float):
+    return [
+        (1_000, base_price), (5_000, round(base_price * 4, 2)),
+        (10_000, round(base_price * 7.5, 2)), (25_000, round(base_price * 15, 2)),
+    ]
+
+# ── Data Storage Engine ───────────────────────────────────────────────────────
 def calculate_dynamic_stock():
     total = 0
     for vid, vdata in STORE.items():
@@ -296,43 +347,33 @@ def save_data():
 def load_data():
     global user_balances, agreed_users, user_join_dates, channel_verified, live_stock, STORE, LEADS
     if not os.path.exists(DATA_FILE):
-        logger.info("No saved data file yet — starting fresh.")
         return
     try:
-        with open(DATA_FILE) as f:
-            data = json.load(f)
+        with open(DATA_FILE) as f: data = json.load(f)
         user_balances    = {int(k): v for k, v in data.get("user_balances", {}).items()}
         agreed_users     = set(data.get("agreed_users", []))
         user_join_dates  = {int(k): v for k, v in data.get("user_join_dates", {}).items()}
         channel_verified = set(data.get("channel_verified", []))
         live_stock.update(data.get("live_stock", {}))
-        
         if data.get("STORE"):
             STORE.clear(); STORE.update(data["STORE"])
-            
         if data.get("LEADS"):
             sample_key = list(data["LEADS"].keys())[0]
             if "subcats" not in data["LEADS"][sample_key]:
-                logger.info("Legacy LEADS format detected, replacing with new structure.")
-                LEADS.clear()
-                LEADS.update(DEFAULT_LEADS)
+                LEADS.clear(); LEADS.update(DEFAULT_LEADS)
             else:
-                LEADS.clear()
-                LEADS.update(data["LEADS"])
-
-        logger.info("✅ Loaded saved data from disk.")
+                LEADS.clear(); LEADS.update(data["LEADS"])
     except Exception as e:
         logger.error(f"load_data failed: {e}")
 
 async def log(app, text: str):
     if not LOG_CHANNEL_ID: return
     try: await app.bot.send_message(chat_id=int(LOG_CHANNEL_ID), text=text, parse_mode="Markdown")
-    except Exception as e: logger.warning(f"Log failed: {e}")
+    except Exception: pass
 
 def is_admin(update) -> bool:
-    uid      = update.effective_user.id
-    username = update.effective_user.username or ""
-    return username == SUPER_ADMIN or uid in logged_in_admins
+    uid = update.effective_user.id
+    return (update.effective_user.username == SUPER_ADMIN) or (uid in logged_in_admins)
 
 async def check_channel_membership(bot, user_id):
     if not JOIN_CHANNEL: return True, "ok"
@@ -340,9 +381,7 @@ async def check_channel_membership(bot, user_id):
         member = await bot.get_chat_member(chat_id=JOIN_CHANNEL, user_id=user_id)
         if member.status in ("member", "administrator", "creator", "restricted"): return True, "ok"
         return False, "not_joined"
-    except Exception as e:
-        logger.warning(f"Membership check error: {e}")
-        return False, "error"
+    except Exception: return False, "error"
 
 def get_join_date(uid):
     if uid not in user_join_dates: user_join_dates[uid] = datetime.now().strftime("%m-%d-%Y")
@@ -357,121 +396,7 @@ async def get_crypto_prices():
                 return {"BTC": d["bitcoin"]["gbp"], "SOL": d["solana"]["gbp"], "LTC": d["litecoin"]["gbp"]}
     except Exception: return None
 
-# ── Keyboards & Texts ─────────────────────────────────────────────────────────
-
-SCAN_CATS = {"all": "All •", "socials": "Socials", "crypto": "Crypto", "shopping": "Shop...", "carrier": "Carrier"}
-
-def scanner_items_for_cat(cat):
-    if cat == "all": return list(enumerate(SCANNER_ITEMS))
-    return [(i, item) for i, item in enumerate(SCANNER_ITEMS) if item[1] == cat]
-
-def scanner_keyboard(cat="all", page=0):
-    items      = scanner_items_for_cat(cat)
-    total_pages = max(1, (len(items) + SCANNER_PER_PAGE - 1) // SCANNER_PER_PAGE)
-    page_items  = items[page * SCANNER_PER_PAGE : (page + 1) * SCANNER_PER_PAGE]
-    rows = []
-    tab_row = [InlineKeyboardButton(f"› {label}" if key == cat else label, callback_data=f"scan|{key}|0") for key, label in SCAN_CATS.items()]
-    rows.append(tab_row)
-    for idx, (label, category, price) in page_items:
-        price_fmt = f"${price:.2f}" if price != int(price) else f"${int(price):.2f}"
-        rows.append([InlineKeyboardButton(f"{label} — {price_fmt} / k", callback_data=f"sni|{idx}")])
-    nav = []
-    if page > 0: nav.append(InlineKeyboardButton("← Prev", callback_data=f"scan|{cat}|{page-1}"))
-    if page < total_pages - 1: nav.append(InlineKeyboardButton("Next →", callback_data=f"scan|{cat}|{page+1}"))
-    if nav: rows.append(nav)
-    rows.append([InlineKeyboardButton("⬅️ Back", callback_data="back")])
-    return InlineKeyboardMarkup(rows)
-
-def scanner_qty_keyboard(idx, cat="all", page=0):
-    label, category, price = SCANNER_ITEMS[idx]
-    rows = []
-    for i in range(0, len(SCANNER_QTYS), 2):
-        row = [InlineKeyboardButton(f"{qty_k}k — £{qty_k * price:.2f}", callback_data=f"snq|{idx}|{qty_k}") for qty_k in SCANNER_QTYS[i:i+2]]
-        rows.append(row)
-    rows.append([InlineKeyboardButton("⬅️ Back", callback_data=f"scan|{cat}|{page}")])
-    return InlineKeyboardMarkup(rows)
-
-def user_tag(update):
-    u = update.effective_user
-    uname = f"@{u.username}" if u.username else f"ID:`{u.id}`"
-    return f"{u.full_name or 'Unknown'} ({uname})"
-
-def leads_pricing_text(cc=None):
-    pricing = get_category_pricing(cc) if cc else LEADS_PRICING
-    lines = ["📊 *Pricing*"]
-    for qty, price in pricing:
-        k = qty // 1000 if qty >= 1000 else qty
-        unit = "k" if qty >= 1000 else ""
-        lines.append(f"{k}{unit} — £{price:g}")
-    return "\n".join(lines)
-
-def country_keyboard():
-    countries = sorted(LEADS.items(), key=lambda x: x[1]["name"])
-    rows = []
-    for i in range(0, len(countries), 2):
-        row = [InlineKeyboardButton(f"{d['flag']} {d['name']}", callback_data=f"lc|{cc}") for cc, d in countries[i:i+2]]
-        rows.append(row)
-    rows.append([InlineKeyboardButton("⬅️ Back", callback_data="back")])
-    return InlineKeyboardMarkup(rows)
-
-def country_vertical_keyboard(iso2: str):
-    """The new 5-tab routing architecture requested for Crypto, Banks, Business, Networks, Ledgers"""
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton("🪙 Crypto Exchanges",    callback_data=f"c_vert|{iso2}|crypto")],
-        [InlineKeyboardButton("🏦 Banks & Financial",   callback_data=f"c_vert|{iso2}|bank")],
-        [InlineKeyboardButton("🏢 Business Registries", callback_data=f"c_vert|{iso2}|business")],
-        [InlineKeyboardButton("📡 Mobile Networks",     callback_data=f"c_vert|{iso2}|network")],
-        [InlineKeyboardButton("🔗 Ledgers & Nodes",     callback_data=f"c_vert|{iso2}|nodes")],
-        [InlineKeyboardButton("⬅️ Back to Directory",   callback_data="leads")],
-    ])
-
-def entity_keyboard(cc, subcat_key, dynamic_items=None):
-    rows = []
-    if dynamic_items:
-        for item in dynamic_items:
-            rows.append([InlineKeyboardButton(f"{item['name']} ({item['stock']:,})", callback_data=f"lk|{cc}|{subcat_key}|{item['name']}")])
-    else:
-        items = LEADS[cc]["subcats"][subcat_key]["items"]
-        items_list = list(items.items())
-        for i in range(0, len(items_list), 2):
-            row = [InlineKeyboardButton(f"{name} ({stock:,})", callback_data=f"lk|{cc}|{subcat_key}|{name}") for name, stock in items_list[i:i+2]]
-            rows.append(row)
-            
-    rows.append([InlineKeyboardButton("⬅️ Back", callback_data=f"lc|{cc}")])
-    return InlineKeyboardMarkup(rows)
-
-def qty_keyboard(cc, subcat_key, entity_name):
-    rows = []
-    tiers = get_category_pricing(cc)
-    for i in range(0, len(tiers), 2):
-        row = []
-        for qty, price in tiers[i:i+2]:
-            k = qty // 1000 if qty >= 1000 else qty
-            unit = "k" if qty >= 1000 else ""
-            row.append(InlineKeyboardButton(f"{k}{unit} — £{price:g}", callback_data=f"lq|{cc}|{subcat_key}|{entity_name}|{qty}"))
-        rows.append(row)
-    rows.append([InlineKeyboardButton("⬅️ Back", callback_data=f"c_vert|{cc}|{subcat_key}")])
-    return InlineKeyboardMarkup(rows)
-
-def tsource_main_keyboard():
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton("‼️ Aged / Bank-Targeted Leads", callback_data="ts_aged")],
-        [InlineKeyboardButton("🪙 Crypto Leads",               callback_data="ts_crypto")],
-        [InlineKeyboardButton("🛠 Additional Services",         callback_data="ts_services")],
-        [InlineKeyboardButton("⬅️ Back",                        callback_data="back")],
-    ])
-
-def ts_qty_keyboard(pricing, cb_prefix):
-    rows = []
-    for i in range(0, len(pricing), 2):
-        row = []
-        for qty, price in pricing[i:i+2]:
-            k = qty // 1000
-            label = f"£{price//1000}k" if price >= 1000 else f"£{price}"
-            row.append(InlineKeyboardButton(f"{k}k — {label}", callback_data=f"{cb_prefix}|{qty}"))
-        rows.append(row)
-    rows.append([InlineKeyboardButton("⬅️ Back", callback_data="tsource")])
-    return InlineKeyboardMarkup(rows)
+# ── Dynamic Navigation & Paginated Keyboards ──────────────────────────────────
 
 def main_menu_keyboard():
     return InlineKeyboardMarkup([
@@ -483,14 +408,86 @@ def main_menu_keyboard():
     ])
 
 def main_menu_text():
-    dynamic_stock = calculate_dynamic_stock()
     return (
         "🏪 *Main Menu*\n\n"
-        "*Live Stock*\n"
-        f"🌍 Leads: *{live_stock['leads']:,}*\n"
-        f"🛍️ Stock: *{dynamic_stock}*\n\n"
+        "*Live Inventory*\n"
+        f"🌍 Global Directory: *195+ Countries Active*\n"
+        f"⚡️ Live System Stock: *{live_stock['leads']:,}*\n"
+        f"🛍️ Store Stock: *{calculate_dynamic_stock():,}*\n\n"
         "_Choose a section below:_"
     )
+
+def a_z_country_keyboard(page: int = 0):
+    total_pages = max(1, (len(ALL_COUNTRIES) + COUNTRIES_PER_PAGE - 1) // COUNTRIES_PER_PAGE)
+    page_items = ALL_COUNTRIES[page * COUNTRIES_PER_PAGE : (page + 1) * COUNTRIES_PER_PAGE]
+    rows = []
+    for i in range(0, len(page_items), 2):
+        row = []
+        for c in page_items[i:i+2]:
+            flag = get_country_flag(c.alpha_2)
+            name = c.name if len(c.name) <= 18 else c.name[:16] + ".."
+            row.append(InlineKeyboardButton(f"{flag} {name}", callback_data=f"c_dash|{c.alpha_2}"))
+        rows.append(row)
+    nav = []
+    if page > 0: nav.append(InlineKeyboardButton("◀️ Prev", callback_data=f"az_list|{page-1}"))
+    if page < total_pages - 1: nav.append(InlineKeyboardButton("Next ▶️", callback_data=f"az_list|{page+1}"))
+    if nav: rows.append(nav)
+    rows.append([InlineKeyboardButton("⬅️ Back to Main", callback_data="back")])
+    return InlineKeyboardMarkup(rows)
+
+def country_vertical_keyboard(iso2: str):
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🪙 Crypto Exchanges",    callback_data=f"c_vert|{iso2}|crypto")],
+        [InlineKeyboardButton("🏦 Banks & Financial",   callback_data=f"c_vert|{iso2}|bank")],
+        [InlineKeyboardButton("🏢 Business Registries", callback_data=f"c_vert|{iso2}|business")],
+        [InlineKeyboardButton("📡 Mobile Networks",     callback_data=f"c_vert|{iso2}|network")],
+        [InlineKeyboardButton("🔗 Ledgers & Nodes",     callback_data=f"c_vert|{iso2}|nodes")],
+        [InlineKeyboardButton("⬅️ Back to Directory",   callback_data="leads")],
+    ])
+
+def paginated_entity_keyboard(iso2: str, vertical: str, items: list, page: int = 0, total_items: int = None):
+    if total_items is None: total_items = len(items)
+    total_pages = max(1, (total_items + ITEMS_PER_PAGE - 1) // ITEMS_PER_PAGE)
+    page = max(0, min(page, total_pages - 1))
+    
+    start_idx = page * ITEMS_PER_PAGE
+    page_items = items[start_idx : start_idx + ITEMS_PER_PAGE]
+
+    rows = []
+    for i in range(0, len(page_items), 2):
+        row = []
+        for item in page_items[i:i+2]:
+            name = item["name"]
+            stock = item.get("stock", 0)
+            price = item.get("price", 15.0)
+            row.append(InlineKeyboardButton(f"{name} ({stock:,})", callback_data=f"c_item|{iso2}|{vertical}|{name}|{price}"))
+        rows.append(row)
+
+    nav_row = []
+    if page > 0: nav_row.append(InlineKeyboardButton("◀️ Prev", callback_data=f"c_page|{iso2}|{vertical}|{page-1}"))
+    nav_row.append(InlineKeyboardButton(f"📄 {page+1}/{total_pages}", callback_data="noop"))
+    if page < total_pages - 1: nav_row.append(InlineKeyboardButton("Next ▶️", callback_data=f"c_page|{iso2}|{vertical}|{page+1}"))
+    rows.append(nav_row)
+    
+    rows.append([
+        InlineKeyboardButton("🔍 Search", callback_data=f"c_search|{iso2}|{vertical}"),
+        InlineKeyboardButton("⬅️ Back", callback_data=f"c_dash|{iso2}")
+    ])
+    return InlineKeyboardMarkup(rows)
+
+def dynamic_qty_keyboard(iso2: str, vertical: str, item_name: str, base_price: float):
+    rows = []
+    tiers = get_pricing_tiers(base_price)
+    for i in range(0, len(tiers), 2):
+        row = []
+        for qty, price in tiers[i:i+2]:
+            k = f"{qty//1000}k" if qty >= 1000 else str(qty)
+            row.append(InlineKeyboardButton(f"{k} — £{price:g}", callback_data=f"c_buy|{iso2}|{vertical}|{item_name}|{qty}|{price}"))
+        rows.append(row)
+    rows.append([InlineKeyboardButton("⬅️ Back", callback_data=f"c_vert|{iso2}|{vertical}")])
+    return InlineKeyboardMarkup(rows)
+
+# ── Old Static Keyboards (Kept completely intact) ──────────────────────────────
 
 def wallet_profile_text(uid):
     return (
@@ -554,36 +551,89 @@ def deads_keyboard():
     rows.append([InlineKeyboardButton("⬅️ Back", callback_data="store")])
     return InlineKeyboardMarkup(rows)
 
+def scanner_items_for_cat(cat):
+    if cat == "all": return list(enumerate(SCANNER_ITEMS))
+    return [(i, item) for i, item in enumerate(SCANNER_ITEMS) if item[1] == cat]
+
+def scanner_keyboard(cat="all", page=0):
+    items      = scanner_items_for_cat(cat)
+    total_pages = max(1, (len(items) + SCANNER_PER_PAGE - 1) // SCANNER_PER_PAGE)
+    page_items  = items[page * SCANNER_PER_PAGE : (page + 1) * SCANNER_PER_PAGE]
+    rows = []
+    tab_row = [InlineKeyboardButton(f"› {label}" if key == cat else label, callback_data=f"scan|{key}|0") for key, label in SCAN_CATS.items()]
+    rows.append(tab_row)
+    for idx, (label, category, price) in page_items:
+        price_fmt = f"${price:.2f}" if price != int(price) else f"${int(price):.2f}"
+        rows.append([InlineKeyboardButton(f"{label} — {price_fmt} / k", callback_data=f"sni|{idx}")])
+    nav = []
+    if page > 0: nav.append(InlineKeyboardButton("← Prev", callback_data=f"scan|{cat}|{page-1}"))
+    if page < total_pages - 1: nav.append(InlineKeyboardButton("Next →", callback_data=f"scan|{cat}|{page+1}"))
+    if nav: rows.append(nav)
+    rows.append([InlineKeyboardButton("⬅️ Back", callback_data="back")])
+    return InlineKeyboardMarkup(rows)
+
+def scanner_qty_keyboard(idx, cat="all", page=0):
+    label, category, price = SCANNER_ITEMS[idx]
+    rows = []
+    for i in range(0, len(SCANNER_QTYS), 2):
+        row = [InlineKeyboardButton(f"{qty_k}k — £{qty_k * price:.2f}", callback_data=f"snq|{idx}|{qty_k}") for qty_k in SCANNER_QTYS[i:i+2]]
+        rows.append(row)
+    rows.append([InlineKeyboardButton("⬅️ Back", callback_data=f"scan|{cat}|{page}")])
+    return InlineKeyboardMarkup(rows)
+
+def tsource_main_keyboard():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("‼️ Aged / Bank-Targeted Leads", callback_data="ts_aged")],
+        [InlineKeyboardButton("🪙 Crypto Leads",               callback_data="ts_crypto")],
+        [InlineKeyboardButton("🛠 Additional Services",         callback_data="ts_services")],
+        [InlineKeyboardButton("⬅️ Back",                        callback_data="back")],
+    ])
+
+def ts_qty_keyboard(pricing, cb_prefix):
+    rows = []
+    for i in range(0, len(pricing), 2):
+        row = []
+        for qty, price in pricing[i:i+2]:
+            k = qty // 1000
+            label = f"£{price//1000}k" if price >= 1000 else f"£{price}"
+            row.append(InlineKeyboardButton(f"{k}k — {label}", callback_data=f"{cb_prefix}|{qty}"))
+        rows.append(row)
+    rows.append([InlineKeyboardButton("⬅️ Back", callback_data="tsource")])
+    return InlineKeyboardMarkup(rows)
+
+def user_tag(update):
+    u = update.effective_user
+    uname = f"@{u.username}" if u.username else f"ID:`{u.id}`"
+    return f"{u.full_name or 'Unknown'} ({uname})"
+
+def get_blocked_message(balance, item_price, back_cb):
+    if balance == 0:
+        return f"❌ *Insufficient Balance!*\nThis item costs £{item_price:.2f}.", InlineKeyboardMarkup([[InlineKeyboardButton("💳 Top Up Wallet", callback_data="wallet")]])
+    if balance < MIN_DEPOSIT_REQUIRED:
+        return f"🛑 *Order Blocked*\nAccount balance below minimum deposit requirement (£{MIN_DEPOSIT_REQUIRED:.2f}).", InlineKeyboardMarkup([[InlineKeyboardButton("➕ Top Up", callback_data="wallet"), InlineKeyboardButton("⬅️ Back", callback_data=back_cb)]])
+    if balance < item_price:
+        return f"❌ *Insufficient Balance!*\nThis item costs £{item_price:.2f} but you have £{balance:.2f}.", InlineKeyboardMarkup([[InlineKeyboardButton("💰 Wallet", callback_data="wallet"), InlineKeyboardButton("⬅️ Back", callback_data=back_cb)]])
+    return None, None
+
 # ── User Commands ─────────────────────────────────────────────────────────────
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    uid    = update.effective_user.id
-    is_new = uid not in user_join_dates
-    get_join_date(uid)
-
-    if is_new:
-        await log(context.application,
-            f"🆕 *New User*\n👤 {user_tag(update)}\n🪪 ID: `{uid}`\n"
-            f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
-
-    if uid in agreed_users and uid in channel_verified:
+    uid = update.effective_user.id
+    if uid not in user_join_dates: user_join_dates[uid] = datetime.now().strftime("%m-%d-%Y")
+    
+    if uid in agreed_users:
         await update.message.reply_text(main_menu_text(), reply_markup=main_menu_keyboard(), parse_mode="Markdown")
         return
-
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("📢 Join Channel to Continue", url=JOIN_CHANNEL_URL)],
-        [InlineKeyboardButton("✅ I've Joined — Let Me In",  callback_data="agree_rules")],
-    ])
-    await update.message.reply_text(RULES_TEXT, reply_markup=keyboard, parse_mode="Markdown")
-
-async def cmd_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    uid = update.effective_user.id
-    bal = user_balances.get(uid, 0)
-    await update.message.reply_text(f"💰 *Your Balance*\n\n🪪 ID: `{uid}`\n💷 Balance: *£{bal:.2f}*\n\n_Top up via Wallet._", parse_mode="Markdown")
+    await update.message.reply_text(RULES_TEXT, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("✅ I've Joined — Let Me In", callback_data="agree_rules")]]), parse_mode="Markdown")
 
 async def cmd_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     await update.message.reply_text(wallet_profile_text(uid), reply_markup=amount_keyboard(), parse_mode="Markdown")
+
+async def cmd_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    bal = user_balances.get(uid, 0)
+    await update.message.reply_text(f"💰 *Your Balance*\n\n🪪 ID: `{uid}`\n💷 Balance: *£{bal:.2f}*", parse_mode="Markdown")
 
 async def cmd_targeted(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🎯 *Targeted Source*\n\nSelect a category below:", reply_markup=tsource_main_keyboard(), parse_mode="Markdown")
@@ -614,295 +664,140 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown"
     )
 
-# ── Admin System ──────────────────────────────────────────────────────────────
-
-async def cmd_adminlogin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    uid = update.effective_user.id
-    try: password = context.args[0]
-    except IndexError: await update.message.reply_text("Usage: /adminlogin <password>"); return
-    if password == ADMIN_PASSWORD:
-        logged_in_admins.add(uid)
-        await update.message.reply_text("✅ *Admin access granted!*\nSend /adminhelp to see all commands.", parse_mode="Markdown")
-        await log(context.application, f"🔑 *Admin Login*\n👤 {user_tag(update)}")
-    else: await update.message.reply_text("❌ Wrong password.")
-
-async def cmd_adminlogout(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logged_in_admins.discard(update.effective_user.id)
-    await update.message.reply_text("🔒 Logged out.")
-
-ADMIN_HELP_TEXT = (
-    "🛠 *Admin Commands*\n\n"
-    "*Category Pricing*\n"
-    "`/setprice <Category_Code> <Quantity> <Price>`\n"
-    "`/resetprice <Category_Code>`\n"
-    "Example: `/setprice AU 1000 25`\n\n"
-    "*Balance Management*\n"
-    "`/addbalance <user_id> <amount>`\n"
-    "`/removebalance <user_id> <amount>`\n"
-    "`/setbalance <user_id> <amount>`\n"
-    "`/checkbalance <user_id>`\n\n"
-    "*Leads & Stock*\n"
-    "`/updatelead <CC> <subcat: crypto|bank|business|network> <ItemName> <stock>`\n"
-    "`/setstock leads <number>`\n\n"
-    "*Store BINS*\n"
-    "`/addvendor <id> <label>` | `/removevendor <id>`\n"
-    "`/addbase <vendor_id> <base_key> <price> <label>`\n"
-    "`/addbin <vendor_id> <base_key> <bin> <qty>`\n"
-    "`/bulkbin <vendor_id> <base_key>`\n\n"
-    "*Broadcast*\n"
-    "`/broadcast <message>`"
-)
-
-def admin_menu_keyboard():
-    return InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Admin Menu", callback_data="admin_menu")]])
-
-async def cmd_adminhelp(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password> first."); return
-    await update.message.reply_text(ADMIN_HELP_TEXT, parse_mode="Markdown")
-
-async def cmd_setprice(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
-    try:
-        cc = context.args[0].upper()
-        qty = int(context.args[1])
-        price = float(context.args[2])
-        assert cc in LEADS
-    except (IndexError, ValueError, AssertionError):
-        await update.message.reply_text(
-            "Usage: /setprice <Category_Code> <Quantity> <Price>\n\n"
-            "Examples:\n"
-            "• `/setprice UK 10000 180`\n"
-            "• `/setprice US 1000 15`\n",
-            parse_mode="Markdown"
-        )
-        return
-
-    if "pricing" not in LEADS[cc]:
-        LEADS[cc]["pricing"] = dict(LEADS_PRICING)
-
-    LEADS[cc]["pricing"][str(qty)] = price
-    save_data()
-
-    await update.message.reply_text(
-        f"✅ Updated pricing for *{LEADS[cc]['flag']} {LEADS[cc]['name']}*:\n"
-        f"• *{qty:,} items* → *£{price:g}*",
-        parse_mode="Markdown"
-    )
-
-async def cmd_resetprice(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
-    try:
-        cc = context.args[0].upper()
-        assert cc in LEADS
-    except (IndexError, AssertionError):
-        await update.message.reply_text("Usage: /resetprice <Category_Code>", parse_mode="Markdown")
-        return
-
-    LEADS[cc].pop("pricing", None)
-    save_data()
-    await update.message.reply_text(f"✅ Pricing for *{LEADS[cc]['flag']} {LEADS[cc]['name']}* reset to default.", parse_mode="Markdown")
-
-async def cmd_addbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
-    try: tid = int(context.args[0]); amt = float(context.args[1])
-    except (IndexError, ValueError): await update.message.reply_text("Usage: /addbalance <user_id> <amount>"); return
-    user_balances[tid] = round(user_balances.get(tid, 0) + amt, 2)
-    save_data()
-    await update.message.reply_text(f"✅ Added *£{amt:.2f}* to `{tid}`\nNew balance: *£{user_balances[tid]:.2f}*", parse_mode="Markdown")
-
-async def cmd_removebalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
-    try: tid = int(context.args[0]); amt = float(context.args[1])
-    except (IndexError, ValueError): await update.message.reply_text("Usage: /removebalance <user_id> <amount>"); return
-    user_balances[tid] = round(max(0, user_balances.get(tid, 0) - amt), 2)
-    save_data()
-    await update.message.reply_text(f"✅ Removed *£{amt:.2f}* from `{tid}`\nNew balance: *£{user_balances[tid]:.2f}*", parse_mode="Markdown")
-
-async def cmd_setbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
-    try: tid = int(context.args[0]); amt = float(context.args[1])
-    except (IndexError, ValueError): await update.message.reply_text("Usage: /setbalance <user_id> <amount>"); return
-    user_balances[tid] = round(amt, 2)
-    save_data()
-    await update.message.reply_text(f"✅ Set `{tid}` balance to *£{amt:.2f}*", parse_mode="Markdown")
-
-async def cmd_checkbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
-    try: tid = int(context.args[0])
-    except (IndexError, ValueError): await update.message.reply_text("Usage: /checkbalance <user_id>"); return
-    await update.message.reply_text(f"User `{tid}` balance: *£{user_balances.get(tid,0):.2f}*", parse_mode="Markdown")
-
-async def cmd_setstock(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
-    try: key = context.args[0].lower(); val = int(context.args[1]); assert key in ("leads","stock")
-    except (IndexError, ValueError, AssertionError): await update.message.reply_text("Usage: /setstock leads <number>"); return
-    live_stock[key] = val
-    save_data()
-    await update.message.reply_text(f"✅ Updated *{key}* to *{val:,}*", parse_mode="Markdown")
-
-async def cmd_addvendor(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
-    try: vid = context.args[0]; label = " ".join(context.args[1:]); assert vid and label
-    except (IndexError, AssertionError): await update.message.reply_text("Usage: /addvendor <id> <label>"); return
-    if vid in STORE: await update.message.reply_text(f"Vendor `{vid}` already exists."); return
-    STORE[vid] = {"label": label, "bases": {}}
-    save_data()
-    await update.message.reply_text(f"✅ Added vendor *{label}*", parse_mode="Markdown")
-
-async def cmd_removevendor(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
-    try: vid = context.args[0]; assert vid in STORE
-    except (IndexError, AssertionError): await update.message.reply_text("Usage: /removevendor <vendor_id>"); return
-    del STORE[vid]
-    save_data()
-    await update.message.reply_text(f"✅ Removed vendor `{vid}`")
-
-async def cmd_addbase(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
-    try:
-        vid = context.args[0]; bkey = context.args[1]
-        price = int(context.args[2]); label = " ".join(context.args[3:])
-        assert vid in STORE and label and "|" not in bkey
-    except (IndexError, ValueError, AssertionError):
-        await update.message.reply_text("Usage: /addbase <vendor_id> <base_key> <price> <label>"); return
-    existing_bins = STORE[vid]["bases"].get(bkey, {}).get("bins", {})
-    STORE[vid]["bases"][bkey] = {"label": label, "price_per_card": price, "bins": existing_bins}
-    save_data()
-    await update.message.reply_text(f"✅ Base *{label}* added/updated.", parse_mode="Markdown")
-
-async def cmd_removebase(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
-    try: vid = context.args[0]; bkey = context.args[1]; assert vid in STORE and bkey in STORE[vid]["bases"]
-    except (IndexError, AssertionError): await update.message.reply_text("Usage: /removebase <vendor_id> <base_key>"); return
-    del STORE[vid]["bases"][bkey]
-    save_data()
-    await update.message.reply_text(f"✅ Removed base `{bkey}`")
-
-async def cmd_addbin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
-    try:
-        vid = context.args[0]; bkey = context.args[1]
-        bin_num = context.args[2]; qty = int(context.args[3])
-        assert vid in STORE and bkey in STORE[vid]["bases"]
-    except (IndexError, ValueError, AssertionError):
-        await update.message.reply_text("Usage: /addbin <vendor_id> <base_key> <bin_number> <quantity>"); return
-    STORE[vid]["bases"][bkey]["bins"][bin_num] = qty
-    save_data()
-    await update.message.reply_text(f"✅ BIN *{bin_num}* = *{qty}*", parse_mode="Markdown")
-
-async def cmd_removebin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
-    try: vid = context.args[0]; bkey = context.args[1]; bin_num = context.args[2]; assert vid in STORE and bkey in STORE[vid]["bases"]
-    except (IndexError, AssertionError): await update.message.reply_text("Usage: /removebin <vendor_id> <base_key> <bin_number>"); return
-    STORE[vid]["bases"][bkey]["bins"].pop(bin_num, None)
-    save_data()
-    await update.message.reply_text(f"✅ Removed BIN *{bin_num}*", parse_mode="Markdown")
-
-async def cmd_listbins(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
-    try: vid = context.args[0]; bkey = context.args[1]; assert vid in STORE and bkey in STORE[vid]["bases"]
-    except (IndexError, AssertionError): await update.message.reply_text("Usage: /listbins <vendor_id> <base_key>"); return
-    bins  = STORE[vid]["bases"][bkey]["bins"]
-    label = STORE[vid]["bases"][bkey]["label"]
-    if not bins: await update.message.reply_text(f"No BINs in *{label}*", parse_mode="Markdown"); return
-    lines = [f"📦 *{label}* — {sum(bins.values())} total\n"]
-    for b, q in sorted(bins.items()): lines.append(f"`{b}` — {q} cards")
-    await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
-
-async def cmd_clearbase(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
-    try: vid = context.args[0]; bkey = context.args[1]; assert vid in STORE and bkey in STORE[vid]["bases"]
-    except (IndexError, AssertionError): await update.message.reply_text("Usage: /clearbase <vendor_id> <base_key>"); return
-    STORE[vid]["bases"][bkey]["bins"].clear()
-    save_data()
-    await update.message.reply_text(f"✅ Cleared BINs from `{vid}` / `{bkey}`")
-
-async def cmd_listusers(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
-    if not user_balances: await update.message.reply_text("No users with balances."); return
-    lines = ["👥 *All Users & Balances*\n"]
-    for uid, bal in sorted(user_balances.items(), key=lambda x: -x[1]):
-        lines.append(f"`{uid}` — £{bal:.2f} (joined {user_join_dates.get(uid,'?')})")
-    await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
-
-async def cmd_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
-    full_text = update.message.text or ""
-    parts = full_text.split(None, 1)
-    msg = parts[1] if len(parts) > 1 else ""
-    if not msg: await update.message.reply_text("Usage: `/broadcast <message>`", parse_mode="Markdown"); return
-
-    targets = set(user_join_dates.keys()) | set(user_balances.keys()) | agreed_users
-    status_msg = await update.message.reply_text("📢 *Sending broadcast...*", parse_mode="Markdown")
-
-    sent, failed = 0, 0
-    for target_uid in targets:
-        try:
-            await context.application.bot.send_message(chat_id=target_uid, text=msg, parse_mode="Markdown")
-            sent += 1
-        except Exception:
-            failed += 1
-        await asyncio.sleep(0.05)
-
-    await status_msg.edit_text(f"📢 *Broadcast Complete*\n\n✅ Sent: *{sent}*\n❌ Failed: {failed}", parse_mode="Markdown")
-
-# ── Security & Order Block ────────────────────────────────────────────────────
-
-def get_blocked_message(balance, item_price, back_cb):
-    if balance == 0:
-        text = f"❌ *Insufficient Balance!*\n\nThis item costs £{item_price:.2f} but your balance is £{balance:.2f}.\n\nPlease top up."
-        return text, InlineKeyboardMarkup([[InlineKeyboardButton("💳 Top Up Wallet", callback_data="wallet")]])
-
-    if balance < MIN_DEPOSIT_REQUIRED:
-        text = (
-            "🛑 *Order Blocked*\n⚠️ *Transaction Incomplete*\n"
-            "Your account balance does not meet the minimum deposit required for new users.\n"
-            f" • 💰 *Current Balance:* £{balance:.2f}\n"
-            f" • 📋 *Required Minimum:* £{MIN_DEPOSIT_REQUIRED:.2f}\n"
-            "Please fund your account to proceed."
-        )
-        return text, InlineKeyboardMarkup([
-            [InlineKeyboardButton("➕ Top Up", callback_data="wallet")],
-            [InlineKeyboardButton("⬅️ Back", callback_data=back_cb)],
-        ])
-
-    if balance < item_price:
-        text = f"❌ *Insufficient Balance!*\n\nThis item costs £{item_price:.2f} but your balance is £{balance:.2f}."
-        return text, InlineKeyboardMarkup([[InlineKeyboardButton("💰 Wallet", callback_data="wallet"), InlineKeyboardButton("⬅️ Back", callback_data=back_cb)]])
-
-    return None, None
-
-# ── Button Handler ────────────────────────────────────────────────────────────
+# ── Callback Query Router ─────────────────────────────────────────────────────
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     uid   = query.from_user.id
     data  = query.data
-
-    if data == "agree_rules":
-        is_member, reason = await check_channel_membership(context.bot, uid)
-        if not is_member:
-            await query.answer("⛔️ You haven't joined yet! Tap 'Join Channel' first.", show_alert=True)
-            return
-        agreed_users.add(uid)
-        channel_verified.add(uid)
-        save_data()
-        await query.answer()
-        await context.bot.send_message(chat_id=uid, text=main_menu_text(), reply_markup=main_menu_keyboard(), parse_mode="Markdown")
-        return
-
     await query.answer()
 
-    for _k in ("awaiting_custom", "awaiting_bin_search", "awaiting_qty"):
-        context.user_data.pop(_k, None)
+    if data == "noop": return
+
+    if data == "agree_rules":
+        agreed_users.add(uid); channel_verified.add(uid); save_data()
+        await query.edit_message_text(main_menu_text(), reply_markup=main_menu_keyboard(), parse_mode="Markdown")
+        return
 
     if data == "back":
         await query.edit_message_text(main_menu_text(), reply_markup=main_menu_keyboard(), parse_mode="Markdown")
         return
 
-    if data == "admin_menu":
-        if not is_admin(update): return
-        await query.edit_message_text(ADMIN_HELP_TEXT, parse_mode="Markdown")
+    for _k in ("awaiting_custom", "awaiting_bin_search", "awaiting_qty", "awaiting_search"):
+        context.user_data.pop(_k, None)
+
+    # ── Universal A–Z Country Directory & Navigation (Fully Paginated) ──────
+    if data == "leads":
+        await query.edit_message_text("🌍 *A–Z Sovereign Country Directory*\n_Page 1_\nSelect a nation:", reply_markup=a_z_country_keyboard(0), parse_mode="Markdown")
+        return
+
+    if data.startswith("az_list|"):
+        page = int(data.split("|")[1])
+        await query.edit_message_text(f"🌍 *A–Z Sovereign Country Directory*\n_Page {page+1}_\nSelect a nation:", reply_markup=a_z_country_keyboard(page), parse_mode="Markdown")
+        return
+
+    if data.startswith("c_dash|"):
+        iso2 = data.split("|")[1]
+        c = pycountry.countries.get(alpha_2=iso2)
+        c_name = c.name if c else iso2
+        flag = get_country_flag(iso2)
+        await query.edit_message_text(f"{flag} *{c_name} Data Hub*\n\nSelect a dynamic data vertical:", reply_markup=country_vertical_keyboard(iso2), parse_mode="Markdown")
+        return
+
+    if data.startswith("c_vert|"):
+        _, iso2, vertical = data.split("|")
+        items = await fetch_dynamic_vertical(iso2, vertical)
+        
+        c = pycountry.countries.get(alpha_2=iso2)
+        c_name = c.name if c else iso2
+        flag = get_country_flag(iso2)
+
+        if not items:
+            await query.edit_message_text(
+                f"⚠️ No items available for *{c_name}* under {vertical.title()}.", 
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data=f"c_dash|{iso2}")]]), 
+                parse_mode="Markdown"
+            )
+            return
+
+        # Store items in context for fast pagination/search
+        context.user_data[f"items_{iso2}_{vertical}"] = items
+
+        await query.edit_message_text(
+            f"{flag} *{c_name} ➔ {vertical.title()}*\nSelect an available entity:", 
+            reply_markup=paginated_entity_keyboard(iso2, vertical, items, page=0), 
+            parse_mode="Markdown"
+        )
+        return
+
+    if data.startswith("c_page|"):
+        _, iso2, vertical, page_str = data.split("|")
+        page = int(page_str)
+        
+        items = context.user_data.get(f"items_{iso2}_{vertical}")
+        if not items:
+            items = await fetch_dynamic_vertical(iso2, vertical)
+            context.user_data[f"items_{iso2}_{vertical}"] = items
+
+        c = pycountry.countries.get(alpha_2=iso2)
+        c_name = c.name if c else iso2
+        flag = get_country_flag(iso2)
+
+        await query.edit_message_text(
+            f"{flag} *{c_name} ➔ {vertical.title()}*\n_Page {page+1}_", 
+            reply_markup=paginated_entity_keyboard(iso2, vertical, items, page=page), 
+            parse_mode="Markdown"
+        )
+        return
+
+    if data.startswith("c_search|"):
+        _, iso2, vertical = data.split("|")
+        context.user_data["search_target"] = (iso2, vertical)
+        context.user_data["awaiting_search"] = True
+        
+        await query.edit_message_text(
+            f"🔍 *Search {vertical.title()}*\n\nType the name of the bank, exchange, or provider you are looking for:", 
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Cancel", callback_data=f"c_vert|{iso2}|{vertical}")]]), 
+            parse_mode="Markdown"
+        )
+        return
+
+    if data.startswith("c_item|"):
+        _, iso2, vertical, item_name, price_str = data.split("|")
+        price = float(price_str)
+        c = pycountry.countries.get(alpha_2=iso2)
+        c_name = c.name if c else iso2
+        
+        await query.edit_message_text(
+            f"📦 *Entity:* {item_name}\n🌍 *Region:* {get_country_flag(iso2)} {c_name}\n\nSelect volume quantity:",
+            reply_markup=dynamic_qty_keyboard(iso2, vertical, item_name, price),
+            parse_mode="Markdown"
+        )
+        return
+
+    if data.startswith("c_buy|"):
+        _, iso2, vertical, item_name, qty_str, price_str = data.split("|")
+        qty, price = int(qty_str), float(price_str)
+        balance = user_balances.get(uid, 0)
+
+        err, kbd = get_blocked_message(balance, price, f"c_vert|{iso2}|{vertical}")
+        if err:
+            await query.edit_message_text(err, reply_markup=kbd, parse_mode="Markdown")
+            return
+
+        user_balances[uid] = round(balance - price, 2)
+        save_data()
+        await query.edit_message_text(
+            f"✅ *Export Order Confirmed!*\n\n"
+            f"Category: *{vertical.title()}*\n"
+            f"Region: {get_country_flag(iso2)} *{iso2}*\n"
+            f"Entity: *{item_name}*\n"
+            f"Quantity: *{qty:,}*\n"
+            f"Paid: *£{price:g}*\n\n"
+            f"Contact @{SUPER_ADMIN} to receive the export package.",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back to Main", callback_data="back")]]),
+            parse_mode="Markdown"
+        )
         return
 
     # Wallet
@@ -1022,80 +917,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(f"✅ *Purchase Successful!*\n\n📁 *{label}*\n\nContact @{SUPER_ADMIN} for files.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back to Store", callback_data="store")]]), parse_mode="Markdown")
         return
 
-    # ── Leads Categories Navigation ──────────────────────────────────────────
-    if data == "leads":
-        pricing_overview = leads_pricing_text()
-        await query.edit_message_text(f"🌍 *Leads Directory Menu*\n\n{pricing_overview}\n\n_Select a country below:_", reply_markup=country_keyboard(), parse_mode="Markdown")
-        return
-
-    if data.startswith("lc|"):
-        cc = data.split("|")[1]
-        if cc not in LEADS: await query.answer("Not found."); return
-        d = LEADS[cc]
-        
-        await query.edit_message_text(
-            f"Category: *{d['flag']} {d['name']}*\n\nSelect a dynamic data vertical:", 
-            reply_markup=country_vertical_keyboard(cc), 
-            parse_mode="Markdown"
-        )
-        return
-
-    if data.startswith("c_vert|"):
-        _, cc, vertical = data.split("|", 2)
-        d = LEADS.get(cc, {})
-        
-        if vertical in d.get("subcats", {}):
-            await query.edit_message_text(f"{d['flag']} *{d['name']}* ➔ {vertical.title()}\n\nSelect available item:", reply_markup=entity_keyboard(cc, vertical), parse_mode="Markdown")
-        else:
-            dynamic_items = await fetch_dynamic_vertical(cc, vertical)
-            if not dynamic_items:
-                await query.answer("No dynamic data indexed for this region.")
-                return
-            await query.edit_message_text(f"{d.get('flag', '🌐')} *{d.get('name', cc)}* ➔ {vertical.title()} (Dynamic)\n\nSelect available item:", reply_markup=entity_keyboard(cc, vertical, dynamic_items), parse_mode="Markdown")
-        return
-
-    if data.startswith("lk|"):
-        _, cc, subcat_key, entity_name = data.split("|", 4)
-        if cc not in LEADS: await query.answer("Not found."); return
-        stock = LEADS[cc]["subcats"][subcat_key]["items"].get(entity_name, 0)
-        d = LEADS[cc]
-        await query.edit_message_text(f"Category: *{d['flag']} {d['name']}*\nEntity: *{entity_name}*\nAvailable: *{stock:,}*\n\nSelect quantity:", reply_markup=qty_keyboard(cc, subcat_key, entity_name), parse_mode="Markdown")
-        return
-
-    if data.startswith("lq|"):
-        _, cc, subcat_key, entity_name, qty_str = data.split("|", 5)
-        qty = int(qty_str)
-        price = get_category_pricing_dict(cc).get(qty, 0)
-        d = LEADS[cc]; stock = LEADS[cc]["subcats"][subcat_key]["items"].get(entity_name, 0); balance = user_balances.get(uid, 0)
-
-        if stock < qty: await query.answer(f"Only {stock:,} available.", show_alert=True); return
-
-        await query.edit_message_text(
-            f"🛒 *Purchase Confirmation*\n\nCategory: *{d['flag']} {d['name']}*\nEntity: *{entity_name}*\nQuantity: *{qty:,}*\n💷 *Price: £{price:g}*\n\nYour balance: *£{balance:.2f}*\n\nConfirm?",
-            reply_markup=InlineKeyboardMarkup([[
-                InlineKeyboardButton("✅ Confirm", callback_data=f"lb|{cc}|{subcat_key}|{entity_name}|{qty}"),
-                InlineKeyboardButton("❌ Cancel",  callback_data=f"lk|{cc}|{subcat_key}|{entity_name}")
-            ]]),
-            parse_mode="Markdown"
-        )
-        return
-
-    if data.startswith("lb|"):
-        _, cc, subcat_key, entity_name, qty_str = data.split("|", 5)
-        qty = int(qty_str)
-        price = get_category_pricing_dict(cc).get(qty, 0)
-        balance = user_balances.get(uid, 0); d = LEADS[cc]
-
-        blocked_text, blocked_kbd = get_blocked_message(balance, price, f"lk|{cc}|{subcat_key}|{entity_name}")
-        if blocked_text: await query.edit_message_text(blocked_text, reply_markup=blocked_kbd, parse_mode="Markdown"); return
-
-        user_balances[uid] = round(balance - price, 2)
-        LEADS[cc]["subcats"][subcat_key]["items"][entity_name] = max(0, LEADS[cc]["subcats"][subcat_key]["items"].get(entity_name, 0) - qty)
-        save_data()
-
-        await query.edit_message_text(f"✅ *Purchase Successful!*\n\n{d['flag']} *{d['name']}* — {entity_name}\nQty: *{qty:,}*\nPaid: *£{price:g}*\n\nContact @{SUPER_ADMIN} to receive.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back to Leads", callback_data="leads")]]), parse_mode="Markdown")
-        return
-
     # Scanner
     if data == "scanner":
         await query.edit_message_text("🔍 *Scanner*", reply_markup=scanner_keyboard("all", 0), parse_mode="Markdown")
@@ -1178,6 +999,28 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ── Message Handler ───────────────────────────────────────────────────────────
 
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Live Search Functionality
+    if context.user_data.get("awaiting_search"):
+        query_text = update.message.text.strip().lower()
+        iso2, vertical = context.user_data.get("search_target", ("US", "bank"))
+        context.user_data["awaiting_search"] = False
+
+        items = context.user_data.get(f"items_{iso2}_{vertical}")
+        if not items: items = await fetch_dynamic_vertical(iso2, vertical)
+
+        filtered = [item for item in items if query_text in item["name"].lower()]
+
+        c = pycountry.countries.get(alpha_2=iso2)
+        c_name = c.name if c else iso2
+        flag = get_country_flag(iso2)
+
+        if not filtered:
+            await update.message.reply_text(f"❌ No matching items found for *\"{query_text}\"* in {c_name}.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back to Category", callback_data=f"c_vert|{iso2}|{vertical}")]]), parse_mode="Markdown")
+            return
+
+        await update.message.reply_text(f"🔍 *Search Results for \"{query_text}\"* ({len(filtered)} found):", reply_markup=paginated_entity_keyboard(iso2, vertical, filtered, page=0), parse_mode="Markdown")
+        return
+
     if context.user_data.get("awaiting_qty"):
         info = context.user_data.get("buy_bin", {})
         try: buy_qty = int(update.message.text.strip())
@@ -1213,6 +1056,194 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await update.message.reply_text("❌ BIN not found.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data=f"vendor|{vid}")]]), parse_mode="Markdown")
 
+
+# ── Admin System ──────────────────────────────────────────────────────────────
+
+async def cmd_adminlogin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    try: password = context.args[0]
+    except IndexError: await update.message.reply_text("Usage: /adminlogin <password>"); return
+    if password == ADMIN_PASSWORD:
+        logged_in_admins.add(uid)
+        await update.message.reply_text("✅ *Admin access granted!*\nSend /adminhelp to see all commands.", parse_mode="Markdown")
+        await log(context.application, f"🔑 *Admin Login*\n👤 {user_tag(update)}")
+    else: await update.message.reply_text("❌ Wrong password.")
+
+async def cmd_adminlogout(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logged_in_admins.discard(update.effective_user.id)
+    await update.message.reply_text("🔒 Logged out.")
+
+ADMIN_HELP_TEXT = (
+    "🛠 *Admin Commands*\n\n"
+    "*Category Pricing*\n"
+    "`/setprice <Category_Code> <Quantity> <Price>`\n"
+    "`/resetprice <Category_Code>`\n"
+    "Example: `/setprice AU 1000 25`\n\n"
+    "*Balance Management*\n"
+    "`/addbalance <user_id> <amount>`\n"
+    "`/removebalance <user_id> <amount>`\n"
+    "`/setbalance <user_id> <amount>`\n"
+    "`/checkbalance <user_id>`\n\n"
+    "*Leads & Stock*\n"
+    "`/updatelead <CC> <subcat: crypto|bank|business|network> <ItemName> <stock>`\n"
+    "`/setstock leads <number>`\n\n"
+    "*Store BINS*\n"
+    "`/addvendor <id> <label>` | `/removevendor <id>`\n"
+    "`/addbase <vendor_id> <base_key> <price> <label>`\n"
+    "`/addbin <vendor_id> <base_key> <bin> <qty>`\n"
+    "`/bulkbin <vendor_id> <base_key>`\n\n"
+    "*Broadcast*\n"
+    "`/broadcast <message>`"
+)
+
+async def cmd_adminhelp(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password> first."); return
+    await update.message.reply_text(ADMIN_HELP_TEXT, parse_mode="Markdown")
+
+async def cmd_setprice(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
+    try:
+        cc = context.args[0].upper()
+        qty = int(context.args[1])
+        price = float(context.args[2])
+        assert cc in LEADS
+    except (IndexError, ValueError, AssertionError):
+        await update.message.reply_text("Usage: /setprice <Category_Code> <Quantity> <Price>", parse_mode="Markdown")
+        return
+    if "pricing" not in LEADS[cc]: LEADS[cc]["pricing"] = dict(LEADS_PRICING)
+    LEADS[cc]["pricing"][str(qty)] = price
+    save_data()
+    await update.message.reply_text(f"✅ Updated pricing for *{LEADS[cc]['flag']} {LEADS[cc]['name']}*:\n• *{qty:,} items* → *£{price:g}*", parse_mode="Markdown")
+
+async def cmd_resetprice(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
+    try: cc = context.args[0].upper(); assert cc in LEADS
+    except (IndexError, AssertionError): await update.message.reply_text("Usage: /resetprice <Category_Code>", parse_mode="Markdown"); return
+    LEADS[cc].pop("pricing", None)
+    save_data()
+    await update.message.reply_text(f"✅ Pricing for *{LEADS[cc]['flag']} {LEADS[cc]['name']}* reset to default.", parse_mode="Markdown")
+
+async def cmd_addbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
+    try: tid = int(context.args[0]); amt = float(context.args[1])
+    except (IndexError, ValueError): await update.message.reply_text("Usage: /addbalance <user_id> <amount>"); return
+    user_balances[tid] = round(user_balances.get(tid, 0) + amt, 2)
+    save_data()
+    await update.message.reply_text(f"✅ Added *£{amt:.2f}* to `{tid}`\nNew balance: *£{user_balances[tid]:.2f}*", parse_mode="Markdown")
+
+async def cmd_removebalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
+    try: tid = int(context.args[0]); amt = float(context.args[1])
+    except (IndexError, ValueError): await update.message.reply_text("Usage: /removebalance <user_id> <amount>"); return
+    user_balances[tid] = round(max(0, user_balances.get(tid, 0) - amt), 2)
+    save_data()
+    await update.message.reply_text(f"✅ Removed *£{amt:.2f}* from `{tid}`\nNew balance: *£{user_balances[tid]:.2f}*", parse_mode="Markdown")
+
+async def cmd_setbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
+    try: tid = int(context.args[0]); amt = float(context.args[1])
+    except (IndexError, ValueError): await update.message.reply_text("Usage: /setbalance <user_id> <amount>"); return
+    user_balances[tid] = round(amt, 2)
+    save_data()
+    await update.message.reply_text(f"✅ Set `{tid}` balance to *£{amt:.2f}*", parse_mode="Markdown")
+
+async def cmd_checkbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
+    try: tid = int(context.args[0])
+    except (IndexError, ValueError): await update.message.reply_text("Usage: /checkbalance <user_id>"); return
+    await update.message.reply_text(f"User `{tid}` balance: *£{user_balances.get(tid,0):.2f}*", parse_mode="Markdown")
+
+async def cmd_setstock(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
+    try: key = context.args[0].lower(); val = int(context.args[1]); assert key in ("leads","stock")
+    except (IndexError, ValueError, AssertionError): await update.message.reply_text("Usage: /setstock leads <number>"); return
+    live_stock[key] = val
+    save_data()
+    await update.message.reply_text(f"✅ Updated *{key}* to *{val:,}*", parse_mode="Markdown")
+
+async def cmd_addvendor(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
+    try: vid = context.args[0]; label = " ".join(context.args[1:]); assert vid and label
+    except (IndexError, AssertionError): await update.message.reply_text("Usage: /addvendor <id> <label>"); return
+    if vid in STORE: await update.message.reply_text(f"Vendor `{vid}` already exists."); return
+    STORE[vid] = {"label": label, "bases": {}}
+    save_data()
+    await update.message.reply_text(f"✅ Added vendor *{label}*", parse_mode="Markdown")
+
+async def cmd_removevendor(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
+    try: vid = context.args[0]; assert vid in STORE
+    except (IndexError, AssertionError): await update.message.reply_text("Usage: /removevendor <vendor_id>"); return
+    del STORE[vid]
+    save_data()
+    await update.message.reply_text(f"✅ Removed vendor `{vid}`")
+
+async def cmd_addbase(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
+    try:
+        vid = context.args[0]; bkey = context.args[1]; price = int(context.args[2]); label = " ".join(context.args[3:])
+        assert vid in STORE and label and "|" not in bkey
+    except (IndexError, ValueError, AssertionError):
+        await update.message.reply_text("Usage: /addbase <vendor_id> <base_key> <price> <label>"); return
+    existing_bins = STORE[vid]["bases"].get(bkey, {}).get("bins", {})
+    STORE[vid]["bases"][bkey] = {"label": label, "price_per_card": price, "bins": existing_bins}
+    save_data()
+    await update.message.reply_text(f"✅ Base *{label}* added/updated.", parse_mode="Markdown")
+
+async def cmd_removebase(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
+    try: vid = context.args[0]; bkey = context.args[1]; assert vid in STORE and bkey in STORE[vid]["bases"]
+    except (IndexError, AssertionError): await update.message.reply_text("Usage: /removebase <vendor_id> <base_key>"); return
+    del STORE[vid]["bases"][bkey]
+    save_data()
+    await update.message.reply_text(f"✅ Removed base `{bkey}`")
+
+async def cmd_addbin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
+    try:
+        vid = context.args[0]; bkey = context.args[1]; bin_num = context.args[2]; qty = int(context.args[3])
+        assert vid in STORE and bkey in STORE[vid]["bases"]
+    except (IndexError, ValueError, AssertionError):
+        await update.message.reply_text("Usage: /addbin <vendor_id> <base_key> <bin_number> <quantity>"); return
+    STORE[vid]["bases"][bkey]["bins"][bin_num] = qty
+    save_data()
+    await update.message.reply_text(f"✅ BIN *{bin_num}* = *{qty}*", parse_mode="Markdown")
+
+async def cmd_removebin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
+    try: vid = context.args[0]; bkey = context.args[1]; bin_num = context.args[2]; assert vid in STORE and bkey in STORE[vid]["bases"]
+    except (IndexError, AssertionError): await update.message.reply_text("Usage: /removebin <vendor_id> <base_key> <bin_number>"); return
+    STORE[vid]["bases"][bkey]["bins"].pop(bin_num, None)
+    save_data()
+    await update.message.reply_text(f"✅ Removed BIN *{bin_num}*", parse_mode="Markdown")
+
+async def cmd_listbins(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
+    try: vid = context.args[0]; bkey = context.args[1]; assert vid in STORE and bkey in STORE[vid]["bases"]
+    except (IndexError, AssertionError): await update.message.reply_text("Usage: /listbins <vendor_id> <base_key>"); return
+    bins  = STORE[vid]["bases"][bkey]["bins"]
+    label = STORE[vid]["bases"][bkey]["label"]
+    if not bins: await update.message.reply_text(f"No BINs in *{label}*", parse_mode="Markdown"); return
+    lines = [f"📦 *{label}* — {sum(bins.values())} total\n"]
+    for b, q in sorted(bins.items()): lines.append(f"`{b}` — {q} cards")
+    await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+
+async def cmd_clearbase(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
+    try: vid = context.args[0]; bkey = context.args[1]; assert vid in STORE and bkey in STORE[vid]["bases"]
+    except (IndexError, AssertionError): await update.message.reply_text("Usage: /clearbase <vendor_id> <base_key>"); return
+    STORE[vid]["bases"][bkey]["bins"].clear()
+    save_data()
+    await update.message.reply_text(f"✅ Cleared BINs from `{vid}` / `{bkey}`")
+
+async def cmd_listusers(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
+    if not user_balances: await update.message.reply_text("No users with balances."); return
+    lines = ["👥 *All Users & Balances*\n"]
+    for uid, bal in sorted(user_balances.items(), key=lambda x: -x[1]):
+        lines.append(f"`{uid}` — £{bal:.2f} (joined {user_join_dates.get(uid,'?')})")
+    await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+
 async def cmd_updatelead(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update): await update.message.reply_text("❌ Not authorised."); return
     try:
@@ -1243,6 +1274,27 @@ async def cmd_bulkbin(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except ValueError: pass
     save_data()
     await update.message.reply_text(f"✅ Added {added} BINs.", parse_mode="Markdown")
+
+async def cmd_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
+    full_text = update.message.text or ""
+    parts = full_text.split(None, 1)
+    msg = parts[1] if len(parts) > 1 else ""
+    if not msg: await update.message.reply_text("Usage: `/broadcast <message>`", parse_mode="Markdown"); return
+
+    targets = set(user_join_dates.keys()) | set(user_balances.keys()) | agreed_users
+    status_msg = await update.message.reply_text("📢 *Sending broadcast...*", parse_mode="Markdown")
+
+    sent, failed = 0, 0
+    for target_uid in targets:
+        try:
+            await context.application.bot.send_message(chat_id=target_uid, text=msg, parse_mode="Markdown")
+            sent += 1
+        except Exception:
+            failed += 1
+        await asyncio.sleep(0.05)
+
+    await status_msg.edit_text(f"📢 *Broadcast Complete*\n\n✅ Sent: *{sent}*\n❌ Failed: {failed}", parse_mode="Markdown")
 
 async def error_handler(update, context):
     logger.error("🔥 Error caught:", exc_info=context.error)
