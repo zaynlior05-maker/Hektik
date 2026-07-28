@@ -53,7 +53,7 @@ live_stock    = {"leads": 63_629_085} # Store stock is calculated dynamically
 TOPUP_AMOUNTS = [70, 100, 150, 200, 250, 300, 350, 400, 450, 500, 750, 1000]
 BINS_PER_PAGE = 20   # 20 bins per page = 10 rows of 2
 
-# ── Store Data  (NOTE: base keys must NOT contain the | character) ─────────────
+# ── Store Data ────────────────────────────────────────────────────────────────
 STORE = {
     "8888": {
         "label": "Vendor 8888",
@@ -156,7 +156,6 @@ LEADS_PRICING = [
 def get_category_pricing(cc):
     """Returns sorted list of (qty, price) tuples for a category."""
     if cc in LEADS and "pricing" in LEADS[cc]:
-        # Pricing stored as dict {qty_int: price_float}
         return sorted([(int(k), float(v)) for k, v in LEADS[cc]["pricing"].items()], key=lambda x: x[0])
     return LEADS_PRICING
 
@@ -166,72 +165,71 @@ def get_category_pricing_dict(cc):
         return {int(k): float(v) for k, v in LEADS[cc]["pricing"].items()}
     return dict(LEADS_PRICING)
 
-# ── Leads Country & Custom Categories Data ───────────────────────────────────
+# ── Leads Structured Category Data (Crypto, Bank, Business, Network) ───────────
 LEADS = {
-    # Custom Non-Country Categories
-    "CRYPTO": {"flag":"🪙","name":"Crypto Exchanges","carriers":{"Binance":2_500_000,"Coinbase":2_100_000,"Kraken":1_800_000,"OKX":1_500_000,"Bybit":1_400_000,"KuCoin":1_200_000,"Gate.io":900_000,"Bitfinex":800_000,"MEXC":750_000,"Bitget":700_000,"Crypto.com":950_000,"HTX (Huobi)":600_000,"Gemini":550_000,"Bitstamp":400_000,"eToro":1_100_000,"Uniswap":850_000,"PancakeSwap":750_000,"Raydium":500_000}},
-    "LEDGER": {"flag":"🔐","name":"Ledgers & Wallets","carriers":{"Ledger Nano S":850_000,"Ledger Nano S Plus":750_000,"Ledger Nano X":950_000,"Ledger Stax":350_000,"Ledger Flex":250_000,"Trezor Model T":650_000,"Trezor Safe 3":500_000,"Tangem Wallet":450_000,"Coldcard MK4":300_000,"BitBox02":200_000}},
-    "BUSINESS": {"flag":"🏢","name":"Business & Fintech","carriers":{"Stripe":3_200_000,"PayPal":5_100_000,"Square":2_800_000,"Wise":1_900_000,"Adyen":1_100_000,"Skrill":950_000,"Klarna":1_500_000,"Apple":4_500_000,"Amazon":3_800_000,"Microsoft":2_900_000,"Google":3_400_000,"Meta":2_100_000,"Shopify":1_800_000}},
-    
-    # Bank Directories
-    "BANK_US": {"flag":"🇺🇸","name":"Banks - USA","carriers":{"JPMorgan Chase":4_200_000,"Bank of America":3_800_000,"Citibank":2_900_000,"Wells Fargo":3_100_000,"Goldman Sachs":1_500_000,"Morgan Stanley":1_200_000,"US Bank":1_800_000,"PNC Bank":1_400_000,"Truist Bank":1_100_000,"Capital One":2_500_000,"TD Bank USA":1_700_000,"Charles Schwab":1_900_000,"Discover Bank":1_400_000,"Ally Financial":950_000}},
-    "BANK_UK": {"flag":"🇬🇧","name":"Banks - UK","carriers":{"HSBC UK":3_500_000,"Barclays":3_100_000,"Lloyds Bank":2_800_000,"NatWest Group":2_400_000,"RBS":1_500_000,"Halifax":1_800_000,"Santander UK":2_100_000,"Standard Chartered":1_200_000,"Nationwide":1_700_000,"Metro Bank":850_000,"Monzo":1_900_000,"Revolut UK":2_200_000,"Starling Bank":1_100_000}},
-    "BANK_CA": {"flag":"🇨🇦","name":"Banks - Canada","carriers":{"RBC":2_800_000,"TD Bank":2_500_000,"Scotiabank":2_100_000,"BMO":1_800_000,"CIBC":1_600_000,"National Bank":950_000,"Desjardins":1_100_000,"EQ Bank":650_000,"Tangerine":850_000}},
-    "BANK_AU": {"flag":"🇦🇺","name":"Banks - Australia","carriers":{"CBA":2_900_000,"Westpac":2_400_000,"NAB":2_100_000,"ANZ Bank":1_800_000,"Macquarie Bank":1_100_000,"Bendigo Bank":850_000,"BOQ":650_000,"AMP Bank":550_000,"Judo Bank":300_000}},
-    "BANK_IE": {"flag":"🇮🇪","name":"Banks - Ireland","carriers":{"Bank of Ireland":1_800_000,"AIB":1_500_000,"Permanent TSB":950_000,"Ulster Bank":650_000,"EBS dac":450_000,"An Post Money":350_000,"Revolut IE":1_200_000}},
-
-    # Country Carriers
-    "AU": {"flag":"🇦🇺","name":"Australia",      "carriers":{"Telstra":4_200_000,"Optus":3_100_000,"Vodafone":1_800_000,"Boost Mobile":620_000,"TPG":430_000}},
-    "AT": {"flag":"🇦🇹","name":"Austria",        "carriers":{"A1":1_540_000,"Magenta":890_000,"Drei":760_000,"Spusu":210_000}},
-    "BH": {"flag":"🇧🇭","name":"Bahrain",        "carriers":{"Batelco":480_000,"Zain":390_000,"STC":210_000,"Viva":170_000}},
-    "BE": {"flag":"🇧🇪","name":"Belgium",        "carriers":{"Proximus":1_920_000,"Orange":1_340_000,"Base":980_000}},
-    "BR": {"flag":"🇧🇷","name":"Brazil",         "carriers":{"Vivo":7_800_000,"Claro":6_500_000,"TIM":5_200_000,"Oi":2_100_000}},
-    "BG": {"flag":"🇧🇬","name":"Bulgaria",       "carriers":{"A1":1_100_000,"Telenor":890_000,"Vivacom":760_000}},
-    "CA": {"flag":"🇨🇦","name":"Canada",         "carriers":{"Rogers":4_100_000,"Bell":3_800_000,"Telus":3_500_000,"Fido":980_000,"Koodo":760_000}},
-    "CY": {"flag":"🇨🇾","name":"Cyprus",         "carriers":{"Cyta":340_000,"MTN":210_000,"Epic":180_000}},
-    "CZ": {"flag":"🇨🇿","name":"Czech Republic", "carriers":{"T-Mobile":2_100_000,"O2":1_800_000,"Vodafone":1_400_000}},
-    "DK": {"flag":"🇩🇰","name":"Denmark",        "carriers":{"TDC":1_540_000,"Telenor":1_100_000,"Telia":980_000,"Tre":760_000}},
-    "ET": {"flag":"🇪🇪","name":"Estonia",        "carriers":{"Telia":430_000,"Elisa":380_000,"Tele2":290_000}},
-    "FI": {"flag":"🇫🇮","name":"Finland",        "carriers":{"Elisa":1_800_000,"DNA":1_500_000,"Telia":1_200_000}},
-    "FR": {"flag":"🇫🇷","name":"France",         "carriers":{"Orange":6_200_000,"SFR":4_800_000,"Bouygues":4_100_000,"Free Mobile":3_500_000}},
-    "DE": {"flag":"🇩🇪","name":"Germany",        "carriers":{"Telekom":8_900_000,"Vodafone":7_200_000,"O2":5_800_000,"1&1":1_400_000}},
-    "GR": {"flag":"🇬🇷","name":"Greece",         "carriers":{"Cosmote":2_800_000,"Vodafone":1_900_000,"Wind Hellas":1_400_000,"Nova":680_000}},
-    "HU": {"flag":"🇭🇺","name":"Hungary",        "carriers":{"Telekom":2_100_000,"Yettel":1_400_000,"Vodafone":980_000}},
-    "IS": {"flag":"🇮🇸","name":"Iceland",        "carriers":{"Siminn":180_000,"Vodafone":140_000,"Nova":110_000}},
-    "IE": {"flag":"🇮🇪","name":"Ireland",        "carriers":{"Eir":833_503,"Tesco Mobile":520_700,"Three A":351_645,"Three B":861_444,"Vodafone":1_720_550}},
-    "IT": {"flag":"🇮🇹","name":"Italy",          "carriers":{"TIM":5_900_000,"Vodafone":4_200_000,"WindTre":5_100_000,"Iliad":1_800_000,"PosteMobile":890_000}},
-    "LV": {"flag":"🇱🇻","name":"Latvia",         "carriers":{"LMT":540_000,"Tele2":430_000,"Bite":320_000}},
-    "LT": {"flag":"🇱🇹","name":"Lithuania",      "carriers":{"Tele2":890_000,"Bite":760_000,"Telia":540_000}},
-    "MY": {"flag":"🇲🇾","name":"Malaysia",       "carriers":{"Maxis":4_200_000,"Celcom":3_100_000,"Digi":3_800_000,"U Mobile":1_400_000,"Unifi":980_000}},
-    "MT": {"flag":"🇲🇹","name":"Malta",          "carriers":{"GO":180_000,"Melita":140_000,"Epic":110_000}},
-    "NL": {"flag":"🇳🇱","name":"Netherlands",    "carriers":{"KPN":3_200_000,"VodafoneZiggo":2_800_000,"T-Mobile":2_100_000,"Tele2":890_000}},
-    "NZ": {"flag":"🇳🇿","name":"New Zealand",    "carriers":{"Spark":1_800_000,"One NZ":1_400_000,"2degrees":980_000}},
-    "NO": {"flag":"🇳🇴","name":"Norway",         "carriers":{"Telenor":2_400_000,"Telia":1_800_000,"Ice":760_000}},
-    "PL": {"flag":"🇵🇱","name":"Poland",         "carriers":{"Orange":4_100_000,"Play":3_800_000,"Plus":3_200_000,"T-Mobile":2_900_000}},
-    "PT": {"flag":"🇵🇹","name":"Portugal",       "carriers":{"NOS":2_800_000,"MEO":2_400_000,"Vodafone":1_900_000}},
-    "PR": {"flag":"🇵🇷","name":"Puerto Rico",    "carriers":{"Claro":1_100_000,"Liberty":540_000,"T-Mobile":890_000}},
-    "QA": {"flag":"🇶🇦","name":"Qatar",          "carriers":{"Ooredoo":980_000,"Vodafone Qatar":760_000}},
-    "RO": {"flag":"🇷🇴","name":"Romania",        "carriers":{"Orange":3_200_000,"Vodafone":2_800_000,"Digi":2_100_000,"Telekom":1_400_000}},
-    "SG": {"flag":"🇸🇬","name":"Singapore",      "carriers":{"Singtel":2_100_000,"StarHub":1_400_000,"M1":980_000,"TPG":320_000}},
-    "SK": {"flag":"🇸🇰","name":"Slovakia",       "carriers":{"Slovak Telekom":1_400_000,"Orange":1_100_000,"O2":760_000}},
-    "SI": {"flag":"🇸🇮","name":"Slovenia",       "carriers":{"A1":540_000,"Telekom SI":430_000,"T-2":210_000}},
-    "ZA": {"flag":"🇿🇦","name":"South Africa",   "carriers":{"Vodacom":5_200_000,"MTN":4_800_000,"Cell C":2_100_000,"Telkom":1_400_000}},
-    "ES": {"flag":"🇪🇸","name":"Spain",          "carriers":{"Movistar":7_200_000,"Orange":5_800_000,"Vodafone":4_900_000,"MásMóvil":2_100_000,"Yoigo":1_400_000}},
-    "SE": {"flag":"🇸🇪","name":"Sweden",         "carriers":{"Telia":3_200_000,"Tele2":2_800_000,"Tre":1_900_000,"Telenor":1_400_000}},
-    "CH": {"flag":"🇨🇭","name":"Switzerland",    "carriers":{"Swisscom":2_800_000,"Sunrise":1_900_000,"Salt":980_000}},
-    "TW": {"flag":"🇹🇼","name":"Taiwan",         "carriers":{"Chunghwa":4_100_000,"Taiwan Mobile":3_200_000,"FarEasTone":2_800_000,"TSTAR":1_100_000}},
-    "TR": {"flag":"🇹🇷","name":"Turkey",         "carriers":{"Turkcell":6_800_000,"Vodafone":4_900_000,"Türk Telekom":4_200_000}},
-    "AE": {"flag":"🇦🇪","name":"UAE",            "carriers":{"Etisalat (e&)":2_400_000,"du":1_800_000}},
-    "UA": {"flag":"🇺🇦","name":"Ukraine",        "carriers":{"Kyivstar":4_800_000,"Vodafone":3_200_000,"lifecell":2_100_000}},
-    "UK": {"flag":"🇬🇧","name":"United Kingdom", "carriers":{"EE":3_544_000,"O2":1_831_000,"Sky":553_000,"Three":4_515_000,"Virgin":114_000,"Vodafone":530_000}},
-    "US": {"flag":"🇺🇸","name":"United States",  "carriers":{"AT&T":12_800_000,"Verizon":11_400_000,"T-Mobile":9_700_000,"Boost Mobile":2_100_000,"Cricket":1_900_000,"Metro by T-Mobile":1_700_000,"US Cellular":890_000,"Mint Mobile":640_000}},
+    "US": {
+        "flag": "🇺🇸", "name": "United States",
+        "subcats": {
+            "crypto": {"name": "🪙 Crypto", "items": {"Coinbase US": 3500000, "Binance.US": 2200000, "Kraken US": 1900000, "Gemini": 1200000}},
+            "bank": {"name": "🏦 Banks", "items": {"JPMorgan Chase": 4200000, "Bank of America": 3800000, "Citibank": 2900000, "Wells Fargo": 3100000, "Capital One": 2500000}},
+            "business": {"name": "🏢 Business", "items": {"Stripe US": 3200000, "PayPal US": 5100000, "Square": 2800000, "Adyen US": 1100000}},
+            "network": {"name": "📡 Network", "items": {"AT&T": 12800000, "Verizon": 11400000, "T-Mobile": 9700000, "Boost Mobile": 2100000, "Cricket": 1900000}}
+        }
+    },
+    "UK": {
+        "flag": "🇬🇧", "name": "United Kingdom",
+        "subcats": {
+            "crypto": {"name": "🪙 Crypto", "items": {"Binance UK": 1800000, "Coinbase UK": 1500000, "Kraken UK": 1100000, "Revolut Crypto": 2100000}},
+            "bank": {"name": "🏦 Banks", "items": {"HSBC UK": 3500000, "Barclays": 3100000, "Lloyds Bank": 2800000, "NatWest": 2400000, "Monzo": 1900000}},
+            "business": {"name": "🏢 Business", "items": {"Wise UK": 1900000, "Revolut Business": 2200000, "Checkout.com": 950000}},
+            "network": {"name": "📡 Network", "items": {"EE": 3544000, "O2": 1831000, "Sky": 553000, "Three": 4515000, "Vodafone": 530000}}
+        }
+    },
+    "AU": {
+        "flag": "🇦🇺", "name": "Australia",
+        "subcats": {
+            "crypto": {"name": "🪙 Crypto", "items": {"Binance AU": 1200000, "CoinSpot": 1500000, "Independent Reserve": 800000, "Swyftx": 950000}},
+            "bank": {"name": "🏦 Banks", "items": {"CBA": 2900000, "Westpac": 2400000, "NAB": 2100000, "ANZ Bank": 1800000, "Macquarie Bank": 1100000}},
+            "business": {"name": "🏢 Business", "items": {"Wise Australia": 900000, "PayPal AU": 1800000, "Afterpay": 1400000, "Square AU": 750000}},
+            "network": {"name": "📡 Network", "items": {"Telstra": 4200000, "Optus": 3100000, "Vodafone": 1800000, "Boost Mobile": 620000, "TPG": 430000}}
+        }
+    },
+    "CA": {
+        "flag": "🇨🇦", "name": "Canada",
+        "subcats": {
+            "crypto": {"name": "🪙 Crypto", "items": {"Shakepay": 950000, "Coinbase CA": 1100000, "Newton": 800000, "Kraken CA": 700000}},
+            "bank": {"name": "🏦 Banks", "items": {"RBC": 2800000, "TD Bank": 2500000, "Scotiabank": 2100000, "BMO": 1800000, "CIBC": 1600000}},
+            "business": {"name": "🏢 Business", "items": {"Shopify": 1800000, "Wise CA": 850000, "PayPal CA": 1500000}},
+            "network": {"name": "📡 Network", "items": {"Rogers": 4100000, "Bell": 3800000, "Telus": 3500000, "Fido": 980000, "Koodo": 760000}}
+        }
+    },
+    "IE": {
+        "flag": "🇮🇪", "name": "Ireland",
+        "subcats": {
+            "crypto": {"name": "🪙 Crypto", "items": {"Coinbase IE": 700000, "Binance IE": 900000, "Kraken IE": 600000}},
+            "bank": {"name": "🏦 Banks", "items": {"Bank of Ireland": 1800000, "AIB": 1500000, "Permanent TSB": 950000, "Revolut IE": 1200000}},
+            "business": {"name": "🏢 Business", "items": {"Stripe IE": 1400000, "PayPal IE": 1600000}},
+            "network": {"name": "📡 Network", "items": {"Eir": 833503, "Tesco Mobile": 520700, "Three A": 351645, "Three B": 861444, "Vodafone": 1720550}}
+        }
+    }
 }
 
-# Auto-add MIX carrier
+# Add default global generic categories as a utility if users want them global
+LEADS["GLOBAL"] = {
+    "flag": "🌍", "name": "Global / Generic",
+    "subcats": {
+        "crypto": {"name": "🪙 Crypto", "items": {"Binance Global": 2500000, "Kraken Global": 1800000, "OKX": 1500000, "KuCoin": 1200000}},
+        "business": {"name": "🏢 Big Tech", "items": {"Apple": 4500000, "Amazon": 3800000, "Google": 3400000, "Meta": 2100000}}
+    }
+}
+
+# Auto-add MIX item to network subcategories
 for _cc, _d in LEADS.items():
-    if "MIX" not in _d["carriers"]:
-        _biggest = max(_d["carriers"].values())
-        _d["carriers"]["MIX"] = int(_biggest * 1.25)
+    if "network" in _d.get("subcats", {}):
+        net_dict = _d["subcats"]["network"]["items"]
+        if "MIX" not in net_dict:
+            _biggest = max(net_dict.values()) if net_dict else 100000
+            net_dict["MIX"] = int(_biggest * 1.25)
 
 DEFAULT_LEADS = _copy.deepcopy(LEADS)
 
@@ -299,16 +297,17 @@ def load_data():
         
         if data.get("STORE"):
             STORE.clear(); STORE.update(data["STORE"])
+            
+        # Detect legacy format and migrate/overwrite
         if data.get("LEADS"):
-            LEADS.clear(); LEADS.update(data["LEADS"])
-
-        for cc, d in DEFAULT_LEADS.items():
-            if cc not in LEADS:
-                LEADS[cc] = _copy.deepcopy(d)
+            sample_key = list(data["LEADS"].keys())[0]
+            if "subcats" not in data["LEADS"][sample_key]:
+                logger.info("Legacy LEADS format detected, replacing with new structure.")
+                LEADS.clear()
+                LEADS.update(DEFAULT_LEADS)
             else:
-                for carrier, stock in d["carriers"].items():
-                    if carrier not in LEADS[cc]["carriers"]:
-                        LEADS[cc]["carriers"][carrier] = stock
+                LEADS.clear()
+                LEADS.update(data["LEADS"])
 
         logger.info("✅ Loaded saved data from disk.")
     except Exception as e:
@@ -404,17 +403,31 @@ def country_keyboard():
     rows.append([InlineKeyboardButton("⬅️ Back", callback_data="back")])
     return InlineKeyboardMarkup(rows)
 
-def carrier_keyboard(cc):
+def subcat_keyboard(cc):
+    """Displays Crypto, Bank, Business, Network options."""
     data = LEADS[cc]
     rows = []
-    carriers = list(data["carriers"].items())
-    for i in range(0, len(carriers), 2):
-        row = [InlineKeyboardButton(f"{name} ({stock:,})", callback_data=f"lk|{cc}|{name}") for name, stock in carriers[i:i+2]]
-        rows.append(row)
+    for skey, sdata in data.get("subcats", {}).items():
+        rows.append([InlineKeyboardButton(sdata["name"], callback_data=f"lsub|{cc}|{skey}")])
     rows.append([InlineKeyboardButton("⬅️ Back", callback_data="leads")])
     return InlineKeyboardMarkup(rows)
 
-def qty_keyboard(cc, carrier):
+def entity_keyboard(cc, subcat_key):
+    """Displays exact entities (like Telstra, Optus) in a perfect 2-column grid."""
+    items = LEADS[cc]["subcats"][subcat_key]["items"]
+    rows = []
+    items_list = list(items.items())
+    
+    # Render two buttons side-by-side per row
+    for i in range(0, len(items_list), 2):
+        row = [InlineKeyboardButton(f"{name} ({stock:,})", callback_data=f"lk|{cc}|{subcat_key}|{name}") for name, stock in items_list[i:i+2]]
+        rows.append(row)
+        
+    # Standard back button at the bottom
+    rows.append([InlineKeyboardButton("⬅️ Back", callback_data=f"lc|{cc}")])
+    return InlineKeyboardMarkup(rows)
+
+def qty_keyboard(cc, subcat_key, entity_name):
     rows = []
     tiers = get_category_pricing(cc)
     for i in range(0, len(tiers), 2):
@@ -422,9 +435,9 @@ def qty_keyboard(cc, carrier):
         for qty, price in tiers[i:i+2]:
             k = qty // 1000 if qty >= 1000 else qty
             unit = "k" if qty >= 1000 else ""
-            row.append(InlineKeyboardButton(f"{k}{unit} — £{price:g}", callback_data=f"lq|{cc}|{carrier}|{qty}"))
+            row.append(InlineKeyboardButton(f"{k}{unit} — £{price:g}", callback_data=f"lq|{cc}|{subcat_key}|{entity_name}|{qty}"))
         rows.append(row)
-    rows.append([InlineKeyboardButton("⬅️ Back", callback_data=f"lc|{cc}")])
+    rows.append([InlineKeyboardButton("⬅️ Back", callback_data=f"lsub|{cc}|{subcat_key}")])
     return InlineKeyboardMarkup(rows)
 
 def tsource_main_keyboard():
@@ -609,15 +622,14 @@ ADMIN_HELP_TEXT = (
     "*Category Pricing*\n"
     "`/setprice <Category_Code> <Quantity> <Price>`\n"
     "`/resetprice <Category_Code>`\n"
-    "Example: `/setprice CRYPTO 1000 25`\n"
-    "Example: `/setprice BANK_US 5000 120`\n\n"
+    "Example: `/setprice AU 1000 25`\n\n"
     "*Balance Management*\n"
     "`/addbalance <user_id> <amount>`\n"
     "`/removebalance <user_id> <amount>`\n"
     "`/setbalance <user_id> <amount>`\n"
     "`/checkbalance <user_id>`\n\n"
     "*Leads & Stock*\n"
-    "`/updatelead <CC> <Carrier> <stock>`\n"
+    "`/updatelead <CC> <subcat: crypto|bank|business|network> <ItemName> <stock>`\n"
     "`/setstock leads <number>`\n\n"
     "*Store BINS*\n"
     "`/addvendor <id> <label>` | `/removevendor <id>`\n"
@@ -636,7 +648,6 @@ async def cmd_adminhelp(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(ADMIN_HELP_TEXT, parse_mode="Markdown")
 
 async def cmd_setprice(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Admin: /setprice <CC> <qty> <price>"""
     if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
     try:
         cc = context.args[0].upper()
@@ -647,11 +658,8 @@ async def cmd_setprice(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             "Usage: /setprice <Category_Code> <Quantity> <Price>\n\n"
             "Examples:\n"
-            "• `/setprice CRYPTO 1000 25`\n"
-            "• `/setprice BANK_US 5000 120`\n"
-            "• `/setprice BANK_UK 10000 180`\n"
-            "• `/setprice US 1000 15`\n\n"
-            "Valid Codes: `CRYPTO`, `LEDGER`, `BUSINESS`, `BANK_US`, `BANK_UK`, `BANK_CA`, `BANK_AU`, `BANK_IE`, `UK`, `US`, `AU`, etc.",
+            "• `/setprice UK 10000 180`\n"
+            "• `/setprice US 1000 15`\n",
             parse_mode="Markdown"
         )
         return
@@ -669,13 +677,12 @@ async def cmd_setprice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def cmd_resetprice(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Admin: /resetprice <CC>"""
     if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
     try:
         cc = context.args[0].upper()
         assert cc in LEADS
     except (IndexError, AssertionError):
-        await update.message.reply_text("Usage: /resetprice <Category_Code>\nExample: `/resetprice CRYPTO`", parse_mode="Markdown")
+        await update.message.reply_text("Usage: /resetprice <Category_Code>", parse_mode="Markdown")
         return
 
     LEADS[cc].pop("pricing", None)
@@ -813,7 +820,6 @@ async def cmd_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not msg: await update.message.reply_text("Usage: `/broadcast <message>`", parse_mode="Markdown"); return
 
     targets = set(user_join_dates.keys()) | set(user_balances.keys()) | agreed_users
-    total_users = len(targets)
     status_msg = await update.message.reply_text("📢 *Sending broadcast...*", parse_mode="Markdown")
 
     sent, failed = 0, 0
@@ -970,7 +976,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(f"✅ *Purchase Successful!*\n\n💳 BIN: *{bin_num}*\n🗂 Qty: *{buy_qty} fullz*\n💷 Paid: *£{total:.2f}*\n\nContact @{SUPER_ADMIN} for files.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back to Store", callback_data="store")]]), parse_mode="Markdown")
         return
 
-    # Deads Section (Fixed Syntax Bracket Error Here)
     if data == "deads":
         await query.edit_message_text("💀 *Deads — Unspoofed Files*", reply_markup=deads_keyboard(), parse_mode="Markdown")
         return
@@ -1004,60 +1009,73 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(f"✅ *Purchase Successful!*\n\n📁 *{label}*\n\nContact @{SUPER_ADMIN} for files.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back to Store", callback_data="store")]]), parse_mode="Markdown")
         return
 
-    # Leads
+    # ── Leads Categories Navigation ──────────────────────────────────────────
     if data == "leads":
         pricing_overview = leads_pricing_text()
-        await query.edit_message_text(f"🌍 *Leads Category Menu*\n\n{pricing_overview}\n\n_Select a category below:_", reply_markup=country_keyboard(), parse_mode="Markdown")
+        await query.edit_message_text(f"🌍 *Leads Category Menu*\n\n{pricing_overview}\n\n_Select a country below:_", reply_markup=country_keyboard(), parse_mode="Markdown")
         return
 
+    # Tapped on a country -> Show Crypto, Bank, Business, Network
     if data.startswith("lc|"):
         cc = data.split("|")[1]
         if cc not in LEADS: await query.answer("Not found."); return
         d = LEADS[cc]
         category_pricing = leads_pricing_text(cc)
-        await query.edit_message_text(f"Category: *{d['flag']} {d['name']}*\n\n{category_pricing}\n\nSelect item below:", reply_markup=carrier_keyboard(cc), parse_mode="Markdown")
+        await query.edit_message_text(f"Category: *{d['flag']} {d['name']}*\n\n{category_pricing}\n\nSelect a category below:", reply_markup=subcat_keyboard(cc), parse_mode="Markdown")
         return
 
-    if data.startswith("lk|"):
-        _, cc, carrier = data.split("|", 2)
-        if cc not in LEADS: await query.answer("Not found."); return
-        stock = LEADS[cc]["carriers"].get(carrier, 0)
+    # Tapped on a subcategory -> Show entities (e.g., Telstra, Optus)
+    if data.startswith("lsub|"):
+        _, cc, subcat_key = data.split("|", 3)
+        if cc not in LEADS or subcat_key not in LEADS[cc].get("subcats", {}): await query.answer("Not found."); return
         d = LEADS[cc]
-        await query.edit_message_text(f"Category: *{d['flag']} {d['name']}*\nEntity: *{carrier}*\nAvailable: *{stock:,}*\n\nSelect quantity:", reply_markup=qty_keyboard(cc, carrier), parse_mode="Markdown")
+        subcat_name = d["subcats"][subcat_key]["name"]
+        await query.edit_message_text(f"{d['flag']} *{d['name']}* ➔ {subcat_name}\n\nSelect available item:", reply_markup=entity_keyboard(cc, subcat_key), parse_mode="Markdown")
         return
 
+    # Tapped on an entity -> Show quantity tiers
+    if data.startswith("lk|"):
+        _, cc, subcat_key, entity_name = data.split("|", 4)
+        if cc not in LEADS: await query.answer("Not found."); return
+        stock = LEADS[cc]["subcats"][subcat_key]["items"].get(entity_name, 0)
+        d = LEADS[cc]
+        await query.edit_message_text(f"Category: *{d['flag']} {d['name']}*\nEntity: *{entity_name}*\nAvailable: *{stock:,}*\n\nSelect quantity:", reply_markup=qty_keyboard(cc, subcat_key, entity_name), parse_mode="Markdown")
+        return
+
+    # Tapped on a quantity -> Show confirmation
     if data.startswith("lq|"):
-        _, cc, carrier, qty_str = data.split("|", 3)
+        _, cc, subcat_key, entity_name, qty_str = data.split("|", 5)
         qty = int(qty_str)
         price = get_category_pricing_dict(cc).get(qty, 0)
-        d = LEADS[cc]; stock = LEADS[cc]["carriers"].get(carrier, 0); balance = user_balances.get(uid, 0)
+        d = LEADS[cc]; stock = LEADS[cc]["subcats"][subcat_key]["items"].get(entity_name, 0); balance = user_balances.get(uid, 0)
 
         if stock < qty: await query.answer(f"Only {stock:,} available.", show_alert=True); return
 
         await query.edit_message_text(
-            f"🛒 *Purchase Confirmation*\n\nCategory: *{d['flag']} {d['name']}*\nEntity: *{carrier}*\nQuantity: *{qty:,}*\n💷 *Price: £{price:g}*\n\nYour balance: *£{balance:.2f}*\n\nConfirm?",
+            f"🛒 *Purchase Confirmation*\n\nCategory: *{d['flag']} {d['name']}*\nEntity: *{entity_name}*\nQuantity: *{qty:,}*\n💷 *Price: £{price:g}*\n\nYour balance: *£{balance:.2f}*\n\nConfirm?",
             reply_markup=InlineKeyboardMarkup([[
-                InlineKeyboardButton("✅ Confirm", callback_data=f"lb|{cc}|{carrier}|{qty}"),
-                InlineKeyboardButton("❌ Cancel",  callback_data=f"lk|{cc}|{carrier}")
+                InlineKeyboardButton("✅ Confirm", callback_data=f"lb|{cc}|{subcat_key}|{entity_name}|{qty}"),
+                InlineKeyboardButton("❌ Cancel",  callback_data=f"lk|{cc}|{subcat_key}|{entity_name}")
             ]]),
             parse_mode="Markdown"
         )
         return
 
+    # Confirmed purchase
     if data.startswith("lb|"):
-        _, cc, carrier, qty_str = data.split("|", 3)
+        _, cc, subcat_key, entity_name, qty_str = data.split("|", 5)
         qty = int(qty_str)
         price = get_category_pricing_dict(cc).get(qty, 0)
         balance = user_balances.get(uid, 0); d = LEADS[cc]
 
-        blocked_text, blocked_kbd = get_blocked_message(balance, price, f"lk|{cc}|{carrier}")
+        blocked_text, blocked_kbd = get_blocked_message(balance, price, f"lk|{cc}|{subcat_key}|{entity_name}")
         if blocked_text: await query.edit_message_text(blocked_text, reply_markup=blocked_kbd, parse_mode="Markdown"); return
 
         user_balances[uid] = round(balance - price, 2)
-        LEADS[cc]["carriers"][carrier] = max(0, LEADS[cc]["carriers"].get(carrier, 0) - qty)
+        LEADS[cc]["subcats"][subcat_key]["items"][entity_name] = max(0, LEADS[cc]["subcats"][subcat_key]["items"].get(entity_name, 0) - qty)
         save_data()
 
-        await query.edit_message_text(f"✅ *Purchase Successful!*\n\n{d['flag']} *{d['name']}* — {carrier}\nQty: *{qty:,}*\nPaid: *£{price:g}*\n\nContact @{SUPER_ADMIN} to receive.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back to Leads", callback_data="leads")]]), parse_mode="Markdown")
+        await query.edit_message_text(f"✅ *Purchase Successful!*\n\n{d['flag']} *{d['name']}* — {entity_name}\nQty: *{qty:,}*\nPaid: *£{price:g}*\n\nContact @{SUPER_ADMIN} to receive.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back to Leads", callback_data="leads")]]), parse_mode="Markdown")
         return
 
     # Scanner
@@ -1180,14 +1198,15 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cmd_updatelead(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update): await update.message.reply_text("❌ Not authorised."); return
     try:
-        cc = context.args[0].upper(); carrier = context.args[1]; stock = int(context.args[2])
-        assert cc in LEADS
+        cc = context.args[0].upper(); subcat = context.args[1].lower(); item = context.args[2]; stock = int(context.args[3])
+        assert cc in LEADS and subcat in LEADS[cc]["subcats"]
     except (IndexError, ValueError, AssertionError):
-        await update.message.reply_text("Usage: /updatelead <CC> <Carrier> <stock>"); return
-    if stock <= 0: LEADS[cc]["carriers"].pop(carrier, None)
-    else: LEADS[cc]["carriers"][carrier] = stock
+        await update.message.reply_text("Usage: /updatelead <CC> <subcat: crypto|bank|business|network> <ItemName> <stock>\nExample: `/updatelead AU network Telstra 5000000`", parse_mode="Markdown"); return
+    
+    if stock <= 0: LEADS[cc]["subcats"][subcat]["items"].pop(item, None)
+    else: LEADS[cc]["subcats"][subcat]["items"][item] = stock
     save_data()
-    await update.message.reply_text(f"✅ Updated *{carrier}* → *{stock:,}* in {LEADS[cc]['name']}", parse_mode="Markdown")
+    await update.message.reply_text(f"✅ Updated *{item}* → *{stock:,}* in {LEADS[cc]['name']}", parse_mode="Markdown")
 
 async def cmd_bulkbin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update): await update.message.reply_text("❌ Not authorised."); return
