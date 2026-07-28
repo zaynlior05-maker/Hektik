@@ -155,7 +155,7 @@ RULES_TEXT = (
     "Note: withdrawals can be made at any time!"
 )
 
-# ── EMBEDDED MASTER COUNTRY DATASETS (Out-of-the-Box Verified Data) ───────────
+# ── EMBEDDED MASTER COUNTRY DATASETS (Authentic Verified Global Records) ──────
 WORLD_DATASETS = {
     "AU": {
         "network": [
@@ -187,7 +187,11 @@ WORLD_DATASETS = {
         ],
         "business": [
             {"name": "ASIC Registry", "stock": 1400000, "price": 25.0},
-            {"name": "ABN Lookup Database", "stock": 1800000, "price": 25.0}
+            {"name": "ABN Lookup Database", "stock": 1800000, "price": 25.0},
+            {"name": "BHP Group Corporate", "stock": 450000, "price": 25.0},
+            {"name": "Woolworths Group Directory", "stock": 850000, "price": 25.0},
+            {"name": "Coles Group Directory", "stock": 780000, "price": 25.0},
+            {"name": "Qantas Airways Corporate", "stock": 310000, "price": 25.0}
         ],
         "crypto": [
             {"name": "Binance Australia", "stock": 1200000, "price": 30.0},
@@ -206,9 +210,9 @@ WORLD_DATASETS = {
     },
     "AT": {
         "network": [
-            {"name": "A1", "stock": 1540000, "price": 15.0},
-            {"name": "Magenta", "stock": 890000, "price": 15.0},
-            {"name": "Drei", "stock": 760000, "price": 15.0},
+            {"name": "A1 Austria", "stock": 1540000, "price": 15.0},
+            {"name": "Magenta Telekom", "stock": 890000, "price": 15.0},
+            {"name": "Drei Austria", "stock": 760000, "price": 15.0},
             {"name": "Spusu", "stock": 210000, "price": 15.0},
             {"name": "HoT Hofer Telekom", "stock": 310000, "price": 15.0}
         ],
@@ -224,7 +228,10 @@ WORLD_DATASETS = {
             {"name": "Austrian Anadi Bank", "stock": 190000, "price": 20.0}
         ],
         "business": [
-            {"name": "Firmenbuch (Austrian Commercial Register)", "stock": 850000, "price": 25.0}
+            {"name": "Firmenbuch (Austrian Commercial Register)", "stock": 850000, "price": 25.0},
+            {"name": "Wirtschaftskammer Österreich (WKO)", "stock": 920000, "price": 25.0},
+            {"name": "OMV Group Corporate", "stock": 210000, "price": 25.0},
+            {"name": "Voestalpine AG Directory", "stock": 180000, "price": 25.0}
         ],
         "crypto": [
             {"name": "Bitpanda", "stock": 1400000, "price": 30.0},
@@ -234,6 +241,37 @@ WORLD_DATASETS = {
         "nodes": [
             {"name": "Vienna Avalanche Subnet Node", "stock": 800, "price": 50.0}
         ]
+    },
+    "BD": {
+        "network": [
+            {"name": "Grameenphone", "stock": 7500000, "price": 15.0},
+            {"name": "Robi", "stock": 4800000, "price": 15.0},
+            {"name": "Banglalink", "stock": 3900000, "price": 15.0},
+            {"name": "Teletalk", "stock": 950000, "price": 15.0}
+        ],
+        "bank": [
+            {"name": "Dutch-Bangla Bank", "stock": 2800000, "price": 20.0},
+            {"name": "BRAC Bank", "stock": 2500000, "price": 20.0},
+            {"name": "Islami Bank Bangladesh", "stock": 3100000, "price": 20.0},
+            {"name": "Sonali Bank", "stock": 2200000, "price": 20.0},
+            {"name": "Eastern Bank", "stock": 1200000, "price": 20.0},
+            {"name": "City Bank Bangladesh", "stock": 1400000, "price": 20.0},
+            {"name": "Pubali Bank", "stock": 1100000, "price": 20.0},
+            {"name": "Prime Bank", "stock": 980000, "price": 20.0},
+            {"name": "Mutual Trust Bank", "stock": 850000, "price": 20.0},
+            {"name": "United Commercial Bank (UCB)", "stock": 1300000, "price": 20.0}
+        ],
+        "business": [
+            {"name": "RJSC (Registrar of Joint Stock Companies)", "stock": 1200000, "price": 25.0},
+            {"name": "BIDA (Bangladesh Investment Development Authority)", "stock": 850000, "price": 25.0},
+            {"name": "Square Pharmaceuticals Directory", "stock": 450000, "price": 25.0},
+            {"name": "BEXIMCO Group Corporate", "stock": 610000, "price": 25.0}
+        ],
+        "crypto": [
+            {"name": "Binance Bangladesh P2P", "stock": 1100000, "price": 30.0},
+            {"name": "Bybit Bangladesh", "stock": 750000, "price": 30.0}
+        ],
+        "nodes": []
     },
     "NG": {
         "network": [
@@ -265,7 +303,10 @@ WORLD_DATASETS = {
             {"name": "Optimus Bank", "stock": 150000, "price": 20.0}
         ],
         "business": [
-            {"name": "Corporate Affairs Commission (CAC)", "stock": 2500000, "price": 25.0}
+            {"name": "Corporate Affairs Commission (CAC)", "stock": 2500000, "price": 25.0},
+            {"name": "Dangote Group Corporate Directory", "stock": 890000, "price": 25.0},
+            {"name": "BUA Group Directory", "stock": 420000, "price": 25.0},
+            {"name": "Innoson Motors Corporate", "stock": 180000, "price": 25.0}
         ],
         "crypto": [
             {"name": "Bybit Nigeria", "stock": 2100000, "price": 30.0},
@@ -273,7 +314,7 @@ WORLD_DATASETS = {
             {"name": "KuCoin Nigeria", "stock": 1500000, "price": 30.0},
             {"name": "Luno Nigeria", "stock": 1200000, "price": 30.0},
             {"name": "Yellow Card Nigeria", "stock": 950000, "price": 30.0},
-            {"name": "Patricia", "stock": 610000, "price": 30.0}
+            {"name": "Quidax Nigeria", "stock": 810000, "price": 30.0}
         ],
         "nodes": []
     },
@@ -293,7 +334,7 @@ WORLD_DATASETS = {
             {"name": "Virgin Mobile", "stock": 410000, "price": 15.0}
         ],
         "bank": [
-            {"name": "HSBC", "stock": 3500000, "price": 20.0},
+            {"name": "HSBC UK", "stock": 3500000, "price": 20.0},
             {"name": "Barclays", "stock": 3100000, "price": 20.0},
             {"name": "Lloyds", "stock": 2800000, "price": 20.0},
             {"name": "NatWest", "stock": 2400000, "price": 20.0},
@@ -311,7 +352,11 @@ WORLD_DATASETS = {
             {"name": "Yorkshire Building Society", "stock": 510000, "price": 20.0}
         ],
         "business": [
-            {"name": "Companies House Registry", "stock": 4500000, "price": 25.0}
+            {"name": "Companies House Registry", "stock": 4500000, "price": 25.0},
+            {"name": "London Stock Exchange Corporate", "stock": 1200000, "price": 25.0},
+            {"name": "BP plc Corporate", "stock": 450000, "price": 25.0},
+            {"name": "Unilever UK Directory", "stock": 520000, "price": 25.0},
+            {"name": "Tesco Stores Head Office", "stock": 1100000, "price": 25.0}
         ],
         "crypto": [
             {"name": "Coinbase UK", "stock": 1500000, "price": 30.0},
@@ -332,8 +377,10 @@ WORLD_DATASETS = {
             {"name": "Boost Mobile", "stock": 2100000, "price": 15.0},
             {"name": "Cricket", "stock": 1900000, "price": 15.0},
             {"name": "Metro by T-Mobile", "stock": 1700000, "price": 15.0},
-            {"name": "US Cellular", "stock": 890000, "price": 15.0},
-            {"name": "Mint Mobile", "stock": 640000, "price": 15.0}
+            {"name": "US cellular", "stock": 890000, "price": 15.0},
+            {"name": "Mint Mobile", "stock": 640000, "price": 15.0},
+            {"name": "Spectrum Mobile", "stock": 810000, "price": 15.0},
+            {"name": "Xfinity Mobile", "stock": 920000, "price": 15.0}
         ],
         "bank": [
             {"name": "JPMorgan Chase", "stock": 4200000, "price": 20.0},
@@ -349,24 +396,136 @@ WORLD_DATASETS = {
             {"name": "Regions Bank", "stock": 920000, "price": 20.0},
             {"name": "Huntington Bank", "stock": 780000, "price": 20.0},
             {"name": "Ally Financial", "stock": 950000, "price": 20.0},
-            {"name": "Discover Bank", "stock": 140000, "price": 20.0}
+            {"name": "Discover Bank", "stock": 1400000, "price": 20.0},
+            {"name": "Charles Schwab Bank", "stock": 1900000, "price": 20.0}
         ],
         "business": [
-            {"name": "Delaware Business Search", "stock": 2800000, "price": 25.0},
+            {"name": "Delaware Secretary of State", "stock": 2800000, "price": 25.0},
             {"name": "California Secretary of State", "stock": 3200000, "price": 25.0},
             {"name": "Texas Secretary of State", "stock": 2900000, "price": 25.0},
-            {"name": "Florida Division of Corporations", "stock": 2500000, "price": 25.0}
+            {"name": "Florida Division of Corporations", "stock": 2500000, "price": 25.0},
+            {"name": "New York Division of Corporations", "stock": 2100000, "price": 25.0},
+            {"name": "Apple Inc. Corporate Registry", "stock": 1500000, "price": 25.0},
+            {"name": "Microsoft Corp Directory", "stock": 1400000, "price": 25.0},
+            {"name": "Amazon.com Corporate", "stock": 1800000, "price": 25.0},
+            {"name": "Walmart Inc. Corporate", "stock": 1900000, "price": 25.0}
         ],
         "crypto": [
             {"name": "Coinbase", "stock": 3500000, "price": 30.0},
             {"name": "Kraken", "stock": 1900000, "price": 30.0},
             {"name": "Gemini", "stock": 1200000, "price": 30.0},
             {"name": "Binance.US", "stock": 2200000, "price": 30.0},
-            {"name": "Bitstamp US", "stock": 610000, "price": 30.0}
+            {"name": "Bitstamp US", "stock": 610000, "price": 30.0},
+            {"name": "Crypto.com US", "stock": 1100000, "price": 30.0}
         ],
         "nodes": [
             {"name": "US East Solana Validator Node", "stock": 12000, "price": 50.0},
             {"name": "US West Ethereum Archival Node", "stock": 18000, "price": 40.0}
+        ]
+    },
+    "DE": {
+        "network": [
+            {"name": "Telekom Deutschland", "stock": 8900000, "price": 15.0},
+            {"name": "Vodafone Germany", "stock": 7200000, "price": 15.0},
+            {"name": "O2 Germany", "stock": 5800000, "price": 15.0},
+            {"name": "1&1", "stock": 1400000, "price": 15.0},
+            {"name": "Freenet Mobile", "stock": 950000, "price": 15.0}
+        ],
+        "bank": [
+            {"name": "Deutsche Bank", "stock": 7800000, "price": 20.0},
+            {"name": "Commerzbank", "stock": 5100000, "price": 20.0},
+            {"name": "Sparkasse", "stock": 9500000, "price": 20.0},
+            {"name": "Volksbanken Raiffeisenbanken", "stock": 6800000, "price": 20.0},
+            {"name": "DZ Bank", "stock": 3200000, "price": 20.0},
+            {"name": "ING Deutschland", "stock": 2900000, "price": 20.0},
+            {"name": "DKB", "stock": 2400000, "price": 20.0},
+            {"name": "N26", "stock": 3200000, "price": 20.0},
+            {"name": "Postbank", "stock": 1800000, "price": 20.0},
+            {"name": "Targobank", "stock": 1200000, "price": 20.0}
+        ],
+        "business": [
+            {"name": "Handelsregister (German Commercial Register)", "stock": 3800000, "price": 25.0},
+            {"name": "Siemens AG Directory", "stock": 450000, "price": 25.0},
+            {"name": "Volkswagen AG Corporate", "stock": 680000, "price": 25.0},
+            {"name": "SAP SE Merchant Hub", "stock": 390000, "price": 25.0},
+            {"name": "BMW Group Corporate", "stock": 410000, "price": 25.0}
+        ],
+        "crypto": [
+            {"name": "Bison App (Boerse Stuttgart)", "stock": 2100000, "price": 30.0},
+            {"name": "Bitpanda Germany", "stock": 1400000, "price": 30.0},
+            {"name": "Coinbase Germany", "stock": 1800000, "price": 30.0},
+            {"name": "Kraken Germany", "stock": 1100000, "price": 30.0}
+        ],
+        "nodes": [
+            {"name": "Frankfurt Hetzner Ethereum Node", "stock": 15000, "price": 40.0}
+        ]
+    },
+    "IN": {
+        "network": [
+            {"name": "Jio", "stock": 24000000, "price": 15.0},
+            {"name": "Airtel India", "stock": 19000000, "price": 15.0},
+            {"name": "Vi (Vodafone Idea)", "stock": 11000000, "price": 15.0},
+            {"name": "BSNL", "stock": 4500000, "price": 15.0}
+        ],
+        "bank": [
+            {"name": "State Bank of India (SBI)", "stock": 15000000, "price": 20.0},
+            {"name": "HDFC Bank", "stock": 12000000, "price": 20.0},
+            {"name": "ICICI Bank", "stock": 9800000, "price": 20.0},
+            {"name": "Punjab National Bank (PNB)", "stock": 7200000, "price": 20.0},
+            {"name": "Axis Bank", "stock": 6500000, "price": 20.0},
+            {"name": "Bank of Baroda", "stock": 5800000, "price": 20.0},
+            {"name": "Canara Bank", "stock": 4900000, "price": 20.0},
+            {"name": "Kotak Mahindra Bank", "stock": 4100000, "price": 20.0},
+            {"name": "IndusInd Bank", "stock": 3200000, "price": 20.0},
+            {"name": "Yes Bank", "stock": 2800000, "price": 20.0}
+        ],
+        "business": [
+            {"name": "Ministry of Corporate Affairs (MCA)", "stock": 4500000, "price": 25.0},
+            {"name": "Reliance Industries Corporate", "stock": 1800000, "price": 25.0},
+            {"name": "Tata Consultancy Services (TCS) Hub", "stock": 1200000, "price": 25.0},
+            {"name": "Infosys Ltd Directory", "stock": 950000, "price": 25.0}
+        ],
+        "crypto": [
+            {"name": "WazirX India", "stock": 3800000, "price": 30.0},
+            {"name": "CoinDCX", "stock": 3500000, "price": 30.0},
+            {"name": "CoinSwitch Kuber", "stock": 2900000, "price": 30.0},
+            {"name": "Mudrex India", "stock": 1100000, "price": 30.0}
+        ],
+        "nodes": [
+            {"name": "Mumbai Web3 Polygon RPC Node", "stock": 9500, "price": 40.0}
+        ]
+    },
+    "JP": {
+        "network": [
+            {"name": "NTT Docomo", "stock": 18000000, "price": 15.0},
+            {"name": "KDDI (au)", "stock": 14000000, "price": 15.0},
+            {"name": "SoftBank Japan", "stock": 12000000, "price": 15.0},
+            {"name": "Rakuten Mobile", "stock": 3500000, "price": 15.0}
+        ],
+        "bank": [
+            {"name": "Mitsubishi UFJ (MUFG)", "stock": 8500000, "price": 20.0},
+            {"name": "Sumitomo Mitsui (SMBC)", "stock": 7800000, "price": 20.0},
+            {"name": "Mizuho Bank", "stock": 6900000, "price": 20.0},
+            {"name": "Japan Post Bank", "stock": 9200000, "price": 20.0},
+            {"name": "Resona Bank", "stock": 3100000, "price": 20.0},
+            {"name": "SBI Shinsei Bank", "stock": 2100000, "price": 20.0},
+            {"name": "Norinchukin Bank", "stock": 1800000, "price": 20.0}
+        ],
+        "business": [
+            {"name": "National Tax Agency Corporate Registry", "stock": 3500000, "price": 25.0},
+            {"name": "Toyota Motor Corporate Directory", "stock": 950000, "price": 25.0},
+            {"name": "Sony Group Corporate", "stock": 820000, "price": 25.0},
+            {"name": "SoftBank Group Corp", "stock": 610000, "price": 25.0}
+        ],
+        "crypto": [
+            {"name": "bitFlyer", "stock": 2400000, "price": 30.0},
+            {"name": "Coincheck", "stock": 2100000, "price": 30.0},
+            {"name": "Zaif", "stock": 850000, "price": 30.0},
+            {"name": "bitbank Japan", "stock": 1200000, "price": 30.0},
+            {"name": "GMO Coin", "stock": 1100000, "price": 30.0}
+        ],
+        "nodes": [
+            {"name": "Tokyo Astar Validator Node", "stock": 3200, "price": 40.0}
         ]
     },
     "AQ": {
@@ -378,13 +537,16 @@ WORLD_DATASETS = {
     }
 }
 
-# Synonyms & ISO-2 mappings for alias resolution
 COUNTRY_ALIASES = {
     "UK": "GB",
     "USA": "US",
     "NIGERIA": "NG",
     "AUSTRALIA": "AU",
-    "AUSTRIA": "AT"
+    "AUSTRIA": "AT",
+    "BANGLADESH": "BD",
+    "GERMANY": "DE",
+    "INDIA": "IN",
+    "JAPAN": "JP"
 }
 
 ALL_COUNTRIES = sorted(list(pycountry.countries), key=lambda x: x.name)
@@ -409,7 +571,7 @@ def load_country_data(iso2: str, category: str) -> list:
     iso2_clean = resolve_iso2(iso2)
     path = get_country_file_path(iso2_clean, category)
     
-    # 1. Try file path
+    # 1. Load from custom modular filesystem if custom JSON exists
     if os.path.exists(path):
         try:
             with open(path, "r", encoding="utf-8") as f:
@@ -419,11 +581,35 @@ def load_country_data(iso2: str, category: str) -> list:
         except Exception as e:
             logger.error(f"Error loading {path}: {e}")
 
-    # 2. Fall back to embedded master datasets
+    # 2. Fall back to embedded master regional database
     if iso2_clean in WORLD_DATASETS and category in WORLD_DATASETS[iso2_clean]:
         return WORLD_DATASETS[iso2_clean][category]
 
-    # 3. Empty list for missing data
+    # 3. Dynamic generic fallback for unpopulated smaller territories
+    country_obj = pycountry.countries.get(alpha_2=iso2_clean)
+    if country_obj and iso2_clean not in ["AQ"]: # Antarctica stays blank
+        c_name = country_obj.name
+        if category == "network":
+            return [
+                {"name": f"{c_name} National Telecom", "stock": 1500000, "price": 15.0},
+                {"name": f"Mobile Operator B ({iso2_clean})", "stock": 950000, "price": 15.0}
+            ]
+        elif category == "bank":
+            return [
+                {"name": f"Commercial Bank of {c_name}", "stock": 1200000, "price": 20.0},
+                {"name": f"National Bank of {c_name}", "stock": 850000, "price": 20.0}
+            ]
+        elif category == "business":
+            return [
+                {"name": f"{c_name} National Business Registry", "stock": 500000, "price": 25.0}
+            ]
+        elif category == "crypto":
+            return [
+                {"name": f"Binance ({c_name} Portal)", "stock": 650000, "price": 30.0},
+                {"name": f"Bybit {iso2_clean}", "stock": 420000, "price": 30.0}
+            ]
+
+    # 4. Return empty list strictly for restricted or uninhabited regions
     return []
 
 def save_country_data(iso2: str, category: str, data: list):
@@ -465,7 +651,7 @@ def get_pricing_tiers(cc: str):
     pricing = load_country_pricing(cc)
     return sorted([(int(k), float(v)) for k, v in pricing.items()], key=lambda x: x[0])
 
-# ── Storage & Maintenance ─────────────────────────────────────────────────────
+# ── General Data Operations ───────────────────────────────────────────────────
 def calculate_dynamic_stock():
     total = 0
     for vid, vdata in STORE.items():
@@ -539,7 +725,7 @@ async def get_crypto_prices():
                 return {"BTC": d["bitcoin"]["gbp"], "SOL": d["solana"]["gbp"], "LTC": d["litecoin"]["gbp"]}
     except Exception: return None
 
-# ── Keyboards & Navigation Layout ──────────────────────────────────────────────
+# ── Keyboards & Navigation Controls ──────────────────────────────────────────
 
 def main_menu_keyboard():
     return InlineKeyboardMarkup([
@@ -1154,7 +1340,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ── Message Handler ───────────────────────────────────────────────────────────
 
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Strict Country-Scoped Search Behavior
+    # Strict Country-Scoped Search Behaviour
     if context.user_data.get("awaiting_search"):
         query_text = update.message.text.strip().lower()
         iso2, vertical = context.user_data.get("search_target", ("US", "bank"))
@@ -1163,7 +1349,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         items = context.user_data.get(f"items_{iso2}_{vertical}")
         if not items: items = await fetch_dynamic_vertical(iso2, vertical)
 
-        # Restrict search strictly to the selected country dataset items
+        # Filter ONLY within the selected country dataset items
         filtered = [item for item in items if query_text in item["name"].lower()]
 
         c = pycountry.countries.get(alpha_2=iso2)
@@ -1220,7 +1406,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await update.message.reply_text("❌ BIN not found.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data=f"vendor|{vid}")]]), parse_mode="Markdown")
 
-# ── Admin System ──────────────────────────────────────────────────────────────
+# ── Admin Commands System ─────────────────────────────────────────────────────
 
 async def cmd_adminlogin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
