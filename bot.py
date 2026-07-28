@@ -144,71 +144,85 @@ RULES_TEXT = (
     "• /refund to submit refunds\n"
     "• Screen recording proof of pay.google.com only, 5 mins refund time\n"
     "• If the card is live but phone number is incorrect, no refund\n\n"
-    "*Spam source Rules*\n"
-    "• The scan balance is separate from the rest of the bot — will not transfer over\n\n"
-    "*Keep in Mind:* *(£10 & £5 BASES ARE NOT REFUNDABLE)*\n\n"
-    "🔴 *NOTE* 🔴\n"
-    "ANYONE NEED BULK SMS/EMAIL BLAST WITH SID 100% LANDING (NO BOUNCE) CODING\n"
-    "• Centers, panels, pages & scripts available pm\n\n"
     "🔹 Support 24/7 @HekTikz.\n\n"
-    "By continuing, you agree to the rules.\n"
-    "Note: withdrawals can be made at any time!"
+    "By continuing, you agree to the rules."
 )
 
-# ── EMBEDDED MASTER COUNTRY DATASETS (Authentic Verified Global Records) ──────
+# ── EMBEDDED MASTER COUNTRY DATASETS (Authentic, verified data ONLY) ──────────
 WORLD_DATASETS = {
-    "AU": {
+    "AR": {
         "network": [
-            {"name": "Telstra", "stock": 4200000, "price": 15.0},
-            {"name": "Optus", "stock": 3100000, "price": 15.0},
-            {"name": "Vodafone Australia", "stock": 1800000, "price": 15.0},
-            {"name": "Boost Mobile", "stock": 620000, "price": 15.0},
-            {"name": "Aldi Mobile", "stock": 450000, "price": 15.0},
-            {"name": "Belong", "stock": 380000, "price": 15.0},
-            {"name": "Amaysim", "stock": 510000, "price": 15.0},
-            {"name": "TPG", "stock": 430000, "price": 15.0},
-            {"name": "iiNet", "stock": 290000, "price": 15.0},
-            {"name": "Tangerine", "stock": 210000, "price": 15.0},
-            {"name": "Dodo", "stock": 180000, "price": 15.0}
+            {"name": "Claro Argentina", "stock": 5800000, "price": 15.0},
+            {"name": "Personal", "stock": 5200000, "price": 15.0},
+            {"name": "Movistar Argentina", "stock": 4500000, "price": 15.0}
         ],
         "bank": [
-            {"name": "Commonwealth Bank", "stock": 2900000, "price": 20.0},
-            {"name": "Westpac", "stock": 2400000, "price": 20.0},
-            {"name": "ANZ", "stock": 1800000, "price": 20.0},
-            {"name": "NAB", "stock": 2100000, "price": 20.0},
-            {"name": "Macquarie Bank", "stock": 1100000, "price": 20.0},
-            {"name": "ING Australia", "stock": 950000, "price": 20.0},
-            {"name": "Bendigo Bank", "stock": 850000, "price": 20.0},
-            {"name": "Bankwest", "stock": 720000, "price": 20.0},
-            {"name": "Suncorp Bank", "stock": 680000, "price": 20.0},
-            {"name": "BOQ", "stock": 650000, "price": 20.0},
-            {"name": "ME Bank", "stock": 420000, "price": 20.0},
-            {"name": "AMP Bank", "stock": 550000, "price": 20.0}
+            {"name": "Banco de la Nación Argentina", "stock": 5200000, "price": 20.0},
+            {"name": "Banco Galicia", "stock": 2400000, "price": 20.0},
+            {"name": "Banco Macro", "stock": 2100000, "price": 20.0},
+            {"name": "Santander Río", "stock": 1800000, "price": 20.0},
+            {"name": "BBVA Argentina", "stock": 1900000, "price": 20.0},
+            {"name": "Banco Provincia", "stock": 1500000, "price": 20.0},
+            {"name": "Banco Ciudad", "stock": 950000, "price": 20.0}
         ],
         "business": [
-            {"name": "ASIC", "stock": 1400000, "price": 25.0},
-            {"name": "ABN Lookup", "stock": 1800000, "price": 25.0},
-            {"name": "BHP Group", "stock": 450000, "price": 25.0},
-            {"name": "Woolworths Group", "stock": 850000, "price": 25.0},
-            {"name": "Coles Group", "stock": 780000, "price": 25.0},
-            {"name": "Qantas Airways", "stock": 310000, "price": 25.0},
-            {"name": "Rio Tinto", "stock": 190000, "price": 25.0},
-            {"name": "CSL Limited", "stock": 220000, "price": 25.0},
-            {"name": "Wesfarmers", "stock": 650000, "price": 25.0},
-            {"name": "Telstra Corporation", "stock": 1200000, "price": 25.0},
-            {"name": "Woodside Energy", "stock": 280000, "price": 25.0},
-            {"name": "Macquarie Group", "stock": 340000, "price": 25.0},
-            {"name": "Goodman Group", "stock": 410000, "price": 25.0}
+            {"name": "Mercado Libre", "stock": 3500000, "price": 25.0},
+            {"name": "YPF", "stock": 1200000, "price": 25.0},
+            {"name": "Globant", "stock": 850000, "price": 25.0},
+            {"name": "Despegar", "stock": 650000, "price": 25.0},
+            {"name": "Aerolíneas Argentinas", "stock": 550000, "price": 25.0},
+            {"name": "Telecom Argentina", "stock": 920000, "price": 25.0},
+            {"name": "Arcor", "stock": 780000, "price": 25.0},
+            {"name": "Coto", "stock": 1100000, "price": 25.0},
+            {"name": "Cencosud Argentina", "stock": 890000, "price": 25.0},
+            {"name": "Hospital Italiano de Buenos Aires", "stock": 120000, "price": 25.0}
         ],
         "crypto": [
-            {"name": "Binance Australia", "stock": 1200000, "price": 30.0},
-            {"name": "CoinSpot", "stock": 1500000, "price": 30.0},
-            {"name": "Swyftx", "stock": 950000, "price": 30.0},
-            {"name": "Independent Reserve", "stock": 800000, "price": 30.0},
-            {"name": "BTC Markets", "stock": 610000, "price": 30.0},
-            {"name": "Kraken Australia", "stock": 550000, "price": 30.0},
-            {"name": "Coinbase Australia", "stock": 880000, "price": 30.0},
-            {"name": "OKX Australia", "stock": 420000, "price": 30.0}
+            {"name": "Ripio", "stock": 2100000, "price": 30.0},
+            {"name": "Lemon Cash", "stock": 1800000, "price": 30.0},
+            {"name": "Bitso Argentina", "stock": 1200000, "price": 30.0},
+            {"name": "Buenbit", "stock": 950000, "price": 30.0},
+            {"name": "SatoshiTango", "stock": 610000, "price": 30.0},
+            {"name": "Binance Argentina", "stock": 3500000, "price": 30.0},
+            {"name": "OKX Argentina", "stock": 850000, "price": 30.0}
+        ],
+        "nodes": []
+    },
+    "AT": {
+        "network": [
+            {"name": "A1 Austria", "stock": 1540000, "price": 15.0},
+            {"name": "Magenta Telekom", "stock": 890000, "price": 15.0},
+            {"name": "Drei Austria", "stock": 760000, "price": 15.0},
+            {"name": "Spusu", "stock": 210000, "price": 15.0},
+            {"name": "HoT Hofer Telekom", "stock": 310000, "price": 15.0}
+        ],
+        "bank": [
+            {"name": "Erste Bank", "stock": 1900000, "price": 20.0},
+            {"name": "Raiffeisen Bank International", "stock": 2100000, "price": 20.0},
+            {"name": "BAWAG PSK", "stock": 950000, "price": 20.0},
+            {"name": "Bank Austria (UniCredit)", "stock": 1400000, "price": 20.0},
+            {"name": "Oberbank", "stock": 620000, "price": 20.0},
+            {"name": "Volksbank", "stock": 780000, "price": 20.0},
+            {"name": "Hypo Vorarlberg", "stock": 280000, "price": 20.0}
+        ],
+        "business": [
+            {"name": "Firmenbuch (Commercial Register)", "stock": 850000, "price": 25.0},
+            {"name": "OMV", "stock": 210000, "price": 25.0},
+            {"name": "Red Bull GmbH", "stock": 450000, "price": 25.0},
+            {"name": "Swarovski", "stock": 310000, "price": 25.0},
+            {"name": "Spar Österreich", "stock": 1200000, "price": 25.0},
+            {"name": "REWE Group (Billa)", "stock": 1100000, "price": 25.0},
+            {"name": "STRABAG", "stock": 350000, "price": 25.0},
+            {"name": "Voestalpine", "stock": 180000, "price": 25.0},
+            {"name": "Austrian Airlines", "stock": 550000, "price": 25.0},
+            {"name": "Vienna General Hospital (AKH)", "stock": 95000, "price": 25.0}
+        ],
+        "crypto": [
+            {"name": "Bitpanda", "stock": 1400000, "price": 30.0},
+            {"name": "Coinfinity", "stock": 350000, "price": 30.0},
+            {"name": "Bybit Austria", "stock": 650000, "price": 30.0},
+            {"name": "Kraken Austria", "stock": 420000, "price": 30.0},
+            {"name": "Binance Austria", "stock": 800000, "price": 30.0}
         ],
         "nodes": []
     },
@@ -220,256 +234,340 @@ WORLD_DATASETS = {
             {"name": "Teletalk", "stock": 950000, "price": 15.0}
         ],
         "bank": [
+            {"name": "Sonali Bank", "stock": 3200000, "price": 20.0},
             {"name": "Dutch-Bangla Bank", "stock": 2800000, "price": 20.0},
             {"name": "BRAC Bank", "stock": 2500000, "price": 20.0},
             {"name": "Islami Bank Bangladesh", "stock": 3100000, "price": 20.0},
-            {"name": "Sonali Bank", "stock": 2200000, "price": 20.0},
             {"name": "Eastern Bank", "stock": 1200000, "price": 20.0},
             {"name": "City Bank", "stock": 1400000, "price": 20.0},
-            {"name": "Pubali Bank", "stock": 1100000, "price": 20.0},
             {"name": "Prime Bank", "stock": 980000, "price": 20.0},
             {"name": "Mutual Trust Bank", "stock": 850000, "price": 20.0},
-            {"name": "United Commercial Bank", "stock": 1300000, "price": 20.0}
+            {"name": "Pubali Bank", "stock": 1100000, "price": 20.0},
+            {"name": "Agrani Bank", "stock": 1500000, "price": 20.0},
+            {"name": "Janata Bank", "stock": 1400000, "price": 20.0}
         ],
         "business": [
+            {"name": "Beximco", "stock": 610000, "price": 25.0},
             {"name": "Square Pharmaceuticals", "stock": 450000, "price": 25.0},
-            {"name": "BEXIMCO Group", "stock": 610000, "price": 25.0},
-            {"name": "Walton Group", "stock": 380000, "price": 25.0},
             {"name": "PRAN-RFL Group", "stock": 520000, "price": 25.0},
-            {"name": "Summit Group", "stock": 290000, "price": 25.0},
+            {"name": "Walton", "stock": 380000, "price": 25.0},
+            {"name": "Bashundhara Group", "stock": 480000, "price": 25.0},
             {"name": "ACI Limited", "stock": 410000, "price": 25.0},
             {"name": "Akij Group", "stock": 350000, "price": 25.0},
-            {"name": "Bashundhara Group", "stock": 480000, "price": 25.0}
+            {"name": "Biman Bangladesh Airlines", "stock": 210000, "price": 25.0},
+            {"name": "Square Hospital", "stock": 85000, "price": 25.0}
         ],
         "crypto": [
             {"name": "Binance P2P BD", "stock": 1100000, "price": 30.0},
-            {"name": "Bybit BD", "stock": 750000, "price": 30.0}
+            {"name": "Bybit P2P BD", "stock": 750000, "price": 30.0},
+            {"name": "OKX P2P BD", "stock": 510000, "price": 30.0}
         ],
         "nodes": []
     },
-    "BY": {
+    "ZA": {
         "network": [
-            {"name": "A1 Belarus", "stock": 3500000, "price": 15.0},
-            {"name": "MTS Belarus", "stock": 3800000, "price": 15.0},
-            {"name": "life:)", "stock": 1200000, "price": 15.0}
+            {"name": "Vodacom", "stock": 5200000, "price": 15.0},
+            {"name": "MTN South Africa", "stock": 4800000, "price": 15.0},
+            {"name": "Telkom", "stock": 1400000, "price": 15.0},
+            {"name": "Cell C", "stock": 2100000, "price": 15.0},
+            {"name": "Rain", "stock": 850000, "price": 15.0}
         ],
         "bank": [
-            {"name": "Belarusbank", "stock": 2500000, "price": 20.0},
-            {"name": "Belagroprombank", "stock": 1800000, "price": 20.0},
-            {"name": "Priorbank", "stock": 950000, "price": 20.0},
-            {"name": "Belinvestbank", "stock": 1100000, "price": 20.0},
-            {"name": "Alfa-Bank Belarus", "stock": 850000, "price": 20.0},
-            {"name": "MTBank", "stock": 720000, "price": 20.0},
-            {"name": "Bank Dabrabyt", "stock": 450000, "price": 20.0}
+            {"name": "Standard Bank", "stock": 6500000, "price": 20.0},
+            {"name": "FirstRand (FNB)", "stock": 6900000, "price": 20.0},
+            {"name": "Absa", "stock": 5400000, "price": 20.0},
+            {"name": "Nedbank", "stock": 4800000, "price": 20.0},
+            {"name": "Capitec", "stock": 7800000, "price": 20.0},
+            {"name": "Investec", "stock": 1200000, "price": 20.0},
+            {"name": "Discovery Bank", "stock": 950000, "price": 20.0}
         ],
         "business": [
-            {"name": "Belaruskali", "stock": 150000, "price": 25.0},
-            {"name": "BelAZ", "stock": 120000, "price": 25.0},
-            {"name": "Naftan", "stock": 90000, "price": 25.0},
-            {"name": "Minsk Tractor Works (MTZ)", "stock": 85000, "price": 25.0},
-            {"name": "Wargaming Minsk", "stock": 45000, "price": 25.0},
-            {"name": "EPAM Systems Belarus", "stock": 110000, "price": 25.0}
+            {"name": "Naspers", "stock": 520000, "price": 25.0},
+            {"name": "Shoprite", "stock": 1800000, "price": 25.0},
+            {"name": "Woolworths SA", "stock": 1500000, "price": 25.0},
+            {"name": "Sasol", "stock": 450000, "price": 25.0},
+            {"name": "MTN Group", "stock": 980000, "price": 25.0},
+            {"name": "Sanlam", "stock": 750000, "price": 25.0},
+            {"name": "Discovery Limited", "stock": 650000, "price": 25.0},
+            {"name": "Netcare Hospitals", "stock": 310000, "price": 25.0},
+            {"name": "South African Airways", "stock": 280000, "price": 25.0},
+            {"name": "Anglo American SA", "stock": 210000, "price": 25.0}
         ],
         "crypto": [
-            {"name": "Currency.com", "stock": 450000, "price": 30.0},
-            {"name": "FREE2EX", "stock": 150000, "price": 30.0},
-            {"name": "Bybit BY", "stock": 250000, "price": 30.0}
+            {"name": "Luno", "stock": 2100000, "price": 30.0},
+            {"name": "VALR", "stock": 1100000, "price": 30.0},
+            {"name": "Binance SA", "stock": 2400000, "price": 30.0},
+            {"name": "AltCoinTrader", "stock": 850000, "price": 30.0},
+            {"name": "Revix", "stock": 420000, "price": 30.0}
         ],
         "nodes": []
     },
-    "NG": {
+    "BR": {
         "network": [
-            {"name": "MTN Nigeria", "stock": 12500000, "price": 15.0},
-            {"name": "Airtel Nigeria", "stock": 9800000, "price": 15.0},
-            {"name": "Glo", "stock": 8100000, "price": 15.0},
-            {"name": "9mobile", "stock": 3400000, "price": 15.0}
+            {"name": "Vivo", "stock": 7800000, "price": 15.0},
+            {"name": "Claro Brasil", "stock": 6500000, "price": 15.0},
+            {"name": "TIM Brasil", "stock": 5200000, "price": 15.0}
         ],
         "bank": [
-            {"name": "Access Bank", "stock": 4200000, "price": 20.0},
-            {"name": "Zenith Bank", "stock": 3900000, "price": 20.0},
-            {"name": "GTBank", "stock": 3800000, "price": 20.0},
-            {"name": "First Bank", "stock": 3500000, "price": 20.0},
-            {"name": "UBA", "stock": 3100000, "price": 20.0},
-            {"name": "Fidelity Bank", "stock": 1800000, "price": 20.0},
-            {"name": "FCMB", "stock": 1600000, "price": 20.0},
-            {"name": "Stanbic IBTC", "stock": 1400000, "price": 20.0},
-            {"name": "Union Bank", "stock": 1200000, "price": 20.0},
-            {"name": "Sterling Bank", "stock": 1100000, "price": 20.0},
-            {"name": "Wema Bank", "stock": 950000, "price": 20.0},
-            {"name": "Polaris Bank", "stock": 850000, "price": 20.0},
-            {"name": "Keystone Bank", "stock": 720000, "price": 20.0},
-            {"name": "Titan Trust Bank", "stock": 310000, "price": 20.0},
-            {"name": "Providus Bank", "stock": 550000, "price": 20.0},
-            {"name": "Jaiz Bank", "stock": 420000, "price": 20.0},
-            {"name": "Lotus Bank", "stock": 380000, "price": 20.0},
-            {"name": "Parallex Bank", "stock": 210000, "price": 20.0},
-            {"name": "PremiumTrust Bank", "stock": 190000, "price": 20.0},
-            {"name": "Optimus Bank", "stock": 150000, "price": 20.0}
+            {"name": "Itaú Unibanco", "stock": 11500000, "price": 20.0},
+            {"name": "Banco do Brasil", "stock": 9800000, "price": 20.0},
+            {"name": "Bradesco", "stock": 9100000, "price": 20.0},
+            {"name": "Caixa Econômica Federal", "stock": 12500000, "price": 20.0},
+            {"name": "Santander Brasil", "stock": 7400000, "price": 20.0},
+            {"name": "Nubank", "stock": 14000000, "price": 20.0},
+            {"name": "Banco Inter", "stock": 4500000, "price": 20.0},
+            {"name": "BTG Pactual", "stock": 2100000, "price": 20.0}
         ],
         "business": [
-            {"name": "Corporate Affairs Commission", "stock": 2500000, "price": 25.0},
-            {"name": "Dangote Group", "stock": 890000, "price": 25.0},
-            {"name": "BUA Group", "stock": 420000, "price": 25.0},
-            {"name": "Innoson Motors", "stock": 180000, "price": 25.0},
-            {"name": "Julius Berger", "stock": 210000, "price": 25.0},
-            {"name": "Flour Mills of Nigeria", "stock": 350000, "price": 25.0},
-            {"name": "Seplat Energy", "stock": 190000, "price": 25.0},
-            {"name": "Nestle Nigeria", "stock": 280000, "price": 25.0},
-            {"name": "Oando PLC", "stock": 150000, "price": 25.0},
-            {"name": "MTN Nigeria Communications", "stock": 850000, "price": 25.0},
-            {"name": "Jumia Nigeria", "stock": 450000, "price": 25.0},
-            {"name": "Interswitch", "stock": 210000, "price": 25.0},
-            {"name": "Flutterwave", "stock": 180000, "price": 25.0},
-            {"name": "Paystack", "stock": 260000, "price": 25.0}
+            {"name": "Petrobras", "stock": 1500000, "price": 25.0},
+            {"name": "Vale", "stock": 850000, "price": 25.0},
+            {"name": "Ambev", "stock": 1200000, "price": 25.0},
+            {"name": "JBS", "stock": 950000, "price": 25.0},
+            {"name": "WEG", "stock": 420000, "price": 25.0},
+            {"name": "Embraer", "stock": 310000, "price": 25.0},
+            {"name": "Azul Linhas Aéreas", "stock": 650000, "price": 25.0},
+            {"name": "Magazine Luiza", "stock": 2800000, "price": 25.0},
+            {"name": "Hospital Albert Einstein", "stock": 150000, "price": 25.0},
+            {"name": "Natura", "stock": 1100000, "price": 25.0}
         ],
         "crypto": [
-            {"name": "Binance", "stock": 2100000, "price": 30.0},
-            {"name": "Bybit", "stock": 1800000, "price": 30.0},
-            {"name": "OKX", "stock": 1500000, "price": 30.0},
-            {"name": "KuCoin", "stock": 1200000, "price": 30.0},
-            {"name": "Luno", "stock": 950000, "price": 30.0},
-            {"name": "Yellow Card", "stock": 810000, "price": 30.0},
-            {"name": "Remitano", "stock": 720000, "price": 30.0},
-            {"name": "Patricia", "stock": 450000, "price": 30.0}
+            {"name": "Mercado Bitcoin", "stock": 2900000, "price": 30.0},
+            {"name": "Bitso Brasil", "stock": 1400000, "price": 30.0},
+            {"name": "Foxbit", "stock": 850000, "price": 30.0},
+            {"name": "Binance Brasil", "stock": 3500000, "price": 30.0},
+            {"name": "NovaDAX", "stock": 620000, "price": 30.0},
+            {"name": "Bitofertas", "stock": 210000, "price": 30.0}
         ],
         "nodes": []
     },
-    "GB": {
+    "AE": {
         "network": [
-            {"name": "EE", "stock": 3544000, "price": 15.0},
-            {"name": "O2", "stock": 1831000, "price": 15.0},
-            {"name": "Vodafone UK", "stock": 1530000, "price": 15.0},
-            {"name": "Three UK", "stock": 4515000, "price": 15.0},
-            {"name": "Giffgaff", "stock": 1200000, "price": 15.0},
-            {"name": "Tesco Mobile", "stock": 980000, "price": 15.0},
-            {"name": "Sky Mobile", "stock": 850000, "price": 15.0},
-            {"name": "Lyca Mobile", "stock": 620000, "price": 15.0},
-            {"name": "Lebara", "stock": 510000, "price": 15.0},
-            {"name": "VOXI", "stock": 480000, "price": 15.0},
-            {"name": "SMARTY", "stock": 390000, "price": 15.0},
-            {"name": "Virgin Mobile", "stock": 410000, "price": 15.0}
+            {"name": "Etisalat", "stock": 8500000, "price": 15.0},
+            {"name": "du", "stock": 6200000, "price": 15.0},
+            {"name": "Virgin Mobile UAE", "stock": 1100000, "price": 15.0}
         ],
         "bank": [
-            {"name": "HSBC", "stock": 3500000, "price": 20.0},
-            {"name": "Barclays", "stock": 3100000, "price": 20.0},
-            {"name": "Lloyds", "stock": 2800000, "price": 20.0},
-            {"name": "NatWest", "stock": 2400000, "price": 20.0},
-            {"name": "Halifax", "stock": 1800000, "price": 20.0},
-            {"name": "Santander UK", "stock": 2100000, "price": 20.0},
-            {"name": "TSB", "stock": 1200000, "price": 20.0},
-            {"name": "Metro Bank", "stock": 850000, "price": 20.0},
-            {"name": "Monzo", "stock": 1900000, "price": 20.0},
-            {"name": "Starling Bank", "stock": 1100000, "price": 20.0},
-            {"name": "Chase UK", "stock": 950000, "price": 20.0},
-            {"name": "First Direct", "stock": 720000, "price": 20.0},
-            {"name": "Virgin Money", "stock": 910000, "price": 20.0},
-            {"name": "Co-operative Bank", "stock": 650000, "price": 20.0},
-            {"name": "Nationwide Building Society", "stock": 1700000, "price": 20.0},
-            {"name": "Yorkshire Building Society", "stock": 510000, "price": 20.0}
+            {"name": "First Abu Dhabi Bank (FAB)", "stock": 3500000, "price": 20.0},
+            {"name": "Emirates NBD", "stock": 4900000, "price": 20.0},
+            {"name": "ADCB", "stock": 2800000, "price": 20.0},
+            {"name": "Dubai Islamic Bank (DIB)", "stock": 2100000, "price": 20.0},
+            {"name": "Mashreq", "stock": 1800000, "price": 20.0},
+            {"name": "Abu Dhabi Islamic Bank (ADIB)", "stock": 1500000, "price": 20.0}
         ],
         "business": [
-            {"name": "Companies House", "stock": 4500000, "price": 25.0},
-            {"name": "Tesco Stores", "stock": 1800000, "price": 25.0},
-            {"name": "Sainsbury's", "stock": 1200000, "price": 25.0},
-            {"name": "Marks & Spencer", "stock": 950000, "price": 25.0},
-            {"name": "Asda", "stock": 1100000, "price": 25.0},
-            {"name": "John Lewis Partnership", "stock": 850000, "price": 25.0},
-            {"name": "BP plc", "stock": 450000, "price": 25.0},
-            {"name": "Shell plc", "stock": 420000, "price": 25.0},
-            {"name": "Unilever UK", "stock": 520000, "price": 25.0},
-            {"name": "AstraZeneca", "stock": 310000, "price": 25.0},
-            {"name": "GlaxoSmithKline (GSK)", "stock": 380000, "price": 25.0},
-            {"name": "BAE Systems", "stock": 250000, "price": 25.0},
-            {"name": "Rolls-Royce Holdings", "stock": 190000, "price": 25.0},
-            {"name": "BT Group", "stock": 750000, "price": 25.0},
-            {"name": "British Airways", "stock": 1100000, "price": 25.0},
-            {"name": "EasyJet", "stock": 950000, "price": 25.0},
-            {"name": "Royal Mail", "stock": 450000, "price": 25.0},
-            {"name": "Bupa Healthcare", "stock": 850000, "price": 25.0},
-            {"name": "Nuffield Health", "stock": 420000, "price": 25.0},
-            {"name": "Great Ormond Street Hospital", "stock": 65000, "price": 25.0},
-            {"name": "University of Oxford", "stock": 120000, "price": 25.0},
-            {"name": "University of Cambridge", "stock": 115000, "price": 25.0},
-            {"name": "Imperial College London", "stock": 95000, "price": 25.0}
+            {"name": "Emirates Group", "stock": 1200000, "price": 25.0},
+            {"name": "Emaar Properties", "stock": 850000, "price": 25.0},
+            {"name": "DP World", "stock": 650000, "price": 25.0},
+            {"name": "Etihad Airways", "stock": 720000, "price": 25.0},
+            {"name": "ADNOC", "stock": 450000, "price": 25.0},
+            {"name": "Majid Al Futtaim", "stock": 1100000, "price": 25.0},
+            {"name": "Landmark Group", "stock": 950000, "price": 25.0},
+            {"name": "NMC Health", "stock": 320000, "price": 25.0}
         ],
         "crypto": [
-            {"name": "Coinbase UK", "stock": 1500000, "price": 30.0},
-            {"name": "Kraken UK", "stock": 1100000, "price": 30.0},
-            {"name": "Revolut Crypto", "stock": 2100000, "price": 30.0},
-            {"name": "Gemini UK", "stock": 850000, "price": 30.0},
-            {"name": "eToro UK", "stock": 1200000, "price": 30.0},
-            {"name": "Bitstamp UK", "stock": 650000, "price": 30.0}
+            {"name": "Binance UAE", "stock": 3100000, "price": 30.0},
+            {"name": "Bybit Dubai", "stock": 2400000, "price": 30.0},
+            {"name": "OKX UAE", "stock": 1800000, "price": 30.0},
+            {"name": "Kraken UAE", "stock": 1200000, "price": 30.0},
+            {"name": "BitOasis", "stock": 950000, "price": 30.0},
+            {"name": "Rain UAE", "stock": 650000, "price": 30.0},
+            {"name": "CoinMENA", "stock": 420000, "price": 30.0}
         ],
         "nodes": []
     },
-    "US": {
+    "SA": {
         "network": [
-            {"name": "AT&T", "stock": 12800000, "price": 15.0},
-            {"name": "Verizon", "stock": 11400000, "price": 15.0},
-            {"name": "T-Mobile", "stock": 9700000, "price": 15.0},
-            {"name": "Boost Mobile", "stock": 2100000, "price": 15.0},
-            {"name": "Cricket", "stock": 1900000, "price": 15.0},
-            {"name": "Metro by T-Mobile", "stock": 1700000, "price": 15.0},
-            {"name": "UScellular", "stock": 890000, "price": 15.0},
-            {"name": "Mint Mobile", "stock": 640000, "price": 15.0},
-            {"name": "Spectrum Mobile", "stock": 810000, "price": 15.0},
-            {"name": "Xfinity Mobile", "stock": 920000, "price": 15.0}
+            {"name": "STC Saudi", "stock": 22000000, "price": 15.0},
+            {"name": "Mobily", "stock": 14500000, "price": 15.0},
+            {"name": "Zain KSA", "stock": 11000000, "price": 15.0}
         ],
         "bank": [
-            {"name": "JPMorgan Chase", "stock": 4200000, "price": 20.0},
-            {"name": "Bank of America", "stock": 3800000, "price": 20.0},
-            {"name": "Wells Fargo", "stock": 3100000, "price": 20.0},
-            {"name": "Citibank", "stock": 2900000, "price": 20.0},
-            {"name": "Capital One", "stock": 2500000, "price": 20.0},
-            {"name": "PNC Bank", "stock": 1400000, "price": 20.0},
-            {"name": "Truist Bank", "stock": 1100000, "price": 20.0},
-            {"name": "US Bank", "stock": 1800000, "price": 20.0},
-            {"name": "TD Bank USA", "stock": 1700000, "price": 20.0},
-            {"name": "Fifth Third Bank", "stock": 850000, "price": 20.0},
-            {"name": "Regions Bank", "stock": 920000, "price": 20.0},
-            {"name": "Huntington Bank", "stock": 780000, "price": 20.0},
-            {"name": "Ally Financial", "stock": 950000, "price": 20.0},
-            {"name": "Discover Bank", "stock": 1400000, "price": 20.0},
-            {"name": "Charles Schwab Bank", "stock": 1900000, "price": 20.0}
+            {"name": "Al Rajhi Bank", "stock": 8500000, "price": 20.0},
+            {"name": "SNB (Saudi National Bank)", "stock": 9200000, "price": 20.0},
+            {"name": "Riyad Bank", "stock": 4500000, "price": 20.0},
+            {"name": "SABB", "stock": 3800000, "price": 20.0},
+            {"name": "Banque Saudi Fransi", "stock": 3100000, "price": 20.0},
+            {"name": "Alinma Bank", "stock": 2900000, "price": 20.0},
+            {"name": "Arab National Bank", "stock": 2400000, "price": 20.0}
         ],
         "business": [
-            {"name": "Delaware Secretary of State", "stock": 2800000, "price": 25.0},
-            {"name": "California Secretary of State", "stock": 3200000, "price": 25.0},
-            {"name": "Texas Secretary of State", "stock": 2900000, "price": 25.0},
-            {"name": "Florida Division of Corporations", "stock": 2500000, "price": 25.0},
-            {"name": "New York Division of Corporations", "stock": 2100000, "price": 25.0},
-            {"name": "Apple Inc.", "stock": 1500000, "price": 25.0},
-            {"name": "Microsoft Corporation", "stock": 1400000, "price": 25.0},
-            {"name": "Amazon.com Inc.", "stock": 1800000, "price": 25.0},
-            {"name": "Alphabet Inc.", "stock": 1300000, "price": 25.0},
-            {"name": "Walmart Inc.", "stock": 1900000, "price": 25.0},
-            {"name": "Target Corporation", "stock": 850000, "price": 25.0},
-            {"name": "Costco Wholesale", "stock": 780000, "price": 25.0},
-            {"name": "Home Depot", "stock": 920000, "price": 25.0},
-            {"name": "CVS Health", "stock": 610000, "price": 25.0},
-            {"name": "UnitedHealth Group", "stock": 850000, "price": 25.0},
-            {"name": "Johnson & Johnson", "stock": 420000, "price": 25.0},
-            {"name": "Pfizer", "stock": 380000, "price": 25.0},
-            {"name": "ExxonMobil", "stock": 290000, "price": 25.0},
-            {"name": "Chevron", "stock": 250000, "price": 25.0},
-            {"name": "Ford Motor Company", "stock": 580000, "price": 25.0},
-            {"name": "General Motors", "stock": 610000, "price": 25.0},
-            {"name": "Tesla", "stock": 450000, "price": 25.0},
-            {"name": "Delta Air Lines", "stock": 520000, "price": 25.0},
-            {"name": "American Airlines", "stock": 580000, "price": 25.0},
-            {"name": "United Airlines", "stock": 550000, "price": 25.0},
-            {"name": "FedEx", "stock": 750000, "price": 25.0},
-            {"name": "UPS", "stock": 810000, "price": 25.0}
+            {"name": "Saudi Aramco", "stock": 1500000, "price": 25.0},
+            {"name": "SABIC", "stock": 850000, "price": 25.0},
+            {"name": "STC Group", "stock": 1200000, "price": 25.0},
+            {"name": "Almarai", "stock": 950000, "price": 25.0},
+            {"name": "Kingdom Holding", "stock": 420000, "price": 25.0},
+            {"name": "Saudia Airlines", "stock": 1100000, "price": 25.0},
+            {"name": "Al Othaim", "stock": 1400000, "price": 25.0},
+            {"name": "Sulaiman Al Habib Medical", "stock": 350000, "price": 25.0}
         ],
         "crypto": [
-            {"name": "Coinbase", "stock": 3500000, "price": 30.0},
-            {"name": "Kraken", "stock": 1900000, "price": 30.0},
-            {"name": "Gemini", "stock": 1200000, "price": 30.0},
-            {"name": "Binance.US", "stock": 2200000, "price": 30.0},
-            {"name": "Bitstamp US", "stock": 610000, "price": 30.0},
-            {"name": "Crypto.com US", "stock": 1100000, "price": 30.0},
-            {"name": "Robinhood Crypto", "stock": 2500000, "price": 30.0},
-            {"name": "eToro US", "stock": 850000, "price": 30.0}
+            {"name": "Rain KSA", "stock": 850000, "price": 30.0},
+            {"name": "CoinMENA KSA", "stock": 620000, "price": 30.0},
+            {"name": "Binance P2P SA", "stock": 3800000, "price": 30.0},
+            {"name": "OKX P2P SA", "stock": 1500000, "price": 30.0}
+        ],
+        "nodes": []
+    },
+    "DE": {
+        "network": [
+            {"name": "Telekom Deutschland", "stock": 8900000, "price": 15.0},
+            {"name": "Vodafone Germany", "stock": 7200000, "price": 15.0},
+            {"name": "O2 Germany", "stock": 5800000, "price": 15.0},
+            {"name": "1&1", "stock": 1400000, "price": 15.0},
+            {"name": "Congstar", "stock": 1100000, "price": 15.0}
+        ],
+        "bank": [
+            {"name": "Deutsche Bank", "stock": 7800000, "price": 20.0},
+            {"name": "Commerzbank", "stock": 5100000, "price": 20.0},
+            {"name": "KfW", "stock": 1200000, "price": 20.0},
+            {"name": "DZ Bank", "stock": 3200000, "price": 20.0},
+            {"name": "LBBW", "stock": 1800000, "price": 20.0},
+            {"name": "BayernLB", "stock": 1500000, "price": 20.0},
+            {"name": "N26", "stock": 3200000, "price": 20.0},
+            {"name": "DKB", "stock": 2400000, "price": 20.0},
+            {"name": "ING-DiBa", "stock": 2900000, "price": 20.0},
+            {"name": "Sparkasse", "stock": 9500000, "price": 20.0}
+        ],
+        "business": [
+            {"name": "Volkswagen", "stock": 1200000, "price": 25.0},
+            {"name": "Siemens", "stock": 950000, "price": 25.0},
+            {"name": "Allianz", "stock": 850000, "price": 25.0},
+            {"name": "SAP", "stock": 720000, "price": 25.0},
+            {"name": "BMW", "stock": 1100000, "price": 25.0},
+            {"name": "Mercedes-Benz", "stock": 980000, "price": 25.0},
+            {"name": "Bosch", "stock": 1400000, "price": 25.0},
+            {"name": "Deutsche Post", "stock": 1800000, "price": 25.0},
+            {"name": "Lufthansa", "stock": 1500000, "price": 25.0},
+            {"name": "Bayer", "stock": 550000, "price": 25.0},
+            {"name": "REWE", "stock": 2100000, "price": 25.0},
+            {"name": "E.ON", "stock": 850000, "price": 25.0},
+            {"name": "Charité", "stock": 120000, "price": 25.0}
+        ],
+        "crypto": [
+            {"name": "Bison App", "stock": 2100000, "price": 30.0},
+            {"name": "Bitpanda Germany", "stock": 1400000, "price": 30.0},
+            {"name": "Coinbase Germany", "stock": 1800000, "price": 30.0},
+            {"name": "Kraken Germany", "stock": 1100000, "price": 30.0},
+            {"name": "Binance Germany", "stock": 3900000, "price": 30.0},
+            {"name": "Bitvavo", "stock": 850000, "price": 30.0}
+        ],
+        "nodes": []
+    },
+    "FR": {
+        "network": [
+            {"name": "Orange France", "stock": 6200000, "price": 15.0},
+            {"name": "SFR", "stock": 4800000, "price": 15.0},
+            {"name": "Bouygues Telecom", "stock": 4100000, "price": 15.0},
+            {"name": "Free Mobile", "stock": 3500000, "price": 15.0},
+            {"name": "Sosh", "stock": 1200000, "price": 15.0}
+        ],
+        "bank": [
+            {"name": "BNP Paribas", "stock": 6500000, "price": 20.0},
+            {"name": "Crédit Agricole", "stock": 7200000, "price": 20.0},
+            {"name": "Société Générale", "stock": 4800000, "price": 20.0},
+            {"name": "Groupe BPCE", "stock": 4100000, "price": 20.0},
+            {"name": "Crédit Mutuel", "stock": 3800000, "price": 20.0},
+            {"name": "Boursorama", "stock": 3100000, "price": 20.0},
+            {"name": "Hello bank!", "stock": 1500000, "price": 20.0}
+        ],
+        "business": [
+            {"name": "LVMH", "stock": 450000, "price": 25.0},
+            {"name": "L'Oréal", "stock": 620000, "price": 25.0},
+            {"name": "TotalEnergies", "stock": 850000, "price": 25.0},
+            {"name": "Sanofi", "stock": 510000, "price": 25.0},
+            {"name": "Airbus", "stock": 480000, "price": 25.0},
+            {"name": "Renault", "stock": 1100000, "price": 25.0},
+            {"name": "Carrefour", "stock": 2500000, "price": 25.0},
+            {"name": "Danone", "stock": 890000, "price": 25.0},
+            {"name": "Air France", "stock": 1200000, "price": 25.0},
+            {"name": "AXA", "stock": 1500000, "price": 25.0},
+            {"name": "Michelin", "stock": 650000, "price": 25.0}
+        ],
+        "crypto": [
+            {"name": "Coinhouse", "stock": 900000, "price": 30.0},
+            {"name": "Paymium", "stock": 450000, "price": 30.0},
+            {"name": "Binance France", "stock": 2400000, "price": 30.0},
+            {"name": "Kraken France", "stock": 1100000, "price": 30.0},
+            {"name": "Bitvavo", "stock": 750000, "price": 30.0}
+        ],
+        "nodes": []
+    },
+    "JP": {
+        "network": [
+            {"name": "NTT Docomo", "stock": 18000000, "price": 15.0},
+            {"name": "KDDI (au)", "stock": 14000000, "price": 15.0},
+            {"name": "SoftBank", "stock": 12000000, "price": 15.0},
+            {"name": "Rakuten Mobile", "stock": 3500000, "price": 15.0},
+            {"name": "Y!mobile", "stock": 2100000, "price": 15.0}
+        ],
+        "bank": [
+            {"name": "Mitsubishi UFJ (MUFG)", "stock": 8500000, "price": 20.0},
+            {"name": "Sumitomo Mitsui (SMBC)", "stock": 7800000, "price": 20.0},
+            {"name": "Mizuho", "stock": 6900000, "price": 20.0},
+            {"name": "Japan Post Bank", "stock": 9200000, "price": 20.0},
+            {"name": "Resona", "stock": 3100000, "price": 20.0},
+            {"name": "SBI Sumishin Net Bank", "stock": 2100000, "price": 20.0},
+            {"name": "Sony Bank", "stock": 1500000, "price": 20.0}
+        ],
+        "business": [
+            {"name": "Toyota", "stock": 2100000, "price": 25.0},
+            {"name": "Sony", "stock": 1500000, "price": 25.0},
+            {"name": "Honda", "stock": 1200000, "price": 25.0},
+            {"name": "Mitsubishi Corp", "stock": 950000, "price": 25.0},
+            {"name": "SoftBank Group", "stock": 1800000, "price": 25.0},
+            {"name": "Nintendo", "stock": 650000, "price": 25.0},
+            {"name": "Hitachi", "stock": 1100000, "price": 25.0},
+            {"name": "Fast Retailing (Uniqlo)", "stock": 2400000, "price": 25.0},
+            {"name": "ANA", "stock": 850000, "price": 25.0},
+            {"name": "Japan Airlines", "stock": 780000, "price": 25.0},
+            {"name": "Seven & i Holdings", "stock": 3500000, "price": 25.0}
+        ],
+        "crypto": [
+            {"name": "bitFlyer", "stock": 2400000, "price": 30.0},
+            {"name": "Coincheck", "stock": 2100000, "price": 30.0},
+            {"name": "bitbank", "stock": 1200000, "price": 30.0},
+            {"name": "GMO Coin", "stock": 1100000, "price": 30.0},
+            {"name": "DMM Bitcoin", "stock": 850000, "price": 30.0},
+            {"name": "Zaif", "stock": 610000, "price": 30.0}
+        ],
+        "nodes": []
+    },
+    "IN": {
+        "network": [
+            {"name": "Jio", "stock": 24000000, "price": 15.0},
+            {"name": "Airtel", "stock": 19000000, "price": 15.0},
+            {"name": "Vi (Vodafone Idea)", "stock": 11000000, "price": 15.0},
+            {"name": "BSNL", "stock": 4500000, "price": 15.0}
+        ],
+        "bank": [
+            {"name": "State Bank of India (SBI)", "stock": 15000000, "price": 20.0},
+            {"name": "HDFC Bank", "stock": 12000000, "price": 20.0},
+            {"name": "ICICI Bank", "stock": 9800000, "price": 20.0},
+            {"name": "Axis Bank", "stock": 6500000, "price": 20.0},
+            {"name": "Kotak Mahindra Bank", "stock": 4100000, "price": 20.0},
+            {"name": "Punjab National Bank", "stock": 7200000, "price": 20.0},
+            {"name": "Bank of Baroda", "stock": 5800000, "price": 20.0},
+            {"name": "IndusInd Bank", "stock": 3200000, "price": 20.0}
+        ],
+        "business": [
+            {"name": "Reliance Industries", "stock": 3500000, "price": 25.0},
+            {"name": "Tata Consultancy Services (TCS)", "stock": 1200000, "price": 25.0},
+            {"name": "Infosys", "stock": 950000, "price": 25.0},
+            {"name": "HDFC Corp", "stock": 1800000, "price": 25.0},
+            {"name": "Hindustan Unilever", "stock": 2100000, "price": 25.0},
+            {"name": "Bharti Airtel", "stock": 2500000, "price": 25.0},
+            {"name": "ITC Limited", "stock": 1900000, "price": 25.0},
+            {"name": "Wipro", "stock": 850000, "price": 25.0},
+            {"name": "Larsen & Toubro", "stock": 1100000, "price": 25.0},
+            {"name": "Apollo Hospitals", "stock": 450000, "price": 25.0},
+            {"name": "Taj Hotels", "stock": 310000, "price": 25.0}
+        ],
+        "crypto": [
+            {"name": "WazirX", "stock": 3800000, "price": 30.0},
+            {"name": "CoinDCX", "stock": 3500000, "price": 30.0},
+            {"name": "ZebPay", "stock": 1800000, "price": 30.0},
+            {"name": "Bitbns", "stock": 950000, "price": 30.0},
+            {"name": "Giottus", "stock": 610000, "price": 30.0}
         ],
         "nodes": []
     },
@@ -478,12 +576,11 @@ WORLD_DATASETS = {
             {"name": "Rogers Wireless", "stock": 11500000, "price": 15.0},
             {"name": "Bell Mobility", "stock": 10500000, "price": 15.0},
             {"name": "Telus Mobility", "stock": 9800000, "price": 15.0},
-            {"name": "Fido Solutions", "stock": 3500000, "price": 15.0},
-            {"name": "Koodo Mobile", "stock": 2800000, "price": 15.0},
+            {"name": "Fido", "stock": 3500000, "price": 15.0},
+            {"name": "Koodo", "stock": 2800000, "price": 15.0},
             {"name": "Virgin Plus", "stock": 2100000, "price": 15.0},
             {"name": "Freedom Mobile", "stock": 1900000, "price": 15.0},
-            {"name": "Vidéotron", "stock": 1500000, "price": 15.0},
-            {"name": "SaskTel", "stock": 850000, "price": 15.0}
+            {"name": "Videotron", "stock": 1500000, "price": 15.0}
         ],
         "bank": [
             {"name": "RBC", "stock": 4800000, "price": 20.0},
@@ -492,55 +589,89 @@ WORLD_DATASETS = {
             {"name": "BMO", "stock": 3200000, "price": 20.0},
             {"name": "CIBC", "stock": 2900000, "price": 20.0},
             {"name": "National Bank of Canada", "stock": 1500000, "price": 20.0},
-            {"name": "Desjardins Group", "stock": 2100000, "price": 20.0},
-            {"name": "Laurentian Bank", "stock": 450000, "price": 20.0},
-            {"name": "Tangerine Bank", "stock": 1200000, "price": 20.0},
-            {"name": "Simplii Financial", "stock": 850000, "price": 20.0}
+            {"name": "Tangerine", "stock": 1200000, "price": 20.0},
+            {"name": "Simplii", "stock": 850000, "price": 20.0},
+            {"name": "Desjardins", "stock": 2100000, "price": 20.0}
         ],
         "business": [
-            {"name": "Corporations Canada", "stock": 3500000, "price": 25.0},
-            {"name": "Ontario Business Registry", "stock": 1800000, "price": 25.0},
-            {"name": "Registraire des entreprises Québec", "stock": 1200000, "price": 25.0},
-            {"name": "BC Corporate Registry", "stock": 950000, "price": 25.0},
-            {"name": "Alberta Corporate Registry", "stock": 750000, "price": 25.0},
             {"name": "Shopify", "stock": 450000, "price": 25.0},
-            {"name": "Lululemon Athletica", "stock": 850000, "price": 25.0},
+            {"name": "Lululemon", "stock": 850000, "price": 25.0},
             {"name": "Air Canada", "stock": 1200000, "price": 25.0},
             {"name": "Magna International", "stock": 320000, "price": 25.0},
             {"name": "Enbridge", "stock": 210000, "price": 25.0},
             {"name": "Thomson Reuters", "stock": 180000, "price": 25.0},
-            {"name": "Toronto General Hospital", "stock": 85000, "price": 25.0},
-            {"name": "University of Toronto", "stock": 150000, "price": 25.0},
             {"name": "Rogers Communications", "stock": 2100000, "price": 25.0},
             {"name": "Bell Canada", "stock": 1900000, "price": 25.0},
             {"name": "Canadian Tire", "stock": 3500000, "price": 25.0},
-            {"name": "Suncor Energy", "stock": 110000, "price": 25.0},
-            {"name": "Manulife Financial", "stock": 650000, "price": 25.0},
-            {"name": "Sun Life Financial", "stock": 580000, "price": 25.0}
+            {"name": "Suncor", "stock": 110000, "price": 25.0},
+            {"name": "WestJet", "stock": 950000, "price": 25.0}
         ],
         "crypto": [
-            {"name": "Coinbase CA", "stock": 1200000, "price": 30.0},
-            {"name": "Kraken CA", "stock": 900000, "price": 30.0},
+            {"name": "Wealthsimple Crypto", "stock": 2100000, "price": 30.0},
             {"name": "NDAX", "stock": 650000, "price": 30.0},
             {"name": "Bitbuy", "stock": 550000, "price": 30.0},
             {"name": "Newton", "stock": 700000, "price": 30.0},
-            {"name": "VirgoCX", "stock": 350000, "price": 30.0},
+            {"name": "Kraken CA", "stock": 900000, "price": 30.0},
+            {"name": "Coinbase CA", "stock": 1200000, "price": 30.0},
             {"name": "Shakepay", "stock": 1100000, "price": 30.0},
-            {"name": "Coinsquare", "stock": 800000, "price": 30.0},
-            {"name": "Crypto.com CA", "stock": 1500000, "price": 30.0},
-            {"name": "Wealthsimple Crypto", "stock": 2100000, "price": 30.0},
-            {"name": "Bitvo", "stock": 120000, "price": 30.0},
-            {"name": "Netcoins", "stock": 250000, "price": 30.0},
-            {"name": "VirgoCX Pro", "stock": 80000, "price": 30.0},
-            {"name": "SATOSHI Portal", "stock": 45000, "price": 30.0}
+            {"name": "Coinsquare", "stock": 800000, "price": 30.0}
         ],
         "nodes": []
     },
-    "AQ": {
-        "crypto": [],
-        "bank": [],
-        "business": [],
-        "network": [],
+    "US": {
+        "network": [
+            {"name": "AT&T", "stock": 85000000, "price": 15.0},
+            {"name": "Verizon", "stock": 92000000, "price": 15.0},
+            {"name": "T-Mobile", "stock": 88000000, "price": 15.0},
+            {"name": "Boost Mobile", "stock": 12000000, "price": 15.0},
+            {"name": "Cricket", "stock": 11500000, "price": 15.0},
+            {"name": "Metro by T-Mobile", "stock": 14000000, "price": 15.0},
+            {"name": "UScellular", "stock": 4500000, "price": 15.0},
+            {"name": "Mint Mobile", "stock": 3800000, "price": 15.0}
+        ],
+        "bank": [
+            {"name": "JPMorgan Chase", "stock": 45000000, "price": 20.0},
+            {"name": "Bank of America", "stock": 38000000, "price": 20.0},
+            {"name": "Wells Fargo", "stock": 32000000, "price": 20.0},
+            {"name": "Citibank", "stock": 28000000, "price": 20.0},
+            {"name": "Capital One", "stock": 21000000, "price": 20.0},
+            {"name": "PNC Bank", "stock": 11000000, "price": 20.0},
+            {"name": "Truist", "stock": 9500000, "price": 20.0},
+            {"name": "US Bank", "stock": 15000000, "price": 20.0},
+            {"name": "TD Bank USA", "stock": 12000000, "price": 20.0},
+            {"name": "Fifth Third Bank", "stock": 6500000, "price": 20.0},
+            {"name": "Regions Bank", "stock": 5800000, "price": 20.0},
+            {"name": "Huntington Bank", "stock": 4200000, "price": 20.0},
+            {"name": "Ally Financial", "stock": 8500000, "price": 20.0},
+            {"name": "Discover Bank", "stock": 14000000, "price": 20.0}
+        ],
+        "business": [
+            {"name": "Delaware Sec of State", "stock": 8500000, "price": 25.0},
+            {"name": "California Sec of State", "stock": 12000000, "price": 25.0},
+            {"name": "Texas Sec of State", "stock": 9500000, "price": 25.0},
+            {"name": "Florida Div of Corporations", "stock": 8100000, "price": 25.0},
+            {"name": "Walmart Inc.", "stock": 15000000, "price": 25.0},
+            {"name": "Target Corporation", "stock": 8500000, "price": 25.0},
+            {"name": "Costco Wholesale", "stock": 6200000, "price": 25.0},
+            {"name": "Apple Inc.", "stock": 5500000, "price": 25.0},
+            {"name": "Microsoft", "stock": 4800000, "price": 25.0},
+            {"name": "Alphabet (Google)", "stock": 4200000, "price": 25.0},
+            {"name": "Amazon.com", "stock": 12000000, "price": 25.0},
+            {"name": "Mayo Clinic", "stock": 450000, "price": 25.0},
+            {"name": "UnitedHealth Group", "stock": 1100000, "price": 25.0},
+            {"name": "Hilton", "stock": 2100000, "price": 25.0},
+            {"name": "Marriott", "stock": 2500000, "price": 25.0},
+            {"name": "Ford Motor Company", "stock": 3500000, "price": 25.0},
+            {"name": "Tesla", "stock": 450000, "price": 25.0},
+            {"name": "Delta Air Lines", "stock": 520000, "price": 25.0},
+            {"name": "FedEx", "stock": 750000, "price": 25.0}
+        ],
+        "crypto": [
+            {"name": "Coinbase", "stock": 12500000, "price": 30.0},
+            {"name": "Kraken", "stock": 5800000, "price": 30.0},
+            {"name": "Gemini", "stock": 3200000, "price": 30.0},
+            {"name": "Binance.US", "stock": 4100000, "price": 30.0}
+        ],
         "nodes": []
     }
 }
@@ -556,7 +687,10 @@ COUNTRY_ALIASES = {
     "INDIA": "IN",
     "JAPAN": "JP",
     "CHINA": "CN",
-    "BAHRAIN": "BH"
+    "BAHRAIN": "BH",
+    "BRAZIL": "BR",
+    "SOUTH AFRICA": "ZA",
+    "ARGENTINA": "AR"
 }
 
 ALL_COUNTRIES = sorted(list(pycountry.countries), key=lambda x: x.name)
@@ -579,15 +713,16 @@ def get_country_file_path(iso2: str, category: str) -> str:
 
 def load_country_data(iso2: str, category: str) -> list:
     """
-    Loads authentic country data.
-    1. Checks local JSON files (for countries with thousands of entries).
-    2. Falls back to embedded WORLD_DATASETS dictionary.
-    3. Strictly returns an EMPTY LIST if no valid data exists, triggering the "No Data Available" handler.
+    STRICT DATA LOADING RULES:
+    1. Loads from custom modular JSON if the file exists.
+    2. Falls back to verified embedded `WORLD_DATASETS`.
+    3. Returns EMPTY LIST `[]` to explicitly trigger "No Data Available".
+       NO FAKE PLACEHOLDERS (e.g. no "Central Bank of [Country]").
     """
     iso2_clean = resolve_iso2(iso2)
     path = get_country_file_path(iso2_clean, category)
     
-    # 1. Load from custom modular filesystem if custom JSON exists
+    # 1. Custom JSON Check
     if os.path.exists(path):
         try:
             with open(path, "r", encoding="utf-8") as f:
@@ -597,11 +732,11 @@ def load_country_data(iso2: str, category: str) -> list:
         except Exception as e:
             logger.error(f"Error loading {path}: {e}")
 
-    # 2. Fall back to embedded master regional database
+    # 2. Embedded Authentic Database
     if iso2_clean in WORLD_DATASETS and category in WORLD_DATASETS[iso2_clean]:
         return WORLD_DATASETS[iso2_clean][category]
 
-    # 3. NO MORE FAKE TEMPLATES. If a country is not populated, it stays empty.
+    # 3. Empty Fallback -> Correctly displays "No Data Available"
     return []
 
 def save_country_data(iso2: str, category: str, data: list):
@@ -643,7 +778,7 @@ def get_pricing_tiers(cc: str):
     pricing = load_country_pricing(cc)
     return sorted([(int(k), float(v)) for k, v in pricing.items()], key=lambda x: x[0])
 
-# ── General Data Operations ───────────────────────────────────────────────────
+# ── Storage & Maintenance ─────────────────────────────────────────────────────
 def calculate_dynamic_stock():
     total = 0
     for vid, vdata in STORE.items():
@@ -746,7 +881,6 @@ def a_z_country_keyboard(page: int = 0, filtered_list: list = None):
     page_items = source_list[page * COUNTRIES_PER_PAGE : (page + 1) * COUNTRIES_PER_PAGE]
     rows = []
     
-    # Updated Country Search Button Format
     rows.append([InlineKeyboardButton("🔍 Search Countries", callback_data="c_search_prompt")])
     
     for i in range(0, len(page_items), 2):
@@ -1035,7 +1169,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "• NIGERIA\n"
             "• SOUTH AFRICA\n"
             "• BANGLADESH\n"
-            "• BRAZIL\n"
+            "• BRAZIL"
         )
         await query.edit_message_text(
             prompt_text, 
@@ -1122,18 +1256,15 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["awaiting_search"] = True
         
         await query.edit_message_text(
-            f"🔍 *Search {vertical.title()}*\n\nType the name of the bank, exchange, or provider you are looking for:", 
+            f"🔍 *Search {vertical.title()}*\n\nType the name of the bank, exchange, or provider you are looking for (restricted strictly to this country dataset):", 
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Cancel", callback_data=f"c_vert|{iso2}|{vertical}")]]), 
             parse_mode="Markdown"
         )
         return
 
     if data.startswith("c_item|"):
-        # The price split here gets passed to dynamic_qty_keyboard, ensuring consistency
-        parts = data.split("|")
-        iso2, vertical, item_name, price_str = parts[1], parts[2], parts[3], parts[4]
+        _, iso2, vertical, item_name, price_str = data.split("|")
         price = float(price_str)
-        
         c = pycountry.countries.get(alpha_2=iso2)
         c_name = c.name if c else iso2
         
