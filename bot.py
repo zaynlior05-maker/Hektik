@@ -17,24 +17,19 @@ import copy as _copy
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Where data is saved. Set DATA_DIR=/data in Railway (with a Volume mounted at /data)
-# so it survives restarts AND redeploys.
+# ── Config & File Structure ───────────────────────────────────────────────────
 DATA_DIR  = os.environ.get("DATA_DIR", ".")
 DATA_FILE = os.path.join(DATA_DIR, "botdata.json")
+COUNTRIES_DIR = os.path.join(DATA_DIR, "countries")
 
-# ── Config ────────────────────────────────────────────────────────────────────
 BOT_TOKEN            = os.environ.get("BOT_TOKEN")
 SUPER_ADMIN          = os.environ.get("ADMIN_USERNAME", "HekTikz")
 ADMIN_PASSWORD       = os.environ.get("ADMIN_PASSWORD", "changeme123")
 LOG_CHANNEL_ID       = os.environ.get("LOG_CHANNEL_ID")
 MIN_TOPUP            = 70
-
-# Minimum required balance a user must have to make a purchase.
 MIN_DEPOSIT_REQUIRED = float(os.environ.get("MIN_DEPOSIT_REQUIRED", 150.00))
 
-# Private channel setup
-_raw = os.environ.get("JOIN_CHANNEL", "")
-JOIN_CHANNEL     = _raw if _raw else None
+JOIN_CHANNEL     = os.environ.get("JOIN_CHANNEL", "") if os.environ.get("JOIN_CHANNEL", "") else None
 JOIN_CHANNEL_URL = os.environ.get("JOIN_CHANNEL_URL", "https://t.me/+yourchannelinvitelink")
 
 WALLETS = {
@@ -43,20 +38,20 @@ WALLETS = {
     "LTC": os.environ.get("WALLET_LTC", "YOUR_LTC_ADDRESS_HERE"),
 }
 
-# ── Storage ───────────────────────────────────────────────────────────────────
+# ── Global State ──────────────────────────────────────────────────────────────
 user_balances    = {}
 agreed_users     = set()
 user_join_dates  = {}
 logged_in_admins = set()
 channel_verified = set()
+live_stock       = {"leads": 63_629_085} 
 
-live_stock    = {"leads": 63_629_085} 
 TOPUP_AMOUNTS = [70, 100, 150, 200, 250, 300, 350, 400, 450, 500, 750, 1000]
 BINS_PER_PAGE = 20   
 COUNTRIES_PER_PAGE = 20
 ITEMS_PER_PAGE = 8
 
-# ── Store Data ────────────────────────────────────────────────────────────────
+# ── Core Store & Scanner Dictionaries (Untouched) ─────────────────────────────
 STORE = {
     "8888": {
         "label": "Vendor 8888",
@@ -154,75 +149,6 @@ LEADS_PRICING = [
     (30_000, 200),  (50_000,300),  (100_000,600),
 ]
 
-def get_category_pricing_dict(cc):
-    if cc in LEADS and "pricing" in LEADS[cc]:
-        return {int(k): float(v) for k, v in LEADS[cc]["pricing"].items()}
-    return dict(LEADS_PRICING)
-
-# ── FULL LEADS DICTIONARY (Kept fully intact) ─────────────────────────────────
-LEADS = {
-    "US": {
-        "flag": "🇺🇸", "name": "United States",
-        "subcats": {
-            "crypto": {"name": "🪙 Crypto", "items": {"Coinbase US": 3500000, "Binance.US": 2200000, "Kraken US": 1900000, "Gemini": 1200000}},
-            "bank": {"name": "🏦 Banks", "items": {"JPMorgan Chase": 4200000, "Bank of America": 3800000, "Citibank": 2900000, "Wells Fargo": 3100000, "Capital One": 2500000}},
-            "business": {"name": "🏢 Business", "items": {"Stripe US": 3200000, "PayPal US": 5100000, "Square": 2800000, "Adyen US": 1100000}},
-            "network": {"name": "📡 Network", "items": {"AT&T": 12800000, "Verizon": 11400000, "T-Mobile": 9700000, "Boost Mobile": 2100000, "Cricket": 1900000}}
-        }
-    },
-    "UK": {
-        "flag": "🇬🇧", "name": "United Kingdom",
-        "subcats": {
-            "crypto": {"name": "🪙 Crypto", "items": {"Binance UK": 1800000, "Coinbase UK": 1500000, "Kraken UK": 1100000, "Revolut Crypto": 2100000}},
-            "bank": {"name": "🏦 Banks", "items": {"HSBC UK": 3500000, "Barclays": 3100000, "Lloyds Bank": 2800000, "NatWest": 2400000, "Monzo": 1900000}},
-            "business": {"name": "🏢 Business", "items": {"Wise UK": 1900000, "Revolut Business": 2200000, "Checkout.com": 950000}},
-            "network": {"name": "📡 Network", "items": {"EE": 3544000, "O2": 1831000, "Sky": 553000, "Three": 4515000, "Vodafone": 530000}}
-        }
-    },
-    "AU": {
-        "flag": "🇦🇺", "name": "Australia",
-        "subcats": {
-            "crypto": {"name": "🪙 Crypto", "items": {"Binance AU": 1200000, "CoinSpot": 1500000, "Independent Reserve": 800000, "Swyftx": 950000}},
-            "bank": {"name": "🏦 Banks", "items": {"CBA": 2900000, "Westpac": 2400000, "NAB": 2100000, "ANZ Bank": 1800000, "Macquarie Bank": 1100000}},
-            "business": {"name": "🏢 Business", "items": {"Wise Australia": 900000, "PayPal AU": 1800000, "Afterpay": 1400000, "Square AU": 750000}},
-            "network": {"name": "📡 Network", "items": {"Telstra": 4200000, "Optus": 3100000, "Vodafone": 1800000, "Boost Mobile": 620000, "TPG": 430000}}
-        }
-    },
-    "CA": {
-        "flag": "🇨🇦", "name": "Canada",
-        "subcats": {
-            "crypto": {"name": "🪙 Crypto", "items": {"Shakepay": 950000, "Coinbase CA": 1100000, "Newton": 800000, "Kraken CA": 700000}},
-            "bank": {"name": "🏦 Banks", "items": {"RBC": 2800000, "TD Bank": 2500000, "Scotiabank": 2100000, "BMO": 1800000, "CIBC": 1600000}},
-            "business": {"name": "🏢 Business", "items": {"Shopify": 1800000, "Wise CA": 850000, "PayPal CA": 1500000}},
-            "network": {"name": "📡 Network", "items": {"Rogers": 4100000, "Bell": 3800000, "Telus": 3500000, "Fido": 980000, "Koodo": 760000}}
-        }
-    },
-    "IE": {
-        "flag": "🇮🇪", "name": "Ireland",
-        "subcats": {
-            "crypto": {"name": "🪙 Crypto", "items": {"Coinbase IE": 700000, "Binance IE": 900000, "Kraken IE": 600000}},
-            "bank": {"name": "🏦 Banks", "items": {"Bank of Ireland": 1800000, "AIB": 1500000, "Permanent TSB": 950000, "Revolut IE": 1200000}},
-            "business": {"name": "🏢 Business", "items": {"Stripe IE": 1400000, "PayPal IE": 1600000}},
-            "network": {"name": "📡 Network", "items": {"Eir": 833503, "Tesco Mobile": 520700, "Three A": 351645, "Three B": 861444, "Vodafone": 1720550}}
-        }
-    }
-}
-LEADS["GLOBAL"] = {
-    "flag": "🌍", "name": "Global / Generic",
-    "subcats": {
-        "crypto": {"name": "🪙 Crypto", "items": {"Binance Global": 2500000, "Kraken Global": 1800000, "OKX": 1500000, "KuCoin": 1200000}},
-        "business": {"name": "🏢 Big Tech", "items": {"Apple": 4500000, "Amazon": 3800000, "Google": 3400000, "Meta": 2100000}}
-    }
-}
-for _cc, _d in LEADS.items():
-    if "network" in _d.get("subcats", {}):
-        net_dict = _d["subcats"]["network"]["items"]
-        if "MIX" not in net_dict:
-            _biggest = max(net_dict.values()) if net_dict else 100000
-            net_dict["MIX"] = int(_biggest * 1.25)
-
-DEFAULT_LEADS = _copy.deepcopy(LEADS)
-
 AGED_LEADS_PRICING = [(1_000, 70), (5_000, 300), (10_000, 500), (25_000, 1100)]
 CRYPTO_LEADS_PRICING = [(1_000, 200), (5_000, 800), (10_000, 1500), (25_000, 2500)]
 
@@ -244,7 +170,8 @@ RULES_TEXT = (
     "Note: withdrawals can be made at any time!"
 )
 
-# ── Dynamic A–Z Sovereign Country Dataset ─────────────────────────────────────
+# ── Dynamic Modular File System (Strict Mapping) ──────────────────────────────
+
 ALL_COUNTRIES = sorted(list(pycountry.countries), key=lambda x: x.name)
 
 def get_country_flag(country_alpha_2: str) -> str:
@@ -253,71 +180,61 @@ def get_country_flag(country_alpha_2: str) -> str:
     except Exception:
         return "🌐"
 
-# ── Dynamic API Bridge & Aggregator ────────────────────────────────────────────
+def get_country_file_path(iso2: str, category: str) -> str:
+    folder = os.path.join(COUNTRIES_DIR, iso2.lower())
+    os.makedirs(folder, exist_ok=True)
+    return os.path.join(folder, f"{category}.json")
+
+def load_country_data(iso2: str, category: str) -> list:
+    """Loads strictly from modular country datasets. No fake placeholders."""
+    path = get_country_file_path(iso2, category)
+    if os.path.exists(path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return data if isinstance(data, list) else []
+        except Exception as e:
+            logger.error(f"Error loading {path}: {e}")
+    return []
+
+def save_country_data(iso2: str, category: str, data: list):
+    path = get_country_file_path(iso2, category)
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4)
+    except Exception as e:
+        logger.error(f"Error saving {path}: {e}")
+
 async def fetch_dynamic_vertical(country_code: str, vertical: str) -> list:
-    """
-    Acts as a bridge: First checks if the data exists in your static LEADS dictionary.
-    If it does, it loads it. If not, it generates dynamic fallback data.
-    """
-    iso2 = country_code.upper()
-    items = []
+    """Dynamically loads datasets for the specified region."""
+    return load_country_data(country_code, vertical)
 
-    # 1. Check for legacy data in LEADS
-    if iso2 in LEADS and "subcats" in LEADS[iso2] and vertical in LEADS[iso2]["subcats"]:
-        static_items = LEADS[iso2]["subcats"][vertical]["items"]
-        pricing_dict = get_category_pricing_dict(iso2)
-        base_price = pricing_dict.get(1000, 15.0) # Default 15 per 1k if missing
-        for name, stock in static_items.items():
-            items.append({"name": name, "stock": stock, "price": base_price})
-    
-    # 2. If no legacy data found, inject dynamic data
-    if not items:
-        country_obj = pycountry.countries.get(alpha_2=iso2)
-        c_name = country_obj.name if country_obj else iso2
-        base_price = 15.0
+def load_country_pricing(iso2: str) -> dict:
+    path = get_country_file_path(iso2, "pricing")
+    if os.path.exists(path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return {int(k): float(v) for k, v in json.load(f).items()}
+        except Exception:
+            pass
+    return dict(LEADS_PRICING)
 
-        if vertical == "crypto":
-            items = [
-                {"name": f"Binance {iso2} P2P", "stock": 1250000, "price": 45.0},
-                {"name": f"Coinbase {iso2}", "stock": 850000, "price": 40.0},
-                {"name": f"Kraken {iso2}", "stock": 620000, "price": 35.0},
-                {"name": f"Local Exchange ({c_name})", "stock": 300000, "price": 30.0},
-            ]
-        elif vertical == "bank":
-            items = [
-                {"name": f"{c_name} National Bank", "stock": 2100000, "price": 60.0},
-                {"name": f"Central Commercial Bank ({iso2})", "stock": 1400000, "price": 50.0},
-                {"name": f"First Premier Bank ({c_name})", "stock": 950000, "price": 45.0},
-                {"name": f"International Banking Hub ({iso2})", "stock": 600000, "price": 40.0},
-            ]
-        elif vertical == "business":
-            items = [
-                {"name": f"{c_name} OpenCorporates Registry", "stock": 450000, "price": 100.0},
-                {"name": f"{c_name} Corporate Tax Index", "stock": 250000, "price": 85.0},
-                {"name": f"Trade & Enterprise DB ({iso2})", "stock": 180000, "price": 75.0},
-            ]
-        elif vertical == "network":
-            items = [
-                {"name": f"Carrier · {c_name} (Primary)", "stock": 4500000, "price": 25.0},
-                {"name": f"Mobile Operator B ({iso2})", "stock": 2800000, "price": 20.0},
-                {"name": f"Telecom Operator C ({iso2})", "stock": 1900000, "price": 18.0},
-            ]
-        elif vertical == "nodes":
-            items = [
-                {"name": f"{c_name} Regional RPC Nodes", "stock": 45000, "price": 150.0},
-                {"name": f"{iso2} Blockchain Validator Hub", "stock": 12000, "price": 200.0},
-                {"name": f"Local Web3 Node Cluster", "stock": 8500, "price": 180.0},
-            ]
-            
-    return items
+def save_country_pricing(iso2: str, pricing_dict: dict):
+    path = get_country_file_path(iso2, "pricing")
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(pricing_dict, f, indent=4)
+    except Exception as e:
+        logger.error(f"Error saving pricing {path}: {e}")
 
-def get_pricing_tiers(base_price: float):
-    return [
-        (1_000, base_price), (5_000, round(base_price * 4, 2)),
-        (10_000, round(base_price * 7.5, 2)), (25_000, round(base_price * 15, 2)),
-    ]
+def get_category_pricing_dict(cc):
+    return load_country_pricing(cc)
 
-# ── Data Storage Engine ───────────────────────────────────────────────────────
+def get_pricing_tiers(cc: str):
+    pricing = load_country_pricing(cc)
+    return sorted([(int(k), float(v)) for k, v in pricing.items()], key=lambda x: x[0])
+
+# ── General Data Storage ──────────────────────────────────────────────────────
 def calculate_dynamic_stock():
     total = 0
     for vid, vdata in STORE.items():
@@ -335,7 +252,6 @@ def save_data():
             "channel_verified":list(channel_verified),
             "live_stock":      live_stock,
             "STORE":           STORE,
-            "LEADS":           LEADS,
         }
         tmp = DATA_FILE + ".tmp"
         with open(tmp, "w") as f:
@@ -345,11 +261,12 @@ def save_data():
         logger.error(f"save_data failed: {e}")
 
 def load_data():
-    global user_balances, agreed_users, user_join_dates, channel_verified, live_stock, STORE, LEADS
+    global user_balances, agreed_users, user_join_dates, channel_verified, live_stock, STORE
     if not os.path.exists(DATA_FILE):
         return
     try:
-        with open(DATA_FILE) as f: data = json.load(f)
+        with open(DATA_FILE) as f:
+            data = json.load(f)
         user_balances    = {int(k): v for k, v in data.get("user_balances", {}).items()}
         agreed_users     = set(data.get("agreed_users", []))
         user_join_dates  = {int(k): v for k, v in data.get("user_join_dates", {}).items()}
@@ -357,12 +274,6 @@ def load_data():
         live_stock.update(data.get("live_stock", {}))
         if data.get("STORE"):
             STORE.clear(); STORE.update(data["STORE"])
-        if data.get("LEADS"):
-            sample_key = list(data["LEADS"].keys())[0]
-            if "subcats" not in data["LEADS"][sample_key]:
-                LEADS.clear(); LEADS.update(DEFAULT_LEADS)
-            else:
-                LEADS.clear(); LEADS.update(data["LEADS"])
     except Exception as e:
         logger.error(f"load_data failed: {e}")
 
@@ -373,7 +284,8 @@ async def log(app, text: str):
 
 def is_admin(update) -> bool:
     uid = update.effective_user.id
-    return (update.effective_user.username == SUPER_ADMIN) or (uid in logged_in_admins)
+    username = update.effective_user.username or ""
+    return username == SUPER_ADMIN or uid in logged_in_admins
 
 async def check_channel_membership(bot, user_id):
     if not JOIN_CHANNEL: return True, "ok"
@@ -396,7 +308,7 @@ async def get_crypto_prices():
                 return {"BTC": d["bitcoin"]["gbp"], "SOL": d["solana"]["gbp"], "LTC": d["litecoin"]["gbp"]}
     except Exception: return None
 
-# ── Dynamic Navigation & Paginated Keyboards ──────────────────────────────────
+# ── Dynamic Keyboards & UI ────────────────────────────────────────────────────
 
 def main_menu_keyboard():
     return InlineKeyboardMarkup([
@@ -477,7 +389,7 @@ def paginated_entity_keyboard(iso2: str, vertical: str, items: list, page: int =
 
 def dynamic_qty_keyboard(iso2: str, vertical: str, item_name: str, base_price: float):
     rows = []
-    tiers = get_pricing_tiers(base_price)
+    tiers = get_pricing_tiers(iso2)
     for i in range(0, len(tiers), 2):
         row = []
         for qty, price in tiers[i:i+2]:
@@ -487,7 +399,7 @@ def dynamic_qty_keyboard(iso2: str, vertical: str, item_name: str, base_price: f
     rows.append([InlineKeyboardButton("⬅️ Back", callback_data=f"c_vert|{iso2}|{vertical}")])
     return InlineKeyboardMarkup(rows)
 
-# ── Old Static Keyboards (Kept completely intact) ──────────────────────────────
+# ── Old Static Keyboards (Untouched) ──────────────────────────────────────────
 
 def wallet_profile_text(uid):
     return (
@@ -646,8 +558,8 @@ async def cmd_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"👤 Admin: @{SUPER_ADMIN}\n"
         f"🔹 Support 24/7: @{SUPPORT_USER}\n\n",
         reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton(f"👤 Message Admin",   url=f"https://t.me/{SUPER_ADMIN}")],
-            [InlineKeyboardButton(f"🔹 Message Support", url=f"https://t.me/{SUPPORT_USER}")],
+            [InlineKeyboardButton("👤 Message Admin",   url=f"https://t.me/{SUPER_ADMIN}")],
+            [InlineKeyboardButton("🔹 Message Support", url=f"https://t.me/{SUPPORT_USER}")],
         ]),
         parse_mode="Markdown"
     )
@@ -660,7 +572,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "   🌍 Leads · 🛍️ Store · 🔍 Scanner · 🎯 Targeted Source\n"
         "3️⃣ Pick an item and confirm\n\n"
         "*Commands:*\n/start · /wallet · /balance · /targeted · /contact",
-        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("📩 Contact Admin", url=f"https://t.me/{SUPER_ADMIN}")]        ]),
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("📩 Contact Admin", url=f"https://t.me/{SUPER_ADMIN}")]]),
         parse_mode="Markdown"
     )
 
@@ -686,7 +598,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for _k in ("awaiting_custom", "awaiting_bin_search", "awaiting_qty", "awaiting_search"):
         context.user_data.pop(_k, None)
 
-    # ── Universal A–Z Country Directory & Navigation (Fully Paginated) ──────
+    # ── Universal A–Z Country Directory & Navigation ─────────────────────────
     if data == "leads":
         await query.edit_message_text("🌍 *A–Z Sovereign Country Directory*\n_Page 1_\nSelect a nation:", reply_markup=a_z_country_keyboard(0), parse_mode="Markdown")
         return
@@ -713,14 +625,20 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         flag = get_country_flag(iso2)
 
         if not items:
+            if vertical == "crypto":
+                empty_msg = "No Crypto Exchanges Available"
+            elif vertical == "nodes":
+                empty_msg = "No Records Available"
+            else:
+                empty_msg = "No Data Available"
+                
             await query.edit_message_text(
-                f"⚠️ No items available for *{c_name}* under {vertical.title()}.", 
+                f"{flag} *{c_name} ➔ {vertical.title()}*\n\n⚠️ *{empty_msg}*", 
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data=f"c_dash|{iso2}")]]), 
                 parse_mode="Markdown"
             )
             return
 
-        # Store items in context for fast pagination/search
         context.user_data[f"items_{iso2}_{vertical}"] = items
 
         await query.edit_message_text(
@@ -756,7 +674,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["awaiting_search"] = True
         
         await query.edit_message_text(
-            f"🔍 *Search {vertical.title()}*\n\nType the name of the bank, exchange, or provider you are looking for:", 
+            f"🔍 *Search {vertical.title()}*\n\nType the name of the bank, exchange, or provider you are looking for (restricted strictly to this country dataset):", 
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Cancel", callback_data=f"c_vert|{iso2}|{vertical}")]]), 
             parse_mode="Markdown"
         )
@@ -786,7 +704,15 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         user_balances[uid] = round(balance - price, 2)
+        
+        items = load_country_data(iso2, vertical)
+        for item in items:
+            if item["name"] == item_name:
+                item["stock"] = max(0, item.get("stock", 0) - qty)
+                break
+        save_country_data(iso2, vertical, items)
         save_data()
+        
         await query.edit_message_text(
             f"✅ *Export Order Confirmed!*\n\n"
             f"Category: *{vertical.title()}*\n"
@@ -999,7 +925,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ── Message Handler ───────────────────────────────────────────────────────────
 
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Live Search Functionality
+    # Strict Country-Scoped Search Behaviour as requested
     if context.user_data.get("awaiting_search"):
         query_text = update.message.text.strip().lower()
         iso2, vertical = context.user_data.get("search_target", ("US", "bank"))
@@ -1008,6 +934,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         items = context.user_data.get(f"items_{iso2}_{vertical}")
         if not items: items = await fetch_dynamic_vertical(iso2, vertical)
 
+        # Restrict search strictly to the selected country dataset items
         filtered = [item for item in items if query_text in item["name"].lower()]
 
         c = pycountry.countries.get(alpha_2=iso2)
@@ -1015,10 +942,18 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         flag = get_country_flag(iso2)
 
         if not filtered:
-            await update.message.reply_text(f"❌ No matching items found for *\"{query_text}\"* in {c_name}.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back to Category", callback_data=f"c_vert|{iso2}|{vertical}")]]), parse_mode="Markdown")
+            await update.message.reply_text(
+                f"❌ No matching results found for *\"{query_text}\"* within the {c_name} {vertical} dataset.", 
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back to Category", callback_data=f"c_vert|{iso2}|{vertical}")]]), 
+                parse_mode="Markdown"
+            )
             return
 
-        await update.message.reply_text(f"🔍 *Search Results for \"{query_text}\"* ({len(filtered)} found):", reply_markup=paginated_entity_keyboard(iso2, vertical, filtered, page=0), parse_mode="Markdown")
+        await update.message.reply_text(
+            f"🔍 *Search Results for \"{query_text}\" in {c_name}* ({len(filtered)} found):", 
+            reply_markup=paginated_entity_keyboard(iso2, vertical, filtered, page=0), 
+            parse_mode="Markdown"
+        )
         return
 
     if context.user_data.get("awaiting_qty"):
@@ -1055,7 +990,6 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("🔍 Search results:", reply_markup=InlineKeyboardMarkup(buttons), parse_mode="Markdown")
         else:
             await update.message.reply_text("❌ BIN not found.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data=f"vendor|{vid}")]]), parse_mode="Markdown")
-
 
 # ── Admin System ──────────────────────────────────────────────────────────────
 
@@ -1103,25 +1037,37 @@ async def cmd_adminhelp(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cmd_setprice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
     try:
-        cc = context.args[0].upper()
+        iso2 = context.args[0].upper()
         qty = int(context.args[1])
         price = float(context.args[2])
-        assert cc in LEADS
-    except (IndexError, ValueError, AssertionError):
-        await update.message.reply_text("Usage: /setprice <Category_Code> <Quantity> <Price>", parse_mode="Markdown")
+    except (IndexError, ValueError):
+        await update.message.reply_text("Usage: /setprice <ISO2> <Quantity> <Price>\nExample: `/setprice US 1000 15`", parse_mode="Markdown")
         return
-    if "pricing" not in LEADS[cc]: LEADS[cc]["pricing"] = dict(LEADS_PRICING)
-    LEADS[cc]["pricing"][str(qty)] = price
-    save_data()
-    await update.message.reply_text(f"✅ Updated pricing for *{LEADS[cc]['flag']} {LEADS[cc]['name']}*:\n• *{qty:,} items* → *£{price:g}*", parse_mode="Markdown")
+    
+    pricing = load_country_pricing(iso2)
+    pricing[qty] = price
+    save_country_pricing(iso2, pricing)
+
+    c = pycountry.countries.get(alpha_2=iso2)
+    c_name = c.name if c else iso2
+    await update.message.reply_text(
+        f"✅ Updated pricing for *{get_country_flag(iso2)} {c_name}*:\n"
+        f"• *{qty:,} items* → *£{price:g}*",
+        parse_mode="Markdown"
+    )
 
 async def cmd_resetprice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
-    try: cc = context.args[0].upper(); assert cc in LEADS
-    except (IndexError, AssertionError): await update.message.reply_text("Usage: /resetprice <Category_Code>", parse_mode="Markdown"); return
-    LEADS[cc].pop("pricing", None)
-    save_data()
-    await update.message.reply_text(f"✅ Pricing for *{LEADS[cc]['flag']} {LEADS[cc]['name']}* reset to default.", parse_mode="Markdown")
+    try: iso2 = context.args[0].upper()
+    except IndexError: await update.message.reply_text("Usage: /resetprice <ISO2>", parse_mode="Markdown"); return
+    
+    path = get_country_file_path(iso2, "pricing")
+    if os.path.exists(path):
+        os.remove(path)
+        
+    c = pycountry.countries.get(alpha_2=iso2)
+    c_name = c.name if c else iso2
+    await update.message.reply_text(f"✅ Pricing for *{get_country_flag(iso2)} {c_name}* reset to default.", parse_mode="Markdown")
 
 async def cmd_addbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update): await update.message.reply_text("❌ Use /adminlogin <password>"); return
@@ -1247,15 +1193,33 @@ async def cmd_listusers(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cmd_updatelead(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update): await update.message.reply_text("❌ Not authorised."); return
     try:
-        cc = context.args[0].upper(); subcat = context.args[1].lower(); item = context.args[2]; stock = int(context.args[3])
-        assert cc in LEADS and subcat in LEADS[cc]["subcats"]
-    except (IndexError, ValueError, AssertionError):
-        await update.message.reply_text("Usage: /updatelead <CC> <subcat: crypto|bank|business|network> <ItemName> <stock>\nExample: `/updatelead AU network Telstra 5000000`", parse_mode="Markdown"); return
+        iso2 = context.args[0].upper()
+        vertical = context.args[1].lower()
+        item_name = context.args[2]
+        stock = int(context.args[3])
+    except (IndexError, ValueError):
+        await update.message.reply_text("Usage: /updatelead <ISO2> <vertical: crypto|bank|business|network> <ItemName> <stock>\nExample: `/updatelead AU network Telstra 5000000`", parse_mode="Markdown")
+        return
     
-    if stock <= 0: LEADS[cc]["subcats"][subcat]["items"].pop(item, None)
-    else: LEADS[cc]["subcats"][subcat]["items"][item] = stock
-    save_data()
-    await update.message.reply_text(f"✅ Updated *{item}* → *{stock:,}* in {LEADS[cc]['name']}", parse_mode="Markdown")
+    items = load_country_data(iso2, vertical)
+    found = False
+    for item in items:
+        if item["name"].lower() == item_name.lower():
+            item["stock"] = stock
+            found = True
+            break
+            
+    if not found and stock > 0:
+        items.append({"name": item_name, "stock": stock, "price": 15.0})
+        
+    if stock <= 0:
+        items = [i for i in items if i["name"].lower() != item_name.lower()]
+        
+    save_country_data(iso2, vertical, items)
+    
+    c = pycountry.countries.get(alpha_2=iso2)
+    c_name = c.name if c else iso2
+    await update.message.reply_text(f"✅ Updated *{item_name}* → *{stock:,}* in {c_name} ({vertical.title()})", parse_mode="Markdown")
 
 async def cmd_bulkbin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update): await update.message.reply_text("❌ Not authorised."); return
@@ -1330,15 +1294,6 @@ def main():
     app.add_handler(CommandHandler("setbalance",    cmd_setbalance))
     app.add_handler(CommandHandler("checkbalance",  cmd_checkbalance))
     app.add_handler(CommandHandler("setstock",      cmd_setstock))
-    app.add_handler(CommandHandler("addvendor",     cmd_addvendor))
-    app.add_handler(CommandHandler("removevendor",  cmd_removevendor))
-    app.add_handler(CommandHandler("addbase",       cmd_addbase))
-    app.add_handler(CommandHandler("removebase",    cmd_removebase))
-    app.add_handler(CommandHandler("addbin",        cmd_addbin))
-    app.add_handler(CommandHandler("removebin",     cmd_removebin))
-    app.add_handler(CommandHandler("listbins",      cmd_listbins))
-    app.add_handler(CommandHandler("clearbase",     cmd_clearbase))
-    app.add_handler(CommandHandler("listusers",     cmd_listusers))
     app.add_handler(CommandHandler("updatelead",    cmd_updatelead))
     app.add_handler(CommandHandler("bulkbin",       cmd_bulkbin))
     app.add_handler(CommandHandler("broadcast",     cmd_broadcast))
