@@ -38,6 +38,11 @@ WALLETS = {
     "LTC": os.environ.get("WALLET_LTC", "YOUR_LTC_ADDRESS_HERE"),
 }
 
+# ── External API Config ───────────────────────────────────────────────────────
+COINGECKO_API_URL = "https://api.coingecko.com/api/v3/exchanges"
+OPENCORPORATES_API_URL = "http://api.opencorporates.com/companies/search"
+MCC_MNC_API_URL = "https://raw.githubusercontent.com/joshuamarquez/mcc-mnc-JSON/master/mcc-mnc.json"
+
 # ── Global Storage State ──────────────────────────────────────────────────────
 user_balances    = {}
 agreed_users     = set()
@@ -154,413 +159,14 @@ RULES_TEXT = (
     "Note: withdrawals can be made at any time!"
 )
 
-# ── EMBEDDED MASTER COUNTRY DATASETS (Authentic, verified data ONLY) ──────────
-# Strict Rule: No string interpolation, no fakes. Everything here is 100% authentic.
-WORLD_DATASETS = {
-    "AR": {
-        "network": [
-            {"name": "Claro Argentina", "stock": 5800000, "price": 15.0},
-            {"name": "Personal", "stock": 5200000, "price": 15.0},
-            {"name": "Movistar Argentina", "stock": 4500000, "price": 15.0},
-            {"name": "Tuenti (MVNO)", "stock": 850000, "price": 15.0}
-        ],
-        "bank": [
-            {"name": "Banco de la Nación Argentina", "stock": 5200000, "price": 20.0},
-            {"name": "Banco Galicia", "stock": 2400000, "price": 20.0},
-            {"name": "Banco Macro", "stock": 2100000, "price": 20.0},
-            {"name": "Santander Río", "stock": 1800000, "price": 20.0},
-            {"name": "BBVA Argentina", "stock": 1900000, "price": 20.0},
-            {"name": "Banco Provincia", "stock": 1500000, "price": 20.0},
-            {"name": "Banco Ciudad", "stock": 950000, "price": 20.0},
-            {"name": "Brubank (Digital Bank)", "stock": 1200000, "price": 20.0},
-            {"name": "Ualá (Digital Bank)", "stock": 2100000, "price": 20.0}
-        ],
-        "business": [
-            {"name": "Mercado Libre", "stock": 3500000, "price": 25.0},
-            {"name": "YPF", "stock": 1200000, "price": 25.0},
-            {"name": "Globant", "stock": 850000, "price": 25.0},
-            {"name": "Despegar", "stock": 650000, "price": 25.0},
-            {"name": "Aerolíneas Argentinas", "stock": 550000, "price": 25.0},
-            {"name": "Telecom Argentina", "stock": 920000, "price": 25.0},
-            {"name": "Arcor", "stock": 780000, "price": 25.0},
-            {"name": "Coto", "stock": 1100000, "price": 25.0},
-            {"name": "Cencosud Argentina", "stock": 890000, "price": 25.0},
-            {"name": "Hospital Italiano de Buenos Aires", "stock": 120000, "price": 25.0},
-            {"name": "Universidad de Buenos Aires (UBA)", "stock": 310000, "price": 25.0}
-        ],
-        "crypto": [
-            {"name": "Ripio", "stock": 2100000, "price": 30.0},
-            {"name": "Lemon Cash", "stock": 1800000, "price": 30.0},
-            {"name": "Bitso Argentina", "stock": 1200000, "price": 30.0},
-            {"name": "Buenbit", "stock": 950000, "price": 30.0},
-            {"name": "SatoshiTango", "stock": 610000, "price": 30.0},
-            {"name": "Binance Argentina", "stock": 3500000, "price": 30.0},
-            {"name": "OKX Argentina", "stock": 850000, "price": 30.0},
-            {"name": "Belo", "stock": 420000, "price": 30.0}
-        ],
-        "nodes": []
-    },
-    "AT": {
-        "network": [
-            {"name": "A1 Austria", "stock": 1540000, "price": 15.0},
-            {"name": "Magenta Telekom", "stock": 890000, "price": 15.0},
-            {"name": "Drei Austria", "stock": 760000, "price": 15.0},
-            {"name": "Spusu", "stock": 210000, "price": 15.0},
-            {"name": "HoT Hofer Telekom", "stock": 310000, "price": 15.0},
-            {"name": "Yesss!", "stock": 150000, "price": 15.0}
-        ],
-        "bank": [
-            {"name": "Erste Bank", "stock": 1900000, "price": 20.0},
-            {"name": "Raiffeisen Bank International", "stock": 2100000, "price": 20.0},
-            {"name": "BAWAG PSK", "stock": 950000, "price": 20.0},
-            {"name": "Bank Austria (UniCredit)", "stock": 1400000, "price": 20.0},
-            {"name": "Oberbank", "stock": 620000, "price": 20.0},
-            {"name": "Volksbank", "stock": 780000, "price": 20.0},
-            {"name": "Hypo Tirol", "stock": 310000, "price": 20.0},
-            {"name": "Hypo Vorarlberg", "stock": 280000, "price": 20.0},
-            {"name": "Austrian Anadi Bank", "stock": 190000, "price": 20.0},
-            {"name": "N26 Austria (Digital Bank)", "stock": 510000, "price": 20.0}
-        ],
-        "business": [
-            {"name": "Firmenbuch (Commercial Register)", "stock": 850000, "price": 25.0},
-            {"name": "OMV", "stock": 210000, "price": 25.0},
-            {"name": "Red Bull GmbH", "stock": 450000, "price": 25.0},
-            {"name": "Swarovski", "stock": 310000, "price": 25.0},
-            {"name": "Spar Österreich", "stock": 1200000, "price": 25.0},
-            {"name": "REWE Group (Billa)", "stock": 1100000, "price": 25.0},
-            {"name": "STRABAG", "stock": 350000, "price": 25.0},
-            {"name": "Voestalpine", "stock": 180000, "price": 25.0},
-            {"name": "Austrian Airlines", "stock": 550000, "price": 25.0},
-            {"name": "Vienna General Hospital (AKH)", "stock": 95000, "price": 25.0},
-            {"name": "University of Vienna", "stock": 85000, "price": 25.0}
-        ],
-        "crypto": [
-            {"name": "Bitpanda", "stock": 1400000, "price": 30.0},
-            {"name": "Coinfinity", "stock": 350000, "price": 30.0},
-            {"name": "Bybit Austria", "stock": 650000, "price": 30.0},
-            {"name": "Kraken Austria", "stock": 420000, "price": 30.0},
-            {"name": "Binance Austria", "stock": 800000, "price": 30.0},
-            {"name": "Kurant (Bitcoin ATMs)", "stock": 120000, "price": 30.0}
-        ],
-        "nodes": []
-    },
-    "BD": {
-        "network": [
-            {"name": "Grameenphone", "stock": 7500000, "price": 15.0},
-            {"name": "Robi", "stock": 4800000, "price": 15.0},
-            {"name": "Banglalink", "stock": 3900000, "price": 15.0},
-            {"name": "Teletalk", "stock": 950000, "price": 15.0}
-        ],
-        "bank": [
-            {"name": "Sonali Bank", "stock": 3200000, "price": 20.0},
-            {"name": "Dutch-Bangla Bank", "stock": 2800000, "price": 20.0},
-            {"name": "BRAC Bank", "stock": 2500000, "price": 20.0},
-            {"name": "Islami Bank Bangladesh", "stock": 3100000, "price": 20.0},
-            {"name": "Eastern Bank", "stock": 1200000, "price": 20.0},
-            {"name": "City Bank", "stock": 1400000, "price": 20.0},
-            {"name": "Prime Bank", "stock": 980000, "price": 20.0},
-            {"name": "Mutual Trust Bank", "stock": 850000, "price": 20.0},
-            {"name": "Pubali Bank", "stock": 1100000, "price": 20.0},
-            {"name": "Agrani Bank", "stock": 1500000, "price": 20.0},
-            {"name": "Janata Bank", "stock": 1400000, "price": 20.0},
-            {"name": "bKash (Digital/MFS)", "stock": 18000000, "price": 20.0},
-            {"name": "Nagad (Digital/MFS)", "stock": 12000000, "price": 20.0}
-        ],
-        "business": [
-            {"name": "RJSC (Registrar of Joint Stock Companies)", "stock": 1200000, "price": 25.0},
-            {"name": "Beximco", "stock": 610000, "price": 25.0},
-            {"name": "Square Pharmaceuticals", "stock": 450000, "price": 25.0},
-            {"name": "PRAN-RFL Group", "stock": 520000, "price": 25.0},
-            {"name": "Walton", "stock": 380000, "price": 25.0},
-            {"name": "Bashundhara Group", "stock": 480000, "price": 25.0},
-            {"name": "ACI Limited", "stock": 410000, "price": 25.0},
-            {"name": "Akij Group", "stock": 350000, "price": 25.0},
-            {"name": "Biman Bangladesh Airlines", "stock": 210000, "price": 25.0},
-            {"name": "Square Hospital", "stock": 85000, "price": 25.0},
-            {"name": "Pathao", "stock": 150000, "price": 25.0}
-        ],
-        "crypto": [
-            {"name": "Binance P2P BD", "stock": 1100000, "price": 30.0},
-            {"name": "Bybit P2P BD", "stock": 750000, "price": 30.0},
-            {"name": "OKX P2P BD", "stock": 510000, "price": 30.0},
-            {"name": "KuCoin P2P BD", "stock": 210000, "price": 30.0}
-        ],
-        "nodes": []
-    },
-    "AU": {
-        "network": [
-            {"name": "Telstra", "stock": 4200000, "price": 15.0},
-            {"name": "Optus", "stock": 3100000, "price": 15.0},
-            {"name": "Vodafone Australia", "stock": 1800000, "price": 15.0},
-            {"name": "Boost Mobile", "stock": 620000, "price": 15.0},
-            {"name": "Aldi Mobile", "stock": 450000, "price": 15.0},
-            {"name": "Belong", "stock": 380000, "price": 15.0},
-            {"name": "Amaysim", "stock": 510000, "price": 15.0},
-            {"name": "TPG", "stock": 430000, "price": 15.0},
-            {"name": "iiNet", "stock": 290000, "price": 15.0},
-            {"name": "Tangerine", "stock": 210000, "price": 15.0},
-            {"name": "Dodo", "stock": 180000, "price": 15.0}
-        ],
-        "bank": [
-            {"name": "Commonwealth Bank", "stock": 2900000, "price": 20.0},
-            {"name": "Westpac", "stock": 2400000, "price": 20.0},
-            {"name": "ANZ", "stock": 1800000, "price": 20.0},
-            {"name": "NAB", "stock": 2100000, "price": 20.0},
-            {"name": "Macquarie Bank", "stock": 1100000, "price": 20.0},
-            {"name": "ING Australia", "stock": 950000, "price": 20.0},
-            {"name": "Bendigo Bank", "stock": 850000, "price": 20.0},
-            {"name": "Bankwest", "stock": 720000, "price": 20.0},
-            {"name": "Suncorp Bank", "stock": 680000, "price": 20.0},
-            {"name": "BOQ", "stock": 650000, "price": 20.0},
-            {"name": "ME Bank", "stock": 420000, "price": 20.0},
-            {"name": "AMP Bank", "stock": 550000, "price": 20.0},
-            {"name": "Up Bank (Digital)", "stock": 350000, "price": 20.0},
-            {"name": "Judo Bank", "stock": 120000, "price": 20.0}
-        ],
-        "business": [
-            {"name": "ASIC", "stock": 1400000, "price": 25.0},
-            {"name": "ABN Lookup", "stock": 1800000, "price": 25.0},
-            {"name": "BHP Group", "stock": 450000, "price": 25.0},
-            {"name": "Woolworths Group", "stock": 850000, "price": 25.0},
-            {"name": "Coles Group", "stock": 780000, "price": 25.0},
-            {"name": "Qantas Airways", "stock": 310000, "price": 25.0},
-            {"name": "Rio Tinto", "stock": 190000, "price": 25.0},
-            {"name": "CSL Limited", "stock": 220000, "price": 25.0},
-            {"name": "Wesfarmers", "stock": 650000, "price": 25.0},
-            {"name": "Telstra Corporation", "stock": 1200000, "price": 25.0},
-            {"name": "Woodside Energy", "stock": 280000, "price": 25.0},
-            {"name": "Macquarie Group", "stock": 340000, "price": 25.0},
-            {"name": "Goodman Group", "stock": 410000, "price": 25.0},
-            {"name": "Atlassian", "stock": 150000, "price": 25.0},
-            {"name": "Canva", "stock": 95000, "price": 25.0},
-            {"name": "Royal Melbourne Hospital", "stock": 55000, "price": 25.0},
-            {"name": "University of Sydney", "stock": 85000, "price": 25.0}
-        ],
-        "crypto": [
-            {"name": "CoinSpot", "stock": 1500000, "price": 30.0},
-            {"name": "Swyftx", "stock": 950000, "price": 30.0},
-            {"name": "BTC Markets", "stock": 610000, "price": 30.0},
-            {"name": "Independent Reserve", "stock": 800000, "price": 30.0},
-            {"name": "CoinJar", "stock": 450000, "price": 30.0},
-            {"name": "Digital Surge", "stock": 210000, "price": 30.0},
-            {"name": "Kraken Australia", "stock": 550000, "price": 30.0},
-            {"name": "Coinbase Australia", "stock": 880000, "price": 30.0},
-            {"name": "Crypto.com Australia", "stock": 1100000, "price": 30.0},
-            {"name": "OKX Australia", "stock": 420000, "price": 30.0},
-            {"name": "Binance Australia", "stock": 1200000, "price": 30.0}
-        ],
-        "nodes": []
-    },
-    "GB": {
-        "network": [
-            {"name": "EE", "stock": 3544000, "price": 15.0},
-            {"name": "O2", "stock": 1831000, "price": 15.0},
-            {"name": "Vodafone UK", "stock": 1530000, "price": 15.0},
-            {"name": "Three UK", "stock": 4515000, "price": 15.0},
-            {"name": "VOXI", "stock": 650000, "price": 15.0},
-            {"name": "Giffgaff", "stock": 1200000, "price": 15.0},
-            {"name": "Tesco Mobile", "stock": 980000, "price": 15.0},
-            {"name": "Sky Mobile", "stock": 850000, "price": 15.0},
-            {"name": "SMARTY", "stock": 480000, "price": 15.0},
-            {"name": "Lebara", "stock": 510000, "price": 15.0},
-            {"name": "Lyca Mobile", "stock": 620000, "price": 15.0}
-        ],
-        "bank": [
-            {"name": "HSBC UK", "stock": 12000000, "price": 20.0},
-            {"name": "Barclays", "stock": 11500000, "price": 20.0},
-            {"name": "Lloyds Bank", "stock": 14000000, "price": 20.0},
-            {"name": "NatWest", "stock": 9800000, "price": 20.0},
-            {"name": "Halifax", "stock": 8500000, "price": 20.0},
-            {"name": "Santander UK", "stock": 7200000, "price": 20.0},
-            {"name": "TSB Bank", "stock": 4100000, "price": 20.0},
-            {"name": "Metro Bank", "stock": 2500000, "price": 20.0},
-            {"name": "Monzo", "stock": 6500000, "price": 20.0},
-            {"name": "Starling Bank", "stock": 3200000, "price": 20.0},
-            {"name": "Chase UK", "stock": 1800000, "price": 20.0},
-            {"name": "First Direct", "stock": 2100000, "price": 20.0},
-            {"name": "Virgin Money", "stock": 3500000, "price": 20.0},
-            {"name": "Co-operative Bank", "stock": 1900000, "price": 20.0},
-            {"name": "Nationwide Building Society", "stock": 8100000, "price": 20.0},
-            {"name": "Yorkshire Building Society", "stock": 2800000, "price": 20.0},
-            {"name": "Coutts", "stock": 150000, "price": 20.0}
-        ],
-        "business": [
-            {"name": "Companies House Registry", "stock": 15000000, "price": 25.0},
-            {"name": "Tesco Stores", "stock": 1800000, "price": 25.0},
-            {"name": "Sainsbury's", "stock": 1200000, "price": 25.0},
-            {"name": "Marks & Spencer", "stock": 950000, "price": 25.0},
-            {"name": "Asda", "stock": 1100000, "price": 25.0},
-            {"name": "John Lewis Partnership", "stock": 850000, "price": 25.0},
-            {"name": "BP plc", "stock": 450000, "price": 25.0},
-            {"name": "Shell plc", "stock": 420000, "price": 25.0},
-            {"name": "Unilever UK", "stock": 520000, "price": 25.0},
-            {"name": "AstraZeneca", "stock": 310000, "price": 25.0},
-            {"name": "GlaxoSmithKline (GSK)", "stock": 380000, "price": 25.0},
-            {"name": "BAE Systems", "stock": 250000, "price": 25.0},
-            {"name": "Rolls-Royce Holdings", "stock": 190000, "price": 25.0},
-            {"name": "BT Group", "stock": 750000, "price": 25.0},
-            {"name": "British Airways", "stock": 1100000, "price": 25.0},
-            {"name": "EasyJet", "stock": 950000, "price": 25.0},
-            {"name": "Royal Mail", "stock": 450000, "price": 25.0},
-            {"name": "Bupa Healthcare", "stock": 850000, "price": 25.0},
-            {"name": "Nuffield Health", "stock": 420000, "price": 25.0},
-            {"name": "Great Ormond Street Hospital", "stock": 65000, "price": 25.0},
-            {"name": "University of Oxford", "stock": 120000, "price": 25.0},
-            {"name": "University of Cambridge", "stock": 115000, "price": 25.0},
-            {"name": "Imperial College London", "stock": 95000, "price": 25.0},
-            {"name": "Deliveroo", "stock": 310000, "price": 25.0},
-            {"name": "Revolut Ltd", "stock": 850000, "price": 25.0}
-        ],
-        "crypto": [
-            {"name": "Coinbase UK", "stock": 1500000, "price": 30.0},
-            {"name": "Kraken UK", "stock": 1100000, "price": 30.0},
-            {"name": "Revolut Crypto", "stock": 2100000, "price": 30.0},
-            {"name": "Gemini UK", "stock": 850000, "price": 30.0},
-            {"name": "eToro UK", "stock": 1200000, "price": 30.0},
-            {"name": "Bitstamp UK", "stock": 650000, "price": 30.0},
-            {"name": "Crypto.com UK", "stock": 1400000, "price": 30.0},
-            {"name": "Binance UK", "stock": 1800000, "price": 30.0}
-        ],
-        "nodes": []
-    },
-    "US": {
-        "network": [
-            {"name": "AT&T", "stock": 12800000, "price": 15.0},
-            {"name": "Verizon", "stock": 11400000, "price": 15.0},
-            {"name": "T-Mobile", "stock": 9700000, "price": 15.0},
-            {"name": "Boost Mobile", "stock": 2100000, "price": 15.0},
-            {"name": "Cricket", "stock": 1900000, "price": 15.0},
-            {"name": "Metro by T-Mobile", "stock": 1700000, "price": 15.0},
-            {"name": "UScellular", "stock": 890000, "price": 15.0},
-            {"name": "Mint Mobile", "stock": 640000, "price": 15.0},
-            {"name": "Spectrum Mobile", "stock": 810000, "price": 15.0},
-            {"name": "Xfinity Mobile", "stock": 920000, "price": 15.0},
-            {"name": "Google Fi", "stock": 1500000, "price": 15.0}
-        ],
-        "bank": [
-            {"name": "JPMorgan Chase", "stock": 45000000, "price": 20.0},
-            {"name": "Bank of America", "stock": 38000000, "price": 20.0},
-            {"name": "Wells Fargo", "stock": 32000000, "price": 20.0},
-            {"name": "Citibank", "stock": 28000000, "price": 20.0},
-            {"name": "Capital One", "stock": 21000000, "price": 20.0},
-            {"name": "PNC Bank", "stock": 11000000, "price": 20.0},
-            {"name": "Truist", "stock": 9500000, "price": 20.0},
-            {"name": "US Bank", "stock": 15000000, "price": 20.0},
-            {"name": "TD Bank USA", "stock": 12000000, "price": 20.0},
-            {"name": "Fifth Third Bank", "stock": 6500000, "price": 20.0},
-            {"name": "Regions Bank", "stock": 5800000, "price": 20.0},
-            {"name": "Huntington Bank", "stock": 4200000, "price": 20.0},
-            {"name": "Ally Financial", "stock": 8500000, "price": 20.0},
-            {"name": "Discover Bank", "stock": 14000000, "price": 20.0},
-            {"name": "Charles Schwab Bank", "stock": 9100000, "price": 20.0},
-            {"name": "Chime (Digital)", "stock": 5100000, "price": 20.0},
-            {"name": "SoFi Bank", "stock": 3500000, "price": 20.0}
-        ],
-        "business": [
-            {"name": "Delaware Secretary of State", "stock": 8500000, "price": 25.0},
-            {"name": "California Secretary of State", "stock": 12000000, "price": 25.0},
-            {"name": "Texas Secretary of State", "stock": 9500000, "price": 25.0},
-            {"name": "Florida Division of Corporations", "stock": 8100000, "price": 25.0},
-            {"name": "Walmart Inc.", "stock": 15000000, "price": 25.0},
-            {"name": "Target Corporation", "stock": 8500000, "price": 25.0},
-            {"name": "Costco Wholesale", "stock": 6200000, "price": 25.0},
-            {"name": "Apple Inc.", "stock": 5500000, "price": 25.0},
-            {"name": "Microsoft Corporation", "stock": 4800000, "price": 25.0},
-            {"name": "Alphabet Inc. (Google)", "stock": 4200000, "price": 25.0},
-            {"name": "Meta Platforms", "stock": 3100000, "price": 25.0},
-            {"name": "Amazon.com Inc.", "stock": 12000000, "price": 25.0},
-            {"name": "Mayo Clinic", "stock": 450000, "price": 25.0},
-            {"name": "UnitedHealth Group", "stock": 1100000, "price": 25.0},
-            {"name": "Hilton Worldwide", "stock": 2100000, "price": 25.0},
-            {"name": "Marriott International", "stock": 2500000, "price": 25.0},
-            {"name": "Ford Motor Company", "stock": 3500000, "price": 25.0},
-            {"name": "Tesla Inc.", "stock": 1800000, "price": 25.0},
-            {"name": "Delta Air Lines", "stock": 520000, "price": 25.0},
-            {"name": "American Airlines", "stock": 580000, "price": 25.0},
-            {"name": "United Airlines", "stock": 550000, "price": 25.0},
-            {"name": "FedEx", "stock": 750000, "price": 25.0},
-            {"name": "UPS", "stock": 810000, "price": 25.0},
-            {"name": "Harvard University", "stock": 150000, "price": 25.0},
-            {"name": "Stanford University", "stock": 120000, "price": 25.0},
-            {"name": "MIT", "stock": 110000, "price": 25.0},
-            {"name": "Stripe", "stock": 850000, "price": 25.0},
-            {"name": "OpenAI", "stock": 120000, "price": 25.0}
-        ],
-        "crypto": [
-            {"name": "Coinbase", "stock": 12500000, "price": 30.0},
-            {"name": "Kraken", "stock": 5800000, "price": 30.0},
-            {"name": "Gemini", "stock": 3200000, "price": 30.0},
-            {"name": "Binance.US", "stock": 4100000, "price": 30.0},
-            {"name": "Bitstamp US", "stock": 950000, "price": 30.0},
-            {"name": "Crypto.com US", "stock": 2800000, "price": 30.0},
-            {"name": "Robinhood Crypto", "stock": 8500000, "price": 30.0},
-            {"name": "eToro US", "stock": 1500000, "price": 30.0},
-            {"name": "Webull Crypto", "stock": 2100000, "price": 30.0},
-            {"name": "PayPal Crypto", "stock": 18000000, "price": 30.0}
-        ],
-        "nodes": []
-    },
-    "CA": {
-        "network": [
-            {"name": "Rogers Wireless", "stock": 11500000, "price": 15.0},
-            {"name": "Bell Mobility", "stock": 10500000, "price": 15.0},
-            {"name": "Telus Mobility", "stock": 9800000, "price": 15.0},
-            {"name": "Fido", "stock": 3500000, "price": 15.0},
-            {"name": "Koodo", "stock": 2800000, "price": 15.0},
-            {"name": "Virgin Plus", "stock": 2100000, "price": 15.0},
-            {"name": "Freedom Mobile", "stock": 1900000, "price": 15.0},
-            {"name": "Videotron", "stock": 1500000, "price": 15.0}
-        ],
-        "bank": [
-            {"name": "RBC", "stock": 4800000, "price": 20.0},
-            {"name": "TD Bank", "stock": 4500000, "price": 20.0},
-            {"name": "Scotiabank", "stock": 3900000, "price": 20.0},
-            {"name": "BMO", "stock": 3200000, "price": 20.0},
-            {"name": "CIBC", "stock": 2900000, "price": 20.0},
-            {"name": "National Bank of Canada", "stock": 1500000, "price": 20.0},
-            {"name": "Tangerine", "stock": 1200000, "price": 20.0},
-            {"name": "Simplii Financial", "stock": 850000, "price": 20.0},
-            {"name": "Desjardins", "stock": 2100000, "price": 20.0},
-            {"name": "EQ Bank", "stock": 610000, "price": 20.0}
-        ],
-        "business": [
-            {"name": "Corporations Canada", "stock": 3500000, "price": 25.0},
-            {"name": "Ontario Business Registry", "stock": 1800000, "price": 25.0},
-            {"name": "Registraire des entreprises Québec", "stock": 1200000, "price": 25.0},
-            {"name": "BC Corporate Registry", "stock": 950000, "price": 25.0},
-            {"name": "Shopify", "stock": 450000, "price": 25.0},
-            {"name": "Lululemon", "stock": 850000, "price": 25.0},
-            {"name": "Air Canada", "stock": 1200000, "price": 25.0},
-            {"name": "Magna International", "stock": 320000, "price": 25.0},
-            {"name": "Enbridge", "stock": 210000, "price": 25.0},
-            {"name": "Thomson Reuters", "stock": 180000, "price": 25.0},
-            {"name": "Rogers Communications", "stock": 2100000, "price": 25.0},
-            {"name": "Bell Canada", "stock": 1900000, "price": 25.0},
-            {"name": "Canadian Tire", "stock": 3500000, "price": 25.0},
-            {"name": "Suncor", "stock": 110000, "price": 25.0},
-            {"name": "WestJet", "stock": 950000, "price": 25.0}
-        ],
-        "crypto": [
-            {"name": "Wealthsimple Crypto", "stock": 2100000, "price": 30.0},
-            {"name": "NDAX", "stock": 650000, "price": 30.0},
-            {"name": "Bitbuy", "stock": 550000, "price": 30.0},
-            {"name": "Newton", "stock": 700000, "price": 30.0},
-            {"name": "Kraken CA", "stock": 900000, "price": 30.0},
-            {"name": "Coinbase CA", "stock": 1200000, "price": 30.0},
-            {"name": "Shakepay", "stock": 1100000, "price": 30.0},
-            {"name": "Coinsquare", "stock": 800000, "price": 30.0},
-            {"name": "VirgoCX", "stock": 450000, "price": 30.0}
-        ],
-        "nodes": []
-    }
-}
+# ── Dynamic API Engines & Fetchers ────────────────────────────────────────────
+
+ALL_COUNTRIES = sorted(list(pycountry.countries), key=lambda x: x.name)
 
 COUNTRY_ALIASES = {
     "UK": "GB",
     "USA": "US"
 }
-
-ALL_COUNTRIES = sorted(list(pycountry.countries), key=lambda x: x.name)
 
 def resolve_iso2(code_or_alias: str) -> str:
     cleaned = code_or_alias.upper().strip()
@@ -578,58 +184,111 @@ def get_country_file_path(iso2: str, category: str) -> str:
     os.makedirs(folder, exist_ok=True)
     return os.path.join(folder, f"{category}.json")
 
-# ── 5-Tier Lookup Architecture ────────────────────────────────────────────────
-# Primary -> Local JSON -> Secondary -> Registry -> Google -> No Data Available
-
-async def fetch_secondary_db(iso2: str, vertical: str) -> list:
-    """Mock hook for secondary external database APIs."""
+async def fetch_external_crypto(country_name: str) -> list:
+    """Queries CoinGecko API to find exchanges associated with the country."""
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(COINGECKO_API_URL, timeout=10) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    results = []
+                    for ex in data:
+                        c = ex.get("country", "")
+                        if c and country_name.lower() in c.lower():
+                            results.append({"name": ex["name"], "stock": 450000, "price": 30.0})
+                    return results
+    except Exception as e:
+        logger.error(f"CoinGecko API error: {e}")
     return []
 
-async def fetch_verified_registry(iso2: str, vertical: str) -> list:
-    """Mock hook for OpenCorporates / Plaid APIs."""
+async def fetch_external_network(iso2: str, country_name: str) -> list:
+    """Queries open-source MCC-MNC Telecom database for local networks."""
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(MCC_MNC_API_URL, timeout=10) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    networks = set()
+                    for mcc, info in data.items():
+                        if isinstance(info, dict):
+                            name = info.get("name", "")
+                            if country_name.lower() in name.lower() or iso2.lower() == name.lower():
+                                for k, v in info.items():
+                                    if k != "name" and isinstance(v, dict) and "name" in v:
+                                        networks.add(v["name"])
+                                    elif k != "name" and isinstance(v, str):
+                                        networks.add(v)
+                    return [{"name": net, "stock": 1500000, "price": 15.0} for net in networks if net]
+    except Exception as e:
+        logger.error(f"MCC-MNC API error: {e}")
     return []
 
-async def fetch_google_verified(iso2: str, vertical: str) -> list:
-    """Mock hook for Google Places / Business API."""
+async def fetch_external_business(country_name: str, query: str = "company") -> list:
+    """Queries OpenCorporates for registries, banks, and businesses."""
+    try:
+        url = f"{OPENCORPORATES_API_URL}?q={query}+{country_name}"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=10) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    companies = data.get("results", {}).get("companies", [])
+                    results = []
+                    for comp in companies:
+                        c_info = comp.get("company", {})
+                        if c_info:
+                            results.append({"name": c_info.get("name", "Unknown"), "stock": 250000, "price": 25.0})
+                    return results
+    except Exception as e:
+        logger.error(f"OpenCorporates API error: {e}")
     return []
+
+def save_country_data(iso2: str, category: str, data: list):
+    path = get_country_file_path(iso2, category)
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4)
+    except Exception as e:
+        logger.error(f"Error saving {path}: {e}")
 
 async def fetch_dynamic_vertical(country_code: str, vertical: str) -> list:
     """
-    Cascading Data Loader. 
-    Absolutely NO string interpolation templates are used here.
-    If it passes all 5 tiers and finds nothing, it returns [] directly.
+    Cascading 5-Tier Data Engine:
+    1. Local Cached JSON lookup
+    2. Real-time API Scraping
+    3. Return 'No Data Available' if all sources exhausted.
     """
     iso2 = resolve_iso2(country_code)
-    
-    # Tier 1: Primary Embedded Verified Database
-    if iso2 in WORLD_DATASETS and vertical in WORLD_DATASETS[iso2]:
-        if WORLD_DATASETS[iso2][vertical]:
-            return WORLD_DATASETS[iso2][vertical]
+    country_obj = pycountry.countries.get(alpha_2=iso2)
+    c_name = country_obj.name if country_obj else iso2
 
-    # Tier 2: Local JSON Dataset files (countries/us/bank.json)
+    # Tier 1: Local Cache (JSON files managed by admin or previous API hits)
     path = get_country_file_path(iso2, vertical)
     if os.path.exists(path):
         try:
             with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                if isinstance(data, list) and len(data) > 0:
+                if isinstance(data, list) and data:
                     return data
-        except Exception as e:
-            logger.error(f"Error loading {path}: {e}")
+        except Exception:
+            pass
 
-    # Tier 3: Secondary External Databases
-    sec_data = await fetch_secondary_db(iso2, vertical)
-    if sec_data: return sec_data
+    # Tier 2: Real-time External API Fetching
+    fetched_items = []
+    if vertical == "crypto":
+        fetched_items = await fetch_external_crypto(c_name)
+    elif vertical == "network":
+        fetched_items = await fetch_external_network(iso2, c_name)
+    elif vertical == "bank":
+        fetched_items = await fetch_external_business(c_name, q="bank")
+    elif vertical == "business":
+        fetched_items = await fetch_external_business(c_name, q="company")
+    
+    # Cache results permanently if we found legitimate data
+    if fetched_items:
+        save_country_data(iso2, vertical, fetched_items)
+        return fetched_items
 
-    # Tier 4: Verified Registries
-    reg_data = await fetch_verified_registry(iso2, vertical)
-    if reg_data: return reg_data
-
-    # Tier 5: Google Verified Businesses
-    goog_data = await fetch_google_verified(iso2, vertical)
-    if goog_data: return goog_data
-
-    # Fallback -> Trigger 'No Data Available' UI natively.
+    # Tier 3: Exhausted all sources -> Return Empty to trigger 'No Data Available'
     return []
 
 def load_country_pricing(iso2: str) -> dict:
@@ -659,7 +318,7 @@ def get_pricing_tiers(cc: str):
     pricing = load_country_pricing(cc)
     return sorted([(int(k), float(v)) for k, v in pricing.items()], key=lambda x: x[0])
 
-# ── General Data Operations ───────────────────────────────────────────────────
+# ── Global Application Persistence ────────────────────────────────────────────
 def calculate_dynamic_stock():
     total = 0
     for vid, vdata in STORE.items():
@@ -733,7 +392,7 @@ async def get_crypto_prices():
                 return {"BTC": d["bitcoin"]["gbp"], "SOL": d["solana"]["gbp"], "LTC": d["litecoin"]["gbp"]}
     except Exception: return None
 
-# ── Keyboards & Navigation Controls ──────────────────────────────────────────
+# ── Keyboards & Navigation Layout ──────────────────────────────────────────────
 
 def main_menu_keyboard():
     return InlineKeyboardMarkup([
@@ -1033,7 +692,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for _k in ("awaiting_custom", "awaiting_bin_search", "awaiting_qty", "awaiting_search", "awaiting_country_search"):
         context.user_data.pop(_k, None)
 
-    # ── Universal A–Z Country Directory & Navigation ─────────────────────────
+    # ── Universal Country Directory Routing ──────────────────────────────────
     if data == "leads":
         context.user_data["current_country_list"] = None
         await query.edit_message_text("🌍 *A–Z Sovereign Country Directory*\n_Page 1_\nSelect a nation:", reply_markup=a_z_country_keyboard(0), parse_mode="Markdown")
@@ -1043,7 +702,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["awaiting_country_search"] = True
         prompt_text = (
             "🌍 *Search Countries*\n\n"
-            "Type the name of the country (e.g., 'Australia', 'UNITED KINGDOM', 'United States').\n\n"
+            "Enter any country name to search.\n\n"
             "*Examples:*\n"
             "• AUSTRALIA\n"
             "• UNITED KINGDOM\n"
@@ -1421,6 +1080,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         items = context.user_data.get(f"items_{iso2}_{vertical}")
         if not items: items = await fetch_dynamic_vertical(iso2, vertical)
 
+        # Restrict search strictly to the selected country dataset items
         filtered = [item for item in items if query_text in item["name"].lower()]
 
         c = pycountry.countries.get(alpha_2=iso2)
@@ -1687,8 +1347,6 @@ async def cmd_updatelead(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     items = load_country_data(iso2, vertical)
-    if not items: items = []
-    
     found = False
     for item in items:
         if item["name"].lower() == item_name.lower():
