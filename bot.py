@@ -3,7 +3,6 @@ import json
 import logging
 import asyncio
 import aiohttp
-import pycountry
 from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputFile
 from telegram.error import Forbidden, BadRequest
@@ -50,11 +49,14 @@ channel_verified = set()
 live_stock    = {"leads": 63_629_085} 
 TOPUP_AMOUNTS = [70, 100, 150, 200, 250, 300, 350, 400, 450, 500, 750, 1000]
 BINS_PER_PAGE = 20   
-COUNTRIES_PER_PAGE = 20
 ITEMS_PER_PAGE = 8
 
-# ── Dynamic Pricing Configuration ─────────────────────────────────────────────
-# These act as defaults, but can be updated via admin commands and saved to botdata.json
+# External Data Cache
+cached_external_apis = {
+    "crypto": {}, "network": {}, "business": {}, "bank": {}, "nodes": {}
+}
+
+# ── Dynamic Pricing Configuration (Leads only, Scanner reverted to static) ────
 DYNAMIC_LEADS_PRICING = {
     "network":  {1000: 15, 2000: 30, 3000: 45, 4000: 50, 5000: 60, 6000: 65, 7000: 70, 8000: 80, 10000: 100, 15000: 125, 20000: 150, 25000: 175, 30000: 200, 50000: 300, 100000: 600},
     "bank":     {1000: 20, 2000: 40, 5000: 80, 10000: 150, 25000: 350},
@@ -62,49 +64,6 @@ DYNAMIC_LEADS_PRICING = {
     "crypto":   {1000: 30, 5000: 120, 10000: 200, 25000: 450},
     "nodes":    {1000: 40, 5000: 180, 10000: 300}
 }
-
-DYNAMIC_SCANNER_QTYS = [1, 5, 10, 25, 50, 100]
-
-DYNAMIC_SCANNER_ITEMS = [
-    {"label": "Binance · Email", "category": "crypto", "price": 3.00},
-    {"label": "Binance · Filter", "category": "crypto", "price": 1.50},
-    {"label": "CoinW · Email", "category": "crypto", "price": 1.50},
-    {"label": "CoinW · Mobile", "category": "crypto", "price": 1.50},
-    {"label": "HTX · Email", "category": "crypto", "price": 1.50},
-    {"label": "HTX · Mobile", "category": "crypto", "price": 1.50},
-    {"label": "KuCoin · Email", "category": "crypto", "price": 1.50},
-    {"label": "KuCoin · Mobile", "category": "crypto", "price": 1.00},
-    {"label": "OKX · Filter", "category": "crypto", "price": 3.00},
-    {"label": "Robinhood · Check", "category": "crypto", "price": 2.50},
-    {"label": "Facebook · Email", "category": "socials", "price": 1.00},
-    {"label": "Instagram · Mobile", "category": "socials", "price": 1.00},
-    {"label": "LinkedIn · Profile", "category": "socials", "price": 15.00},
-    {"label": "Signal", "category": "socials", "price": 1.00},
-    {"label": "Snapchat", "category": "socials", "price": 2.00},
-    {"label": "iMessage · Filter", "category": "socials", "price": 0.35},
-    {"label": "DHL", "category": "shopping", "price": 1.50},
-    {"label": "Shein", "category": "shopping", "price": 15.00},
-    {"label": "Carrier · Any", "category": "carrier", "price": 1.50},
-    {"label": "Carrier · Bangladesh", "category": "carrier", "price": 0.75},
-    {"label": "Carrier · Belgium", "category": "carrier", "price": 0.75},
-    {"label": "Carrier · Brazil", "category": "carrier", "price": 0.75},
-    {"label": "Carrier · France", "category": "carrier", "price": 0.75},
-    {"label": "Carrier · Germany", "category": "carrier", "price": 0.75},
-    {"label": "Carrier · HK", "category": "carrier", "price": 0.75},
-    {"label": "Carrier · Indonesia", "category": "carrier", "price": 0.75},
-    {"label": "Carrier · Italy", "category": "carrier", "price": 0.75},
-    {"label": "Carrier · Japan", "category": "carrier", "price": 0.75},
-    {"label": "Carrier · Pakistan", "category": "carrier", "price": 0.75},
-    {"label": "Carrier · Portugal", "category": "carrier", "price": 0.75},
-    {"label": "Carrier · Russia", "category": "carrier", "price": 0.75},
-    {"label": "Carrier · Spain", "category": "carrier", "price": 0.75},
-    {"label": "Carrier · Sweden", "category": "carrier", "price": 0.75},
-    {"label": "Carrier · UK", "category": "carrier", "price": 0.75},
-    {"label": "Carrier · US", "category": "carrier", "price": 0.75},
-    {"label": "Carrier · Ukraine", "category": "carrier", "price": 0.75},
-    {"label": "Carrier · Uzbekistan", "category": "carrier", "price": 0.75},
-    {"label": "Carrier · Vietnam", "category": "carrier", "price": 0.75},
-]
 
 # ── Store Data (BINS) ─────────────────────────────────────────────────────────
 STORE = {
@@ -138,10 +97,117 @@ DEADS_ITEMS = [
     ("50+ Specific BIN, Gender & DOB File",  225,  "dspec50"),
     ("100+ Specific BIN, Gender & DOB File", 350,  "dspec100"),
     ("50+ Random File",                      100,  "drand50"),
+    ("100+ Random File",                     150,  "drand100"),
+    ("500 Random File",                      500,  "drand500"),
     ("1k Random File",                       700,  "drand1k"),
+    ("2k Random File",                       1200, "drand2k"),
 ]
 
-SCAN_CATS = {"all": "All", "socials": "Socials", "crypto": "Crypto", "shopping": "Shop", "carrier": "Carrier"}
+# ── OLD SCANNER MIGRATION ─────────────────────────────────────────────────────
+SCANNER_ITEMS = [
+    ("Binance · Email",       "crypto",   3.00),
+    ("Binance · Filter",      "crypto",   1.50),
+    ("CoinW · Email",         "crypto",   1.50),
+    ("CoinW · Mobile",        "crypto",   1.50),
+    ("HTX · Email",           "crypto",   1.50),
+    ("HTX · Mobile",          "crypto",   1.50),
+    ("KuCoin · Email",        "crypto",   1.50),
+    ("KuCoin · Mobile",       "crypto",   1.00),
+    ("OKX · Filter",          "crypto",   3.00),
+    ("Robinhood · Check",     "crypto",   2.50),
+    ("Facebook · Email",      "socials",  1.00),
+    ("Instagram · Mobile",    "socials",  1.00),
+    ("LinkedIn · Profile",    "socials",  15.00),
+    ("Signal",                "socials",  1.00),
+    ("Snapchat",              "socials",  2.00),
+    ("iMessage · Filter",     "socials",  0.35),
+    ("DHL",                   "shopping", 1.50),
+    ("Shein",                 "shopping", 15.00),
+    ("Carrier · Any",         "carrier",  1.50),
+    ("Carrier · Bangladesh",  "carrier",  0.75),
+    ("Carrier · Belgium",     "carrier",  0.75),
+    ("Carrier · Brazil",      "carrier",  0.75),
+    ("Carrier · France",      "carrier",  0.75),
+    ("Carrier · Germany",     "carrier",  0.75),
+    ("Carrier · HK",          "carrier",  0.75),
+    ("Carrier · Indonesia",   "carrier",  0.75),
+    ("Carrier · Italy",       "carrier",  0.75),
+    ("Carrier · Japan",       "carrier",  0.75),
+    ("Carrier · Pakistan",    "carrier",  0.75),
+    ("Carrier · Portugal",    "carrier",  0.75),
+    ("Carrier · Russia",      "carrier",  0.75),
+    ("Carrier · Spain",       "carrier",  0.75),
+    ("Carrier · Sweden",      "carrier",  0.75),
+    ("Carrier · UK",          "carrier",  0.75),
+    ("Carrier · US",          "carrier",  0.75),
+    ("Carrier · Ukraine",     "carrier",  0.75),
+    ("Carrier · Uzbekistan",  "carrier",  0.75),
+    ("Carrier · Vietnam",     "carrier",  0.75),
+]
+
+SCAN_CATS = {"all": "All •", "socials": "Socials", "crypto": "Crypto", "shopping": "Shop...", "carrier": "Carrier"}
+SCANNER_PER_PAGE = 10
+SCANNER_QTYS = [1, 5, 10, 25, 50, 100]
+
+# ── OLD LEADS COUNTRY LIST MIGRATION ──────────────────────────────────────────
+LEADS = {
+    "AU": {"flag":"🇦🇺","name":"Australia",      "carriers":{"Telstra":4_200_000,"Optus":3_100_000,"Vodafone":1_800_000,"Boost Mobile":620_000,"TPG":430_000}},
+    "AT": {"flag":"🇦🇹","name":"Austria",        "carriers":{"A1":1_540_000,"Magenta":890_000,"Drei":760_000,"Spusu":210_000}},
+    "BH": {"flag":"🇧🇭","name":"Bahrain",        "carriers":{"Batelco":480_000,"Zain":390_000,"STC":210_000,"Viva":170_000}},
+    "BE": {"flag":"🇧🇪","name":"Belgium",        "carriers":{"Proximus":1_920_000,"Orange":1_340_000,"Base":980_000}},
+    "BR": {"flag":"🇧🇷","name":"Brazil",         "carriers":{"Vivo":7_800_000,"Claro":6_500_000,"TIM":5_200_000,"Oi":2_100_000}},
+    "BG": {"flag":"🇧🇬","name":"Bulgaria",       "carriers":{"A1":1_100_000,"Telenor":890_000,"Vivacom":760_000}},
+    "CA": {"flag":"🇨🇦","name":"Canada",         "carriers":{"Rogers":4_100_000,"Bell":3_800_000,"Telus":3_500_000,"Fido":980_000,"Koodo":760_000}},
+    "CY": {"flag":"🇨🇾","name":"Cyprus",         "carriers":{"Cyta":340_000,"MTN":210_000,"Epic":180_000}},
+    "CZ": {"flag":"🇨🇿","name":"Czech Republic", "carriers":{"T-Mobile":2_100_000,"O2":1_800_000,"Vodafone":1_400_000}},
+    "DK": {"flag":"🇩🇰","name":"Denmark",        "carriers":{"TDC":1_540_000,"Telenor":1_100_000,"Telia":980_000,"Tre":760_000}},
+    "EE": {"flag":"🇪🇪","name":"Estonia",        "carriers":{"Telia":430_000,"Elisa":380_000,"Tele2":290_000}},
+    "FI": {"flag":"🇫🇮","name":"Finland",        "carriers":{"Elisa":1_800_000,"DNA":1_500_000,"Telia":1_200_000}},
+    "FR": {"flag":"🇫🇷","name":"France",         "carriers":{"Orange":6_200_000,"SFR":4_800_000,"Bouygues":4_100_000,"Free Mobile":3_500_000}},
+    "DE": {"flag":"🇩🇪","name":"Germany",        "carriers":{"Telekom":8_900_000,"Vodafone":7_200_000,"O2":5_800_000,"1&1":1_400_000}},
+    "GR": {"flag":"🇬🇷","name":"Greece",         "carriers":{"Cosmote":2_800_000,"Vodafone":1_900_000,"Wind Hellas":1_400_000,"Nova":680_000}},
+    "HU": {"flag":"🇭🇺","name":"Hungary",        "carriers":{"Telekom":2_100_000,"Yettel":1_400_000,"Vodafone":980_000}},
+    "IS": {"flag":"🇮🇸","name":"Iceland",        "carriers":{"Siminn":180_000,"Vodafone":140_000,"Nova":110_000}},
+    "IE": {"flag":"🇮🇪","name":"Ireland",        "carriers":{"Eir":833_503,"Tesco Mobile":520_700,"Three A":351_645,"Three B":861_444,"Vodafone":1_720_550}},
+    "IT": {"flag":"🇮🇹","name":"Italy",          "carriers":{"TIM":5_900_000,"Vodafone":4_200_000,"WindTre":5_100_000,"Iliad":1_800_000,"PosteMobile":890_000}},
+    "LV": {"flag":"🇱🇻","name":"Latvia",         "carriers":{"LMT":540_000,"Tele2":430_000,"Bite":320_000}},
+    "LT": {"flag":"🇱🇹","name":"Lithuania",      "carriers":{"Tele2":890_000,"Bite":760_000,"Telia":540_000}},
+    "MY": {"flag":"🇲🇾","name":"Malaysia",       "carriers":{"Maxis":4_200_000,"Celcom":3_100_000,"Digi":3_800_000,"U Mobile":1_400_000,"Unifi":980_000}},
+    "MT": {"flag":"🇲🇹","name":"Malta",          "carriers":{"GO":180_000,"Melita":140_000,"Epic":110_000}},
+    "NL": {"flag":"🇳🇱","name":"Netherlands",    "carriers":{"KPN":3_200_000,"VodafoneZiggo":2_800_000,"T-Mobile":2_100_000,"Tele2":890_000}},
+    "NZ": {"flag":"🇳🇿","name":"New Zealand",    "carriers":{"Spark":1_800_000,"One NZ":1_400_000,"2degrees":980_000}},
+    "NO": {"flag":"🇳🇴","name":"Norway",         "carriers":{"Telenor":2_400_000,"Telia":1_800_000,"Ice":760_000}},
+    "PL": {"flag":"🇵🇱","name":"Poland",         "carriers":{"Orange":4_100_000,"Play":3_800_000,"Plus":3_200_000,"T-Mobile":2_900_000}},
+    "PT": {"flag":"🇵🇹","name":"Portugal",       "carriers":{"NOS":2_800_000,"MEO":2_400_000,"Vodafone":1_900_000}},
+    "PR": {"flag":"🇵🇷","name":"Puerto Rico",    "carriers":{"Claro":1_100_000,"Liberty":540_000,"T-Mobile":890_000}},
+    "QA": {"flag":"🇶🇦","name":"Qatar",          "carriers":{"Ooredoo":980_000,"Vodafone Qatar":760_000}},
+    "RO": {"flag":"🇷🇴","name":"Romania",        "carriers":{"Orange":3_200_000,"Vodafone":2_800_000,"Digi":2_100_000,"Telekom":1_400_000}},
+    "SG": {"flag":"🇸🇬","name":"Singapore",      "carriers":{"Singtel":2_100_000,"StarHub":1_400_000,"M1":980_000,"TPG":320_000}},
+    "SK": {"flag":"🇸🇰","name":"Slovakia",       "carriers":{"Slovak Telekom":1_400_000,"Orange":1_100_000,"O2":760_000}},
+    "SI": {"flag":"🇸🇮","name":"Slovenia",       "carriers":{"A1":540_000,"Telekom SI":430_000,"T-2":210_000}},
+    "ZA": {"flag":"🇿🇦","name":"South Africa",   "carriers":{"Vodacom":5_200_000,"MTN":4_800_000,"Cell C":2_100_000,"Telkom":1_400_000}},
+    "ES": {"flag":"🇪🇸","name":"Spain",          "carriers":{"Movistar":7_200_000,"Orange":5_800_000,"Vodafone":4_900_000,"MásMóvil":2_100_000,"Yoigo":1_400_000}},
+    "SE": {"flag":"🇸🇪","name":"Sweden",         "carriers":{"Telia":3_200_000,"Tele2":2_800_000,"Tre":1_900_000,"Telenor":1_400_000}},
+    "CH": {"flag":"🇨🇭","name":"Switzerland",    "carriers":{"Swisscom":2_800_000,"Sunrise":1_900_000,"Salt":980_000}},
+    "TW": {"flag":"🇹🇼","name":"Taiwan",         "carriers":{"Chunghwa":4_100_000,"Taiwan Mobile":3_200_000,"FarEasTone":2_800_000,"TSTAR":1_100_000}},
+    "TR": {"flag":"🇹🇷","name":"Turkey",         "carriers":{"Turkcell":6_800_000,"Vodafone":4_900_000,"Türk Telekom":4_200_000}},
+    "AE": {"flag":"🇦🇪","name":"UAE",            "carriers":{"Etisalat (e&)":2_400_000,"du":1_800_000}},
+    "UA": {"flag":"🇺🇦","name":"Ukraine",        "carriers":{"Kyivstar":4_800_000,"Vodafone":3_200_000,"lifecell":2_100_000}},
+    "UK": {"flag":"🇬🇧","name":"United Kingdom", "carriers":{"EE":3_544_000,"O2":1_831_000,"Sky":553_000,"Three":4_515_000,"Virgin":114_000,"Vodafone":530_000}},
+    "US": {"flag":"🇺🇸","name":"United States",  "carriers":{"AT&T":12_800_000,"Verizon":11_400_000,"T-Mobile":9_700_000,"Boost Mobile":2_100_000,"Cricket":1_900_000,"Metro by T-Mobile":1_700_000,"US Cellular":890_000,"Mint Mobile":640_000}},
+}
+
+for _cc, _d in LEADS.items():
+    if "MIX" not in _d["carriers"]:
+        _biggest = max(_d["carriers"].values())
+        _d["carriers"]["MIX"] = int(_biggest * 1.25)
+
+LEADS_PRICING = [
+    (1_000,   15),  (2_000,  30),  (3_000,   45),  (4_000,  50),
+    (5_000,   60),  (6_000,  65),  (7_000,   70),  (8_000,  80),
+    (10_000, 100),  (15_000,125),  (20_000, 150),  (25_000,175),
+    (30_000, 200),  (50_000,300),  (100_000,600),
+]
 
 AGED_LEADS_PRICING = [(1_000, 70), (5_000, 300), (10_000, 500), (25_000, 1100)]
 CRYPTO_LEADS_PRICING = [(1_000, 200), (5_000, 800), (10_000, 1500), (25_000, 2500)]
@@ -157,102 +223,56 @@ RULES_TEXT = (
     "By continuing, you agree to the rules."
 )
 
-# ── EMBEDDED MASTER COUNTRY DATASETS (Authentic, verified data ONLY) ──────────
+# ── PRESERVED NEW LEADS DATA (WORLD_DATASETS) ─────────────────────────────────
 WORLD_DATASETS = {
-    "AU": {"network": [{"name": "Telstra", "stock": 4200000}, {"name": "Optus", "stock": 3100000}, {"name": "Vodafone Australia", "stock": 1800000}, {"name": "Boost Mobile", "stock": 620000}, {"name": "TPG", "stock": 430000}], "bank": [{"name": "Commonwealth Bank", "stock": 5200000}, {"name": "Westpac", "stock": 2400000}, {"name": "ANZ", "stock": 2100000}, {"name": "NAB", "stock": 1800000}, {"name": "Macquarie", "stock": 1900000}], "business": [{"name": "ASIC Registry", "stock": 3500000}, {"name": "BHP Group", "stock": 1200000}], "crypto": [{"name": "CoinSpot", "stock": 2100000}, {"name": "Swyftx", "stock": 1800000}]},
-    "AT": {"network": [{"name": "A1 Austria", "stock": 1540000}, {"name": "Magenta Telekom", "stock": 890000}, {"name": "Drei Austria", "stock": 760000}, {"name": "Spusu", "stock": 210000}], "bank": [{"name": "Erste Bank", "stock": 1900000}, {"name": "Raiffeisen Bank International", "stock": 2100000}, {"name": "BAWAG PSK", "stock": 950000}], "business": [{"name": "Firmenbuch", "stock": 850000}, {"name": "OMV", "stock": 210000}], "crypto": [{"name": "Bitpanda", "stock": 1400000}, {"name": "Coinfinity", "stock": 350000}]},
-    "BH": {"network": [{"name": "Batelco", "stock": 480000}, {"name": "Zain", "stock": 390000}, {"name": "STC", "stock": 210000}, {"name": "Viva", "stock": 170000}], "bank": [{"name": "National Bank of Bahrain", "stock": 420000}, {"name": "Ahli United Bank", "stock": 450000}], "business": [{"name": "MOIC Registry", "stock": 850000}], "crypto": [{"name": "Rain Crypto", "stock": 250000}, {"name": "CoinMENA", "stock": 180000}]},
-    "BE": {"network": [{"name": "Proximus", "stock": 1920000}, {"name": "Orange", "stock": 1340000}, {"name": "Base", "stock": 980000}], "bank": [{"name": "BNP Paribas Fortis", "stock": 3100000}, {"name": "KBC Bank", "stock": 2400000}], "business": [{"name": "CBE Registry", "stock": 900000}], "crypto": [{"name": "Bitvavo BE", "stock": 750000}]},
-    "BR": {"network": [{"name": "Vivo", "stock": 7800000}, {"name": "Claro", "stock": 6500000}, {"name": "TIM", "stock": 5200000}, {"name": "Oi", "stock": 2100000}], "bank": [{"name": "Itaú Unibanco", "stock": 6800000}, {"name": "Banco do Brasil", "stock": 5400000}], "business": [{"name": "Petrobras", "stock": 1500000}], "crypto": [{"name": "Mercado Bitcoin", "stock": 2900000}]},
-    "BG": {"network": [{"name": "A1", "stock": 1100000}, {"name": "Telenor", "stock": 890000}, {"name": "Vivacom", "stock": 760000}], "bank": [{"name": "DSK Bank", "stock": 1200000}, {"name": "UniCredit Bulbank", "stock": 1100000}], "business": [{"name": "Bulgarian Commercial Register", "stock": 400000}], "crypto": [{"name": "Binance BG", "stock": 350000}]},
-    "CA": {"network": [{"name": "Rogers", "stock": 4100000}, {"name": "Bell", "stock": 3800000}, {"name": "Telus", "stock": 3500000}, {"name": "Fido", "stock": 980000}, {"name": "Koodo", "stock": 760000}], "bank": [{"name": "RBC", "stock": 2800000}, {"name": "TD Bank", "stock": 2500000}], "business": [{"name": "Corporations Canada", "stock": 1800000}], "crypto": [{"name": "Shakepay", "stock": 950000}, {"name": "Newton", "stock": 800000}]},
-    "CY": {"network": [{"name": "Cyta", "stock": 340000}, {"name": "MTN", "stock": 210000}, {"name": "Epic", "stock": 180000}], "bank": [{"name": "Bank of Cyprus", "stock": 950000}], "business": [{"name": "Cyprus Registrar of Companies", "stock": 600000}], "crypto": [{"name": "Binance CY", "stock": 300000}]},
-    "CZ": {"network": [{"name": "T-Mobile", "stock": 2100000}, {"name": "O2", "stock": 1800000}, {"name": "Vodafone", "stock": 1400000}], "bank": [{"name": "Česká spořitelna", "stock": 2400000}, {"name": "Komerční banka", "stock": 2100000}], "business": [{"name": "Czech Commercial Register", "stock": 650000}], "crypto": [{"name": "Anycoin CZ", "stock": 350000}]},
-    "DK": {"network": [{"name": "TDC", "stock": 1540000}, {"name": "Telenor", "stock": 1100000}, {"name": "Telia", "stock": 980000}, {"name": "Tre", "stock": 760000}], "bank": [{"name": "Danske Bank", "stock": 2800000}, {"name": "Jyske Bank", "stock": 1100000}], "business": [{"name": "Danish Business Authority", "stock": 500000}], "crypto": [{"name": "Binance DK", "stock": 600000}]},
-    "EE": {"network": [{"name": "Telia", "stock": 430000}, {"name": "Elisa", "stock": 380000}, {"name": "Tele2", "stock": 290000}], "bank": [{"name": "Swedbank EE", "stock": 950000}, {"name": "SEB Pank", "stock": 850000}], "business": [{"name": "e-Residency Hub", "stock": 1200000}], "crypto": [{"name": "CoinMetro", "stock": 300000}]},
-    "FI": {"network": [{"name": "Elisa", "stock": 1800000}, {"name": "DNA", "stock": 1500000}, {"name": "Telia", "stock": 1200000}], "bank": [{"name": "Nordea FI", "stock": 1900000}, {"name": "OP Financial Group", "stock": 2200000}], "business": [{"name": "Finnish Trade Register", "stock": 500000}], "crypto": [{"name": "Coinmotion", "stock": 350000}]},
-    "FR": {"network": [{"name": "Orange", "stock": 6200000}, {"name": "SFR", "stock": 4800000}, {"name": "Bouygues", "stock": 4100000}, {"name": "Free Mobile", "stock": 3500000}], "bank": [{"name": "BNP Paribas", "stock": 6500000}, {"name": "Crédit Agricole", "stock": 7200000}], "business": [{"name": "LVMH", "stock": 450000}], "crypto": [{"name": "Coinhouse", "stock": 900000}]},
-    "DE": {"network": [{"name": "Telekom", "stock": 8900000}, {"name": "Vodafone", "stock": 7200000}, {"name": "O2", "stock": 5800000}, {"name": "1&1", "stock": 1400000}], "bank": [{"name": "Deutsche Bank", "stock": 7800000}, {"name": "Commerzbank", "stock": 5100000}], "business": [{"name": "Handelsregister", "stock": 3800000}], "crypto": [{"name": "Bison App", "stock": 2100000}]},
-    "GR": {"network": [{"name": "Cosmote", "stock": 2800000}, {"name": "Vodafone", "stock": 1900000}, {"name": "Wind Hellas", "stock": 1400000}, {"name": "Nova", "stock": 680000}], "bank": [{"name": "National Bank of Greece", "stock": 2400000}, {"name": "Piraeus Bank", "stock": 2100000}], "business": [{"name": "General Commercial Registry (GEMI)", "stock": 450000}], "crypto": [{"name": "Binance GR", "stock": 800000}]},
-    "HU": {"network": [{"name": "Telekom", "stock": 2100000}, {"name": "Yettel", "stock": 1400000}, {"name": "Vodafone", "stock": 980000}], "bank": [{"name": "OTP Bank", "stock": 3100000}, {"name": "K&H Bank", "stock": 1500000}], "business": [{"name": "Hungarian Company Registry", "stock": 550000}], "crypto": [{"name": "Binance HU", "stock": 750000}]},
-    "IS": {"network": [{"name": "Siminn", "stock": 180000}, {"name": "Vodafone", "stock": 140000}, {"name": "Nova", "stock": 110000}], "bank": [{"name": "Landsbankinn", "stock": 250000}, {"name": "Arion Bank", "stock": 220000}], "business": [{"name": "Icelandic Enterprise Register", "stock": 90000}], "crypto": [{"name": "Binance IS", "stock": 80000}]},
-    "IE": {"network": [{"name": "Eir", "stock": 833503}, {"name": "Tesco Mobile", "stock": 520700}, {"name": "Three A", "stock": 351645}, {"name": "Three B", "stock": 861444}, {"name": "Vodafone", "stock": 1720550}], "bank": [{"name": "Bank of Ireland", "stock": 1800000}, {"name": "AIB", "stock": 1500000}], "business": [{"name": "Companies Registration Office (CRO)", "stock": 1400000}], "crypto": [{"name": "Coinbase IE", "stock": 700000}]},
-    "IT": {"network": [{"name": "TIM", "stock": 5900000}, {"name": "Vodafone", "stock": 4200000}, {"name": "WindTre", "stock": 5100000}, {"name": "Iliad", "stock": 1800000}, {"name": "PosteMobile", "stock": 890000}], "bank": [{"name": "Intesa Sanpaolo", "stock": 6400000}, {"name": "UniCredit", "stock": 5800000}], "business": [{"name": "Registro Imprese", "stock": 1100000}], "crypto": [{"name": "Young Platform", "stock": 600000}]},
-    "LV": {"network": [{"name": "LMT", "stock": 540000}, {"name": "Tele2", "stock": 430000}, {"name": "Bite", "stock": 320000}], "bank": [{"name": "Swedbank LV", "stock": 850000}, {"name": "SEB Latvia", "stock": 650000}], "business": [{"name": "Register of Enterprises", "stock": 250000}], "crypto": [{"name": "Binance LV", "stock": 250000}]},
-    "LT": {"network": [{"name": "Tele2", "stock": 890000}, {"name": "Bite", "stock": 760000}, {"name": "Telia", "stock": 540000}], "bank": [{"name": "Swedbank LT", "stock": 1100000}, {"name": "SEB Lietuva", "stock": 950000}], "business": [{"name": "Centre of Registers", "stock": 800000}], "crypto": [{"name": "Binance LT", "stock": 450000}]},
-    "MY": {"network": [{"name": "Maxis", "stock": 4200000}, {"name": "Celcom", "stock": 3100000}, {"name": "Digi", "stock": 3800000}, {"name": "U Mobile", "stock": 1400000}, {"name": "Unifi", "stock": 980000}], "bank": [{"name": "Maybank", "stock": 6800000}, {"name": "CIMB Bank", "stock": 5900000}], "business": [{"name": "SSM", "stock": 2100000}], "crypto": [{"name": "Luno MY", "stock": 1900000}]},
-    "MT": {"network": [{"name": "GO", "stock": 180000}, {"name": "Melita", "stock": 140000}, {"name": "Epic", "stock": 110000}], "bank": [{"name": "Bank of Valletta", "stock": 350000}, {"name": "HSBC Malta", "stock": 250000}], "business": [{"name": "Malta Business Registry", "stock": 500000}], "crypto": [{"name": "Binance MT", "stock": 400000}]},
-    "NL": {"network": [{"name": "KPN", "stock": 3200000}, {"name": "VodafoneZiggo", "stock": 2800000}, {"name": "T-Mobile", "stock": 2100000}, {"name": "Tele2", "stock": 890000}], "bank": [{"name": "ING Bank", "stock": 8500000}, {"name": "Rabobank", "stock": 7100000}], "business": [{"name": "KVK", "stock": 2200000}], "crypto": [{"name": "Bitvavo", "stock": 2800000}]},
-    "NZ": {"network": [{"name": "Spark", "stock": 1800000}, {"name": "One NZ", "stock": 1400000}, {"name": "2degrees", "stock": 980000}], "bank": [{"name": "ANZ New Zealand", "stock": 2400000}, {"name": "ASB Bank", "stock": 2100000}], "business": [{"name": "NZ Companies Office", "stock": 600000}], "crypto": [{"name": "Easy Crypto", "stock": 600000}]},
-    "NO": {"network": [{"name": "Telenor", "stock": 2400000}, {"name": "Telia", "stock": 1800000}, {"name": "Ice", "stock": 760000}], "bank": [{"name": "DNB ASA", "stock": 3100000}, {"name": "Nordea Norge", "stock": 1200000}], "business": [{"name": "Brønnøysund Register", "stock": 500000}], "crypto": [{"name": "Firi", "stock": 450000}]},
-    "PL": {"network": [{"name": "Orange", "stock": 4100000}, {"name": "Play", "stock": 3800000}, {"name": "Plus", "stock": 3200000}, {"name": "T-Mobile", "stock": 2900000}], "bank": [{"name": "PKO Bank Polski", "stock": 7500000}, {"name": "Bank Pekao", "stock": 5200000}], "business": [{"name": "KRS", "stock": 1900000}], "crypto": [{"name": "Zonda Crypto", "stock": 900000}]},
-    "PT": {"network": [{"name": "NOS", "stock": 2800000}, {"name": "MEO", "stock": 2400000}, {"name": "Vodafone", "stock": 1900000}], "bank": [{"name": "Caixa Geral de Depósitos", "stock": 2800000}, {"name": "Millennium bcp", "stock": 2400000}], "business": [{"name": "Registo Nacional de Pessoas Coletivas", "stock": 900000}], "crypto": [{"name": "Binance PT", "stock": 1400000}]},
-    "PR": {"network": [{"name": "Claro", "stock": 1100000}, {"name": "Liberty", "stock": 540000}, {"name": "T-Mobile", "stock": 890000}], "bank": [{"name": "Banco Popular", "stock": 1500000}, {"name": "FirstBank", "stock": 1100000}], "business": [{"name": "PR Department of State", "stock": 400000}], "crypto": [{"name": "Coinbase PR", "stock": 500000}]},
-    "QA": {"network": [{"name": "Ooredoo", "stock": 980000}, {"name": "Vodafone Qatar", "stock": 760000}], "bank": [{"name": "Qatar National Bank (QNB)", "stock": 2800000}, {"name": "Doha Bank", "stock": 950000}], "business": [{"name": "Qatar Financial Centre", "stock": 600000}], "crypto": [{"name": "Rain QA", "stock": 550000}]},
-    "RO": {"network": [{"name": "Orange", "stock": 3200000}, {"name": "Vodafone", "stock": 2800000}, {"name": "Digi", "stock": 2100000}, {"name": "Telekom", "stock": 1400000}], "bank": [{"name": "Banca Comercială Română", "stock": 3500000}, {"name": "BRD", "stock": 2800000}], "business": [{"name": "ONRC", "stock": 950000}], "crypto": [{"name": "Binance RO", "stock": 1800000}]},
-    "SG": {"network": [{"name": "Singtel", "stock": 2100000}, {"name": "StarHub", "stock": 1400000}, {"name": "M1", "stock": 980000}, {"name": "TPG", "stock": 320000}], "bank": [{"name": "DBS Bank", "stock": 4800000}, {"name": "OCBC Bank", "stock": 3900000}], "business": [{"name": "ACRA", "stock": 3200000}], "crypto": [{"name": "Coinbase SG", "stock": 1900000}]},
-    "SK": {"network": [{"name": "Slovak Telekom", "stock": 1400000}, {"name": "Orange", "stock": 1100000}, {"name": "O2", "stock": 760000}], "bank": [{"name": "Slovenská sporiteľňa", "stock": 1800000}, {"name": "VÚB Banka", "stock": 1500000}], "business": [{"name": "Business Register of SR", "stock": 400000}], "crypto": [{"name": "Binance SK", "stock": 500000}]},
-    "SI": {"network": [{"name": "A1", "stock": 540000}, {"name": "Telekom SI", "stock": 430000}, {"name": "T-2", "stock": 210000}], "bank": [{"name": "NLB Banka", "stock": 900000}, {"name": "NKBM", "stock": 700000}], "business": [{"name": "AJPES", "stock": 300000}], "crypto": [{"name": "Binance SI", "stock": 350000}]},
-    "ZA": {"network": [{"name": "Vodacom", "stock": 5200000}, {"name": "MTN", "stock": 4800000}, {"name": "Cell C", "stock": 2100000}, {"name": "Telkom", "stock": 1400000}], "bank": [{"name": "Standard Bank", "stock": 6500000}, {"name": "FirstRand (FNB)", "stock": 6900000}], "business": [{"name": "CIPC", "stock": 1800000}], "crypto": [{"name": "Luno", "stock": 2100000}]},
-    "ES": {"network": [{"name": "Movistar", "stock": 7200000}, {"name": "Orange", "stock": 5800000}, {"name": "Vodafone", "stock": 4900000}, {"name": "MásMóvil", "stock": 2100000}, {"name": "Yoigo", "stock": 1400000}], "bank": [{"name": "Banco Santander", "stock": 9500000}, {"name": "BBVA", "stock": 8800000}], "business": [{"name": "Registro Mercantil", "stock": 1800000}], "crypto": [{"name": "Bit2Me", "stock": 1400000}]},
-    "SE": {"network": [{"name": "Telia", "stock": 3200000}, {"name": "Tele2", "stock": 2800000}, {"name": "Tre", "stock": 1900000}, {"name": "Telenor", "stock": 1400000}], "bank": [{"name": "SEB", "stock": 2800000}, {"name": "Swedbank", "stock": 3200000}], "business": [{"name": "Bolagsverket", "stock": 1600000}], "crypto": [{"name": "Safello", "stock": 500000}]},
-    "CH": {"network": [{"name": "Swisscom", "stock": 2800000}, {"name": "Sunrise", "stock": 1900000}, {"name": "Salt", "stock": 980000}], "bank": [{"name": "UBS", "stock": 5200000}, {"name": "Raiffeisen", "stock": 2900000}], "business": [{"name": "Zefix", "stock": 1500000}], "crypto": [{"name": "Bitcoin Suisse", "stock": 800000}]},
-    "TW": {"network": [{"name": "Chunghwa", "stock": 4100000}, {"name": "Taiwan Mobile", "stock": 3200000}, {"name": "FarEasTone", "stock": 2800000}, {"name": "TSTAR", "stock": 1100000}], "bank": [{"name": "CTBC Bank", "stock": 4800000}, {"name": "Cathay United Bank", "stock": 4100000}], "business": [{"name": "Department of Commerce", "stock": 3900000}], "crypto": [{"name": "MaiCoin", "stock": 1100000}]},
-    "TR": {"network": [{"name": "Turkcell", "stock": 6800000}, {"name": "Vodafone", "stock": 4900000}, {"name": "Türk Telekom", "stock": 4200000}], "bank": [{"name": "Garanti BBVA", "stock": 9100000}, {"name": "İş Bankası", "stock": 9800000}], "business": [{"name": "Trade Registry Gazette", "stock": 2400000}], "crypto": [{"name": "BtcTurk", "stock": 3800000}]},
-    "AE": {"network": [{"name": "Etisalat (e&)", "stock": 2400000}, {"name": "du", "stock": 1800000}], "bank": [{"name": "First Abu Dhabi Bank", "stock": 3500000}, {"name": "Emirates NBD", "stock": 4900000}], "business": [{"name": "DED", "stock": 4500000}], "crypto": [{"name": "Binance UAE", "stock": 3100000}]},
-    "UA": {"network": [{"name": "Kyivstar", "stock": 4800000}, {"name": "Vodafone", "stock": 3200000}, {"name": "lifecell", "stock": 2100000}], "bank": [{"name": "PrivatBank", "stock": 14500000}, {"name": "Monobank", "stock": 8900000}], "business": [{"name": "Unified State Register", "stock": 1800000}], "crypto": [{"name": "Kuna Exchange", "stock": 900000}]},
-    "GB": {"network": [{"name": "EE", "stock": 3544000}, {"name": "O2", "stock": 1831000}, {"name": "Vodafone UK", "stock": 1530000}, {"name": "Three UK", "stock": 4515000}, {"name": "VOXI", "stock": 650000}, {"name": "Giffgaff", "stock": 1200000}, {"name": "Tesco Mobile", "stock": 980000}, {"name": "Sky Mobile", "stock": 850000}, {"name": "SMARTY", "stock": 480000}, {"name": "Lebara", "stock": 510000}], "bank": [{"name": "HSBC UK", "stock": 12000000}, {"name": "Barclays", "stock": 11500000}, {"name": "Lloyds Bank", "stock": 14000000}, {"name": "NatWest", "stock": 9800000}, {"name": "Santander UK", "stock": 7200000}, {"name": "Monzo", "stock": 6500000}], "business": [{"name": "Companies House", "stock": 15000000}, {"name": "Tesco Stores", "stock": 1800000}], "crypto": [{"name": "Coinbase UK", "stock": 1500000}, {"name": "Kraken UK", "stock": 1100000}]},
-    "US": {"network": [{"name": "AT&T", "stock": 12800000}, {"name": "Verizon", "stock": 11400000}, {"name": "T-Mobile", "stock": 9700000}, {"name": "Boost Mobile", "stock": 2100000}, {"name": "Cricket", "stock": 1900000}], "bank": [{"name": "JPMorgan Chase", "stock": 45000000}, {"name": "Bank of America", "stock": 38000000}, {"name": "Wells Fargo", "stock": 32000000}, {"name": "Citibank", "stock": 28000000}, {"name": "Capital One", "stock": 21000000}], "business": [{"name": "Delaware Sec of State", "stock": 8500000}, {"name": "California Sec of State", "stock": 12000000}, {"name": "Walmart Inc.", "stock": 15000000}, {"name": "Apple Inc.", "stock": 5500000}], "crypto": [{"name": "Coinbase", "stock": 12500000}, {"name": "Kraken", "stock": 5800000}, {"name": "Gemini", "stock": 3200000}, {"name": "Binance.US", "stock": 4100000}]},
-    "AQ": {"crypto": [], "bank": [], "business": [], "network": [], "nodes": []}
+    "AU": {"bank": [{"name": "Commonwealth Bank", "stock": 5200000}, {"name": "Westpac", "stock": 2400000}, {"name": "ANZ", "stock": 2100000}, {"name": "NAB", "stock": 1800000}, {"name": "Macquarie", "stock": 1900000}], "business": [{"name": "ASIC Registry", "stock": 3500000}, {"name": "BHP Group", "stock": 1200000}], "crypto": [{"name": "CoinSpot", "stock": 2100000}, {"name": "Swyftx", "stock": 1800000}]},
+    "AT": {"bank": [{"name": "Erste Bank", "stock": 1900000}, {"name": "Raiffeisen Bank International", "stock": 2100000}, {"name": "BAWAG PSK", "stock": 950000}], "business": [{"name": "Firmenbuch", "stock": 850000}, {"name": "OMV", "stock": 210000}], "crypto": [{"name": "Bitpanda", "stock": 1400000}, {"name": "Coinfinity", "stock": 350000}]},
+    "BH": {"bank": [{"name": "National Bank of Bahrain", "stock": 420000}, {"name": "Ahli United Bank", "stock": 450000}], "business": [{"name": "MOIC Registry", "stock": 850000}], "crypto": [{"name": "Rain Crypto", "stock": 250000}, {"name": "CoinMENA", "stock": 180000}]},
+    "BE": {"bank": [{"name": "BNP Paribas Fortis", "stock": 3100000}, {"name": "KBC Bank", "stock": 2400000}], "business": [{"name": "CBE Registry", "stock": 900000}], "crypto": [{"name": "Bitvavo BE", "stock": 750000}]},
+    "BR": {"bank": [{"name": "Itaú Unibanco", "stock": 6800000}, {"name": "Banco do Brasil", "stock": 5400000}], "business": [{"name": "Petrobras", "stock": 1500000}], "crypto": [{"name": "Mercado Bitcoin", "stock": 2900000}]},
+    "BG": {"bank": [{"name": "DSK Bank", "stock": 1200000}, {"name": "UniCredit Bulbank", "stock": 1100000}], "business": [{"name": "Bulgarian Commercial Register", "stock": 400000}], "crypto": [{"name": "Binance BG", "stock": 350000}]},
+    "CA": {"bank": [{"name": "RBC", "stock": 2800000}, {"name": "TD Bank", "stock": 2500000}], "business": [{"name": "Corporations Canada", "stock": 1800000}], "crypto": [{"name": "Shakepay", "stock": 950000}, {"name": "Newton", "stock": 800000}]},
+    "CY": {"bank": [{"name": "Bank of Cyprus", "stock": 950000}], "business": [{"name": "Cyprus Registrar of Companies", "stock": 600000}], "crypto": [{"name": "Binance CY", "stock": 300000}]},
+    "CZ": {"bank": [{"name": "Česká spořitelna", "stock": 2400000}, {"name": "Komerční banka", "stock": 2100000}], "business": [{"name": "Czech Commercial Register", "stock": 650000}], "crypto": [{"name": "Anycoin CZ", "stock": 350000}]},
+    "DK": {"bank": [{"name": "Danske Bank", "stock": 2800000}, {"name": "Jyske Bank", "stock": 1100000}], "business": [{"name": "Danish Business Authority", "stock": 500000}], "crypto": [{"name": "Binance DK", "stock": 600000}]},
+    "EE": {"bank": [{"name": "Swedbank EE", "stock": 950000}, {"name": "SEB Pank", "stock": 850000}], "business": [{"name": "e-Residency Hub", "stock": 1200000}], "crypto": [{"name": "CoinMetro", "stock": 300000}]},
+    "FI": {"bank": [{"name": "Nordea FI", "stock": 1900000}, {"name": "OP Financial Group", "stock": 2200000}], "business": [{"name": "Finnish Trade Register", "stock": 500000}], "crypto": [{"name": "Coinmotion", "stock": 350000}]},
+    "FR": {"bank": [{"name": "BNP Paribas", "stock": 6500000}, {"name": "Crédit Agricole", "stock": 7200000}], "business": [{"name": "LVMH", "stock": 450000}], "crypto": [{"name": "Coinhouse", "stock": 900000}]},
+    "DE": {"bank": [{"name": "Deutsche Bank", "stock": 7800000}, {"name": "Commerzbank", "stock": 5100000}], "business": [{"name": "Handelsregister", "stock": 3800000}], "crypto": [{"name": "Bison App", "stock": 2100000}]},
+    "GR": {"bank": [{"name": "National Bank of Greece", "stock": 2400000}, {"name": "Piraeus Bank", "stock": 2100000}], "business": [{"name": "General Commercial Registry", "stock": 450000}], "crypto": [{"name": "Binance GR", "stock": 800000}]},
+    "HU": {"bank": [{"name": "OTP Bank", "stock": 3100000}, {"name": "K&H Bank", "stock": 1500000}], "business": [{"name": "Hungarian Company Registry", "stock": 550000}], "crypto": [{"name": "Binance HU", "stock": 750000}]},
+    "IS": {"bank": [{"name": "Landsbankinn", "stock": 250000}, {"name": "Arion Bank", "stock": 220000}], "business": [{"name": "Icelandic Enterprise Register", "stock": 90000}], "crypto": [{"name": "Binance IS", "stock": 80000}]},
+    "IE": {"bank": [{"name": "Bank of Ireland", "stock": 1800000}, {"name": "AIB", "stock": 1500000}], "business": [{"name": "Companies Registration Office (CRO)", "stock": 1400000}], "crypto": [{"name": "Coinbase IE", "stock": 700000}]},
+    "IT": {"bank": [{"name": "Intesa Sanpaolo", "stock": 6400000}, {"name": "UniCredit", "stock": 5800000}], "business": [{"name": "Registro Imprese", "stock": 1100000}], "crypto": [{"name": "Young Platform", "stock": 600000}]},
+    "LV": {"bank": [{"name": "Swedbank LV", "stock": 850000}, {"name": "SEB Latvia", "stock": 650000}], "business": [{"name": "Register of Enterprises", "stock": 250000}], "crypto": [{"name": "Binance LV", "stock": 250000}]},
+    "LT": {"bank": [{"name": "Swedbank LT", "stock": 1100000}, {"name": "SEB Lietuva", "stock": 950000}], "business": [{"name": "Centre of Registers", "stock": 800000}], "crypto": [{"name": "Binance LT", "stock": 450000}]},
+    "MY": {"bank": [{"name": "Maybank", "stock": 6800000}, {"name": "CIMB Bank", "stock": 5900000}], "business": [{"name": "SSM", "stock": 2100000}], "crypto": [{"name": "Luno MY", "stock": 1900000}]},
+    "MT": {"bank": [{"name": "Bank of Valletta", "stock": 350000}, {"name": "HSBC Malta", "stock": 250000}], "business": [{"name": "Malta Business Registry", "stock": 500000}], "crypto": [{"name": "Binance MT", "stock": 400000}]},
+    "NL": {"bank": [{"name": "ING Bank", "stock": 8500000}, {"name": "Rabobank", "stock": 7100000}], "business": [{"name": "KVK", "stock": 2200000}], "crypto": [{"name": "Bitvavo", "stock": 2800000}]},
+    "NZ": {"bank": [{"name": "ANZ New Zealand", "stock": 2400000}, {"name": "ASB Bank", "stock": 2100000}], "business": [{"name": "NZ Companies Office", "stock": 600000}], "crypto": [{"name": "Easy Crypto", "stock": 600000}]},
+    "NO": {"bank": [{"name": "DNB ASA", "stock": 3100000}, {"name": "Nordea Norge", "stock": 1200000}], "business": [{"name": "Brønnøysund Register", "stock": 500000}], "crypto": [{"name": "Firi", "stock": 450000}]},
+    "PL": {"bank": [{"name": "PKO Bank Polski", "stock": 7500000}, {"name": "Bank Pekao", "stock": 5200000}], "business": [{"name": "KRS", "stock": 1900000}], "crypto": [{"name": "Zonda Crypto", "stock": 900000}]},
+    "PT": {"bank": [{"name": "Caixa Geral de Depósitos", "stock": 2800000}, {"name": "Millennium bcp", "stock": 2400000}], "business": [{"name": "Registo Nacional de Pessoas Coletivas", "stock": 900000}], "crypto": [{"name": "Binance PT", "stock": 1400000}]},
+    "PR": {"bank": [{"name": "Banco Popular", "stock": 1500000}, {"name": "FirstBank", "stock": 1100000}], "business": [{"name": "PR Department of State", "stock": 400000}], "crypto": [{"name": "Coinbase PR", "stock": 500000}]},
+    "QA": {"bank": [{"name": "Qatar National Bank (QNB)", "stock": 2800000}, {"name": "Doha Bank", "stock": 950000}], "business": [{"name": "Qatar Financial Centre", "stock": 600000}], "crypto": [{"name": "Rain QA", "stock": 550000}]},
+    "RO": {"bank": [{"name": "Banca Comercială Română", "stock": 3500000}, {"name": "BRD", "stock": 2800000}], "business": [{"name": "ONRC", "stock": 950000}], "crypto": [{"name": "Binance RO", "stock": 1800000}]},
+    "SG": {"bank": [{"name": "DBS Bank", "stock": 4800000}, {"name": "OCBC Bank", "stock": 3900000}], "business": [{"name": "ACRA", "stock": 3200000}], "crypto": [{"name": "Coinbase SG", "stock": 1900000}]},
+    "SK": {"bank": [{"name": "Slovenská sporiteľňa", "stock": 1800000}, {"name": "VÚB Banka", "stock": 1500000}], "business": [{"name": "Business Register of SR", "stock": 400000}], "crypto": [{"name": "Binance SK", "stock": 500000}]},
+    "SI": {"bank": [{"name": "NLB Banka", "stock": 900000}, {"name": "NKBM", "stock": 700000}], "business": [{"name": "AJPES", "stock": 300000}], "crypto": [{"name": "Binance SI", "stock": 350000}]},
+    "ZA": {"bank": [{"name": "Standard Bank", "stock": 6500000}, {"name": "FirstRand (FNB)", "stock": 6900000}], "business": [{"name": "CIPC", "stock": 1800000}], "crypto": [{"name": "Luno", "stock": 2100000}]},
+    "ES": {"bank": [{"name": "Banco Santander", "stock": 9500000}, {"name": "BBVA", "stock": 8800000}], "business": [{"name": "Registro Mercantil", "stock": 1800000}], "crypto": [{"name": "Bit2Me", "stock": 1400000}]},
+    "SE": {"bank": [{"name": "SEB", "stock": 2800000}, {"name": "Swedbank", "stock": 3200000}], "business": [{"name": "Bolagsverket", "stock": 1600000}], "crypto": [{"name": "Safello", "stock": 500000}]},
+    "CH": {"bank": [{"name": "UBS", "stock": 5200000}, {"name": "Raiffeisen", "stock": 2900000}], "business": [{"name": "Zefix", "stock": 1500000}], "crypto": [{"name": "Bitcoin Suisse", "stock": 800000}]},
+    "TW": {"bank": [{"name": "CTBC Bank", "stock": 4800000}, {"name": "Cathay United Bank", "stock": 4100000}], "business": [{"name": "Department of Commerce", "stock": 3900000}], "crypto": [{"name": "MaiCoin", "stock": 1100000}]},
+    "TR": {"bank": [{"name": "Garanti BBVA", "stock": 9100000}, {"name": "İş Bankası", "stock": 9800000}], "business": [{"name": "Trade Registry Gazette", "stock": 2400000}], "crypto": [{"name": "BtcTurk", "stock": 3800000}]},
+    "AE": {"bank": [{"name": "First Abu Dhabi Bank", "stock": 3500000}, {"name": "Emirates NBD", "stock": 4900000}], "business": [{"name": "DED", "stock": 4500000}], "crypto": [{"name": "Binance UAE", "stock": 3100000}]},
+    "UA": {"bank": [{"name": "PrivatBank", "stock": 14500000}, {"name": "Monobank", "stock": 8900000}], "business": [{"name": "Unified State Register", "stock": 1800000}], "crypto": [{"name": "Kuna Exchange", "stock": 900000}]},
+    "GB": {"bank": [{"name": "HSBC UK", "stock": 12000000}, {"name": "Barclays", "stock": 11500000}, {"name": "Lloyds Bank", "stock": 14000000}, {"name": "NatWest", "stock": 9800000}, {"name": "Santander UK", "stock": 7200000}, {"name": "Monzo", "stock": 6500000}], "business": [{"name": "Companies House", "stock": 15000000}, {"name": "Tesco Stores", "stock": 1800000}], "crypto": [{"name": "Coinbase UK", "stock": 1500000}, {"name": "Kraken UK", "stock": 1100000}]},
+    "US": {"bank": [{"name": "JPMorgan Chase", "stock": 45000000}, {"name": "Bank of America", "stock": 38000000}, {"name": "Wells Fargo", "stock": 32000000}, {"name": "Citibank", "stock": 28000000}, {"name": "Capital One", "stock": 21000000}], "business": [{"name": "Delaware Sec of State", "stock": 8500000}, {"name": "California Sec of State", "stock": 12000000}, {"name": "Walmart Inc.", "stock": 15000000}, {"name": "Apple Inc.", "stock": 5500000}], "crypto": [{"name": "Coinbase", "stock": 12500000}, {"name": "Kraken", "stock": 5800000}, {"name": "Gemini", "stock": 3200000}, {"name": "Binance.US", "stock": 4100000}]}
 }
 
-COUNTRY_ALIASES = {
-    "UK": "GB",
-    "USA": "US",
-    "NIGERIA": "NG",
-    "AUSTRALIA": "AU",
-    "AUSTRIA": "AT",
-    "BANGLADESH": "BD",
-    "GERMANY": "DE",
-    "INDIA": "IN",
-    "JAPAN": "JP",
-    "CHINA": "CN",
-    "BAHRAIN": "BH",
-    "BRAZIL": "BR",
-    "SOUTH AFRICA": "ZA",
-    "ARGENTINA": "AR"
-}
-
-# Construct the custom sorted country list (UK, US, AU pinned to top)
-ALL_COUNTRIES = []
-for code in ["GB", "US", "AU"]:
-    country = pycountry.countries.get(alpha_2=code)
-    if country: ALL_COUNTRIES.append(country)
-
-for country in sorted(list(pycountry.countries), key=lambda x: x.name):
-    if country.alpha_2 not in ["GB", "US", "AU"]:
-        ALL_COUNTRIES.append(country)
-
-def resolve_iso2(code_or_alias: str) -> str:
-    cleaned = code_or_alias.upper().strip()
-    return COUNTRY_ALIASES.get(cleaned, cleaned)
-
-def get_country_flag(country_alpha_2: str) -> str:
-    iso2 = resolve_iso2(country_alpha_2)
-    try:
-        return chr(ord(iso2[0]) + 127397) + chr(ord(iso2[1]) + 127397)
-    except Exception:
-        return "🌐"
-
-def get_country_file_path(iso2: str, category: str) -> str:
-    folder = os.path.join(COUNTRIES_DIR, iso2.lower())
-    os.makedirs(folder, exist_ok=True)
-    return os.path.join(folder, f"{category}.json")
-
-# ── Background Data Synchronisation Engine ────────────────────────────────────
-
+# ── Dynamic Fetchers & Auto-Sync Engine ───────────────────────────────────────
 async def fetch_external_crypto(country_name: str) -> list:
-    """Fallback Tier 3: Queries CoinGecko API for real exchanges if local datasets are empty."""
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get("https://api.coingecko.com/api/v3/exchanges", timeout=10) as resp:
@@ -264,12 +284,10 @@ async def fetch_external_crypto(country_name: str) -> list:
                         if c and country_name.lower() in c.lower():
                             results.append({"name": ex["name"], "stock": 450000})
                     return results
-    except Exception:
-        pass
+    except Exception: pass
     return []
 
 async def fetch_external_network(iso2: str, country_name: str) -> list:
-    """Fallback Tier 3: Queries Open-Source MCC-MNC Database for mobile operators."""
     try:
         url = "https://raw.githubusercontent.com/pbakondy/mcc-mnc-list/master/mcc-mnc-list.json"
         async with aiohttp.ClientSession() as session:
@@ -282,110 +300,95 @@ async def fetch_external_network(iso2: str, country_name: str) -> list:
                             brand = entry.get("brand") or entry.get("operator")
                             if brand: networks.add(brand)
                     return [{"name": net, "stock": 150000} for net in networks]
-    except Exception:
-        pass
+    except Exception: pass
     return []
 
 async def auto_sync_datasets():
-    """Continuously refreshes cached datasets from verified external APIs."""
     while True:
         try:
             logger.info("Executing background data sync...")
-            for iso2 in ["GB", "US", "AU", "DE", "FR", "JP", "IN", "BR", "ZA"]:
-                c_name = pycountry.countries.get(alpha_2=iso2).name
+            for iso2 in LEADS.keys():
+                c_name = LEADS[iso2]["name"]
                 crypto_data = await fetch_external_crypto(c_name)
                 if crypto_data: cached_external_apis["crypto"][iso2] = crypto_data
                 
                 net_data = await fetch_external_network(iso2, c_name)
                 if net_data: cached_external_apis["network"][iso2] = net_data
                 
-                await asyncio.sleep(2) # rate limit protection
-            await asyncio.sleep(43200) # Sync every 12 hours
-        except asyncio.CancelledError:
-            break
+                await asyncio.sleep(2)
+            await asyncio.sleep(43200)
+        except asyncio.CancelledError: break
         except Exception as e:
             logger.error(f"Sync error: {e}")
             await asyncio.sleep(3600)
 
-async def fetch_dynamic_vertical(country_code: str, vertical: str) -> list:
+def get_country_file_path(iso2: str, category: str) -> str:
+    folder = os.path.join(COUNTRIES_DIR, iso2.lower())
+    os.makedirs(folder, exist_ok=True)
+    return os.path.join(folder, f"{category}.json")
+
+async def fetch_dynamic_vertical(iso2: str, vertical: str) -> list:
     """
-    STRICT 5-Tier Data Engine:
+    Cascading 5-Tier Data Engine:
     1. Local Cached JSON file (from prior scrapes or admin sets)
     2. Embedded Authentic Database (WORLD_DATASETS)
-    3. Cached External Auto-Sync Results
-    4. Live External Dynamic Sync (CoinGecko, MCC-MNC)
-    5. Strict Fallback -> Empty (No Data Available)
+    3. Original LEADS Old File mapping (For Networks specifically to satisfy preserving data)
+    4. Cached External Auto-Sync Results
+    5. Live External Dynamic Sync (CoinGecko, MCC-MNC)
+    Returns [] if absolutely nothing is found. No fakes.
     """
-    iso2 = resolve_iso2(country_code)
-    country_obj = pycountry.countries.get(alpha_2=iso2)
-    c_name = country_obj.name if country_obj else iso2
-
-    # Tier 1: Local JSON Dataset files
     path = get_country_file_path(iso2, vertical)
     if os.path.exists(path):
         try:
             with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                if isinstance(data, list) and len(data) > 0:
-                    return data
+                if isinstance(data, list) and len(data) > 0: return data
         except Exception: pass
 
-    # Tier 2: Primary Embedded Verified Database
     if iso2 in WORLD_DATASETS and vertical in WORLD_DATASETS[iso2]:
         if WORLD_DATASETS[iso2][vertical]:
             return WORLD_DATASETS[iso2][vertical]
 
-    # Tier 3: Memory Cached External Data
+    if vertical == "network" and iso2 in LEADS and "carriers" in LEADS[iso2]:
+        return [{"name": name, "stock": stock} for name, stock in LEADS[iso2]["carriers"].items()]
+
     if iso2 in cached_external_apis.get(vertical, {}):
         return cached_external_apis[vertical][iso2]
 
-    # Tier 4: Live External API Scrubbing
+    c_name = LEADS[iso2]["name"] if iso2 in LEADS else iso2
     fetched_items = []
-    if vertical == "crypto":
-        fetched_items = await fetch_external_crypto(c_name)
-    elif vertical == "network":
-        fetched_items = await fetch_external_network(iso2, c_name)
+    if vertical == "crypto": fetched_items = await fetch_external_crypto(c_name)
+    elif vertical == "network": fetched_items = await fetch_external_network(iso2, c_name)
     
     if fetched_items:
-        # Cache results locally so we don't spam APIs
         try:
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(fetched_items, f, indent=4)
         except Exception: pass
         return fetched_items
 
-    # Tier 5: Exhausted all sources -> Return Empty to trigger 'No Data Available'. NO FAKES.
     return []
 
-# ── Dynamic Pricing Managers ──────────────────────────────────────────────────
-def get_leads_pricing(category: str):
-    """Returns the custom pricing for the requested category, sorted."""
-    pricing_dict = DYNAMIC_LEADS_PRICING.get(category, DYNAMIC_LEADS_PRICING["network"])
-    return sorted([(int(k), float(v)) for k, v in pricing_dict.items()], key=lambda x: x[0])
-
-# ── Advanced Activity Logger ──────────────────────────────────────────────────
+# ── Admin Activity Logging ────────────────────────────────────────────────────
 async def log_activity(user, action_type: str, details: str = ""):
-    """Logs all user activity to a searchable JSONL file."""
     now = datetime.now()
     user_last_active[user.id] = now.isoformat()
-    
     log_entry = {
-        "timestamp": now.isoformat(),
-        "user_id": user.id,
-        "username": user.username,
-        "first_name": user.first_name,
-        "last_name": user.last_name,
-        "action": action_type,
-        "details": details
+        "timestamp": now.isoformat(), "user_id": user.id, "username": user.username,
+        "first_name": user.first_name, "last_name": user.last_name,
+        "action": action_type, "details": details
     }
-    
     try:
         with open(LOGS_FILE, "a", encoding="utf-8") as f:
             f.write(json.dumps(log_entry) + "\n")
-    except Exception as e:
-        logger.error(f"Failed to write admin log: {e}")
+    except Exception as e: logger.error(f"Failed to write admin log: {e}")
 
-# ── General Data Operations ───────────────────────────────────────────────────
+# ── Dynamic Pricing Configuration ─────────────────────────────────────────────
+def get_leads_pricing(category: str):
+    pricing_dict = DYNAMIC_LEADS_PRICING.get(category, DYNAMIC_LEADS_PRICING["network"])
+    return sorted([(int(k), float(v)) for k, v in pricing_dict.items()], key=lambda x: x[0])
+
+# ── Persistence (save/load data) ──────────────────────────────────────────────
 def calculate_dynamic_stock():
     total = 0
     for vid, vdata in STORE.items():
@@ -403,39 +406,27 @@ def save_data():
             "channel_verified":list(channel_verified),
             "live_stock":      live_stock,
             "STORE":           STORE,
-            "DYNAMIC_LEADS_PRICING": DYNAMIC_LEADS_PRICING,
-            "DYNAMIC_SCANNER_ITEMS": DYNAMIC_SCANNER_ITEMS,
-            "DYNAMIC_SCANNER_QTYS": DYNAMIC_SCANNER_QTYS
+            "DYNAMIC_LEADS_PRICING": DYNAMIC_LEADS_PRICING
         }
         tmp = DATA_FILE + ".tmp"
-        with open(tmp, "w") as f:
-            json.dump(data, f)
+        with open(tmp, "w") as f: json.dump(data, f)
         os.replace(tmp, DATA_FILE)
-    except Exception as e:
-        logger.error(f"save_data failed: {e}")
+    except Exception as e: logger.error(f"save_data failed: {e}")
 
 def load_data():
-    global user_balances, agreed_users, user_join_dates, channel_verified, live_stock, STORE
-    global DYNAMIC_LEADS_PRICING, DYNAMIC_SCANNER_ITEMS, DYNAMIC_SCANNER_QTYS
-    if not os.path.exists(DATA_FILE):
-        return
+    global user_balances, agreed_users, user_join_dates, channel_verified, live_stock, STORE, DYNAMIC_LEADS_PRICING
+    if not os.path.exists(DATA_FILE): return
     try:
-        with open(DATA_FILE) as f:
-            data = json.load(f)
+        with open(DATA_FILE) as f: data = json.load(f)
         user_balances    = {int(k): v for k, v in data.get("user_balances", {}).items()}
         agreed_users     = set(data.get("agreed_users", []))
         user_join_dates  = {int(k): v for k, v in data.get("user_join_dates", {}).items()}
         channel_verified = set(data.get("channel_verified", []))
         live_stock.update(data.get("live_stock", {}))
-        
         if data.get("DYNAMIC_LEADS_PRICING"): DYNAMIC_LEADS_PRICING = data["DYNAMIC_LEADS_PRICING"]
-        if data.get("DYNAMIC_SCANNER_ITEMS"): DYNAMIC_SCANNER_ITEMS = data["DYNAMIC_SCANNER_ITEMS"]
-        if data.get("DYNAMIC_SCANNER_QTYS"): DYNAMIC_SCANNER_QTYS = data["DYNAMIC_SCANNER_QTYS"]
-        
         if data.get("STORE"):
             STORE.clear(); STORE.update(data["STORE"])
-    except Exception as e:
-        logger.error(f"load_data failed: {e}")
+    except Exception as e: logger.error(f"load_data failed: {e}")
 
 async def log(app, text: str):
     if not LOG_CHANNEL_ID: return
@@ -468,52 +459,65 @@ async def get_crypto_prices():
                 return {"BTC": d["bitcoin"]["gbp"], "SOL": d["solana"]["gbp"], "LTC": d["litecoin"]["gbp"]}
     except Exception: return None
 
-# ── Keyboards & Navigation Controls ──────────────────────────────────────────
+# ── Old Scanner Keyboards ─────────────────────────────────────────────────────
 
-def main_menu_keyboard():
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton("🌍 Leads Directory",  callback_data="leads"),
-         InlineKeyboardButton("🛍️ Store",            callback_data="store")],
-        [InlineKeyboardButton("💰 Wallet",           callback_data="wallet"),
-         InlineKeyboardButton("🔍 Scanner",          callback_data="scanner")],
-        [InlineKeyboardButton("🎯 Targeted Source",  callback_data="tsource")],
-    ])
+def scanner_items_for_cat(cat):
+    if cat == "all": return list(enumerate(SCANNER_ITEMS))
+    return [(i, item) for i, item in enumerate(SCANNER_ITEMS) if item[1] == cat]
 
-def main_menu_text():
-    return (
-        "🏪 *Main Menu*\n\n"
-        "*Live Inventory*\n"
-        f"🌍 Global Directory: *195+ Countries Active*\n"
-        f"⚡️ Live System Stock: *{live_stock['leads']:,}*\n"
-        f"🛍️ Store Stock: *{calculate_dynamic_stock():,}*\n\n"
-        "_Choose a section below:_"
-    )
+def scanner_keyboard(cat="all", page=0):
+    items      = scanner_items_for_cat(cat)
+    total_pages = max(1, (len(items) + SCANNER_PER_PAGE - 1) // SCANNER_PER_PAGE)
+    page_items  = items[page * SCANNER_PER_PAGE : (page + 1) * SCANNER_PER_PAGE]
 
-def a_z_country_keyboard(page: int = 0, filtered_list: list = None):
-    source_list = filtered_list if filtered_list is not None else ALL_COUNTRIES
-    total_pages = max(1, (len(source_list) + COUNTRIES_PER_PAGE - 1) // COUNTRIES_PER_PAGE)
-    page = max(0, min(page, total_pages - 1))
-    
-    page_items = source_list[page * COUNTRIES_PER_PAGE : (page + 1) * COUNTRIES_PER_PAGE]
     rows = []
-    
-    rows.append([InlineKeyboardButton("🔍 Search Countries", callback_data="c_search_prompt")])
-    
-    for i in range(0, len(page_items), 2):
-        row = []
-        for c in page_items[i:i+2]:
-            flag = get_country_flag(c.alpha_2)
-            name = c.name if len(c.name) <= 18 else c.name[:16] + ".."
-            row.append(InlineKeyboardButton(f"{flag} {name}", callback_data=f"c_dash|{c.alpha_2}"))
-        rows.append(row)
-        
+    tab_row = []
+    for key, label in SCAN_CATS.items():
+        display = f"› {label}" if key == cat else label
+        tab_row.append(InlineKeyboardButton(display, callback_data=f"scan|{key}|0"))
+    rows.append(tab_row)
+
+    for idx, (label, category, price) in page_items:
+        price_fmt = f"${price:.2f}" if price != int(price) else f"${int(price):.2f}"
+        rows.append([InlineKeyboardButton(f"{label} — {price_fmt} / k", callback_data=f"sni|{idx}")])
+
     nav = []
-    cb_prefix = "az_search_list" if filtered_list is not None else "az_list"
-    if page > 0: nav.append(InlineKeyboardButton("◀️ Prev", callback_data=f"{cb_prefix}|{page-1}"))
-    if page < total_pages - 1: nav.append(InlineKeyboardButton("Next ▶️", callback_data=f"{cb_prefix}|{page+1}"))
+    if page > 0: nav.append(InlineKeyboardButton("← Prev", callback_data=f"scan|{cat}|{page-1}"))
+    if page < total_pages - 1: nav.append(InlineKeyboardButton("Next →", callback_data=f"scan|{cat}|{page+1}"))
     if nav: rows.append(nav)
-    
-    rows.append([InlineKeyboardButton("⬅️ Back to Main", callback_data="back")])
+
+    rows.append([InlineKeyboardButton("⬅️ Back", callback_data="back")])
+    return InlineKeyboardMarkup(rows)
+
+def scanner_qty_keyboard(idx, cat="all", page=0):
+    label, category, price = SCANNER_ITEMS[idx]
+    rows = []
+    for i in range(0, len(SCANNER_QTYS), 2):
+        row = []
+        for qty_k in SCANNER_QTYS[i:i+2]:
+            total = qty_k * price
+            row.append(InlineKeyboardButton(f"{qty_k}k — £{total:.2f}", callback_data=f"snq|{idx}|{qty_k}"))
+        rows.append(row)
+    rows.append([InlineKeyboardButton("⬅️ Back", callback_data=f"scan|{cat}|{page}")])
+    return InlineKeyboardMarkup(rows)
+
+# ── Leads Keyboards ───────────────────────────────────────────────────────────
+
+def leads_pricing_text():
+    lines = ["📊 *Pricing*"]
+    for qty, price in LEADS_PRICING:
+        k = qty // 1000
+        lines.append(f"{k}k — £{price}")
+    return "\n".join(lines)
+
+def country_keyboard():
+    # This exclusively builds from the LEADS dictionary provided in the old source.
+    countries = sorted(LEADS.items(), key=lambda x: x[1]["name"])
+    rows = []
+    for i in range(0, len(countries), 2):
+        row = [InlineKeyboardButton(f"{d['flag']} {d['name']}", callback_data=f"c_dash|{cc}") for cc, d in countries[i:i+2]]
+        rows.append(row)
+    rows.append([InlineKeyboardButton("⬅️ Back", callback_data="back")])
     return InlineKeyboardMarkup(rows)
 
 def country_vertical_keyboard(iso2: str):
@@ -567,8 +571,6 @@ def dynamic_qty_keyboard(iso2: str, vertical: str, item_name: str):
         rows.append(row)
     rows.append([InlineKeyboardButton("⬅️ Back", callback_data=f"c_vert|{iso2}|{vertical}")])
     return InlineKeyboardMarkup(rows)
-
-# ── Old Static Keyboards (Untouched) ──────────────────────────────────────────
 
 def wallet_profile_text(uid):
     return (
@@ -630,36 +632,6 @@ def bin_list_keyboard(vid, bkey, page=0):
 def deads_keyboard():
     rows = [[InlineKeyboardButton(f"{l} — £{p:,}", callback_data=f"dbuy|{k}")] for l, p, k in DEADS_ITEMS]
     rows.append([InlineKeyboardButton("⬅️ Back", callback_data="store")])
-    return InlineKeyboardMarkup(rows)
-
-def scanner_items_for_cat(cat):
-    if cat == "all": return list(enumerate(DYNAMIC_SCANNER_ITEMS))
-    return [(i, item) for i, item in enumerate(DYNAMIC_SCANNER_ITEMS) if item["category"] == cat]
-
-def scanner_keyboard(cat="all", page=0):
-    items      = scanner_items_for_cat(cat)
-    total_pages = max(1, (len(items) + SCANNER_PER_PAGE - 1) // SCANNER_PER_PAGE)
-    page_items  = items[page * SCANNER_PER_PAGE : (page + 1) * SCANNER_PER_PAGE]
-    rows = []
-    tab_row = [InlineKeyboardButton(f"› {label}" if key == cat else label, callback_data=f"scan|{key}|0") for key, label in {"all":"All","socials":"Socials","crypto":"Crypto","shopping":"Shop","carrier":"Carrier"}.items()]
-    rows.append(tab_row)
-    for idx, item in page_items:
-        price_fmt = f"${item['price']:.2f}" if item['price'] != int(item['price']) else f"${int(item['price']):.2f}"
-        rows.append([InlineKeyboardButton(f"{item['label']} — {price_fmt} / k", callback_data=f"sni|{idx}")])
-    nav = []
-    if page > 0: nav.append(InlineKeyboardButton("← Prev", callback_data=f"scan|{cat}|{page-1}"))
-    if page < total_pages - 1: nav.append(InlineKeyboardButton("Next →", callback_data=f"scan|{cat}|{page+1}"))
-    if nav: rows.append(nav)
-    rows.append([InlineKeyboardButton("⬅️ Back", callback_data="back")])
-    return InlineKeyboardMarkup(rows)
-
-def scanner_qty_keyboard(idx, cat="all", page=0):
-    item = DYNAMIC_SCANNER_ITEMS[idx]
-    rows = []
-    for i in range(0, len(DYNAMIC_SCANNER_QTYS), 2):
-        row = [InlineKeyboardButton(f"{qty_k}k — £{qty_k * item['price']:.2f}", callback_data=f"snq|{idx}|{qty_k}") for qty_k in DYNAMIC_SCANNER_QTYS[i:i+2]]
-        rows.append(row)
-    rows.append([InlineKeyboardButton("⬅️ Back", callback_data=f"scan|{cat}|{page}")])
     return InlineKeyboardMarkup(rows)
 
 def tsource_main_keyboard():
@@ -769,53 +741,21 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(main_menu_text(), reply_markup=main_menu_keyboard(), parse_mode="Markdown")
         return
 
-    for _k in ("awaiting_custom", "awaiting_bin_search", "awaiting_qty", "awaiting_search", "awaiting_country_search"):
+    for _k in ("awaiting_custom", "awaiting_bin_search", "awaiting_qty", "awaiting_search"):
         context.user_data.pop(_k, None)
 
-    # ── Universal A–Z Country Directory & Navigation ─────────────────────────
+    # ── Universal Leads Directory Routing ────────────────────────────────────
     if data == "leads":
-        context.user_data["current_country_list"] = None
         await log_activity(update.effective_user, "Navigation", "Opened Leads Directory")
-        await query.edit_message_text("🌍 *A–Z Sovereign Country Directory*\n_Page 1_\nSelect a nation:", reply_markup=a_z_country_keyboard(0), parse_mode="Markdown")
-        return
-
-    if data == "c_search_prompt":
-        context.user_data["awaiting_country_search"] = True
-        prompt_text = (
-            "🌍 *Search Countries*\n\n"
-            "Enter any country name to search.\n\n"
-            "*Examples:*\n"
-            "• AUSTRALIA\n"
-            "• UNITED KINGDOM\n"
-            "• UNITED STATES\n"
-            "• SOUTH AFRICA\n"
-            "• BANGLADESH\n"
-            "• BRAZIL\n"
-        )
-        await query.edit_message_text(
-            prompt_text, 
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Cancel", callback_data="leads")]]), 
-            parse_mode="Markdown"
-        )
-        return
-
-    if data.startswith("az_list|"):
-        page = int(data.split("|")[1])
-        context.user_data["current_country_list"] = None
-        await query.edit_message_text(f"🌍 *A–Z Sovereign Country Directory*\n_Page {page+1}_\nSelect a nation:", reply_markup=a_z_country_keyboard(page), parse_mode="Markdown")
-        return
-
-    if data.startswith("az_search_list|"):
-        page = int(data.split("|")[1])
-        filtered = context.user_data.get("current_country_list", ALL_COUNTRIES)
-        await query.edit_message_text(f"🔍 *Country Search Results*\n_Page {page+1}_\nSelect a nation:", reply_markup=a_z_country_keyboard(page, filtered), parse_mode="Markdown")
+        await query.edit_message_text("🌍 *Leads Directory*\n\nSelect a country below:", reply_markup=country_keyboard(), parse_mode="Markdown")
         return
 
     if data.startswith("c_dash|"):
         iso2 = data.split("|")[1]
-        c = pycountry.countries.get(alpha_2=iso2)
-        c_name = c.name if c else iso2
-        flag = get_country_flag(iso2)
+        if iso2 not in LEADS: await query.answer("Country not found."); return
+        d = LEADS[iso2]
+        c_name = d["name"]
+        flag = d["flag"]
         await log_activity(update.effective_user, "Navigation", f"Opened Dashboard: {c_name} ({iso2})")
         await query.edit_message_text(f"{flag} *{c_name} Data Hub*\n\nSelect a dynamic data vertical:", reply_markup=country_vertical_keyboard(iso2), parse_mode="Markdown")
         return
@@ -824,18 +764,16 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         _, iso2, vertical = data.split("|")
         items = await fetch_dynamic_vertical(iso2, vertical)
         
-        c = pycountry.countries.get(alpha_2=iso2)
-        c_name = c.name if c else iso2
-        flag = get_country_flag(iso2)
+        if iso2 not in LEADS: await query.answer("Country not found."); return
+        d = LEADS[iso2]
+        c_name = d["name"]
+        flag = d["flag"]
         await log_activity(update.effective_user, "Navigation", f"Opened Vertical: {c_name} -> {vertical}")
 
         if not items:
-            if vertical == "crypto":
-                empty_msg = "No Crypto Exchanges Available"
-            elif vertical == "nodes":
-                empty_msg = "No Records Available"
-            else:
-                empty_msg = "No Data Available"
+            if vertical == "crypto": empty_msg = "No Crypto Exchanges Available"
+            elif vertical == "nodes": empty_msg = "No Records Available"
+            else: empty_msg = "No Data Available"
                 
             await query.edit_message_text(
                 f"{flag} *{c_name} ➔ {vertical.title()}*\n\n⚠️ *{empty_msg}*", 
@@ -862,9 +800,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             items = await fetch_dynamic_vertical(iso2, vertical)
             context.user_data[f"items_{iso2}_{vertical}"] = items
 
-        c = pycountry.countries.get(alpha_2=iso2)
-        c_name = c.name if c else iso2
-        flag = get_country_flag(iso2)
+        if iso2 not in LEADS: await query.answer("Country not found."); return
+        d = LEADS[iso2]
+        c_name = d["name"]
+        flag = d["flag"]
 
         await query.edit_message_text(
             f"{flag} *{c_name} ➔ {vertical.title()}*\n_Page {page+1}_", 
@@ -886,16 +825,18 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if data.startswith("c_item|"):
-        # We drop the direct price passing and fetch the tier list
         parts = data.split("|")
         iso2, vertical, item_name = parts[1], parts[2], parts[3]
-        c = pycountry.countries.get(alpha_2=iso2)
-        c_name = c.name if c else iso2
+        
+        if iso2 not in LEADS: await query.answer("Country not found."); return
+        d = LEADS[iso2]
+        c_name = d["name"]
+        flag = d["flag"]
         
         await log_activity(update.effective_user, "Navigation", f"Selected Entity: {c_name} -> {item_name}")
 
         await query.edit_message_text(
-            f"📦 *Entity:* {item_name}\n🌍 *Region:* {get_country_flag(iso2)} {c_name}\n\nSelect volume quantity:",
+            f"📦 *Entity:* {item_name}\n🌍 *Region:* {flag} {c_name}\n\nSelect volume quantity:",
             reply_markup=dynamic_qty_keyboard(iso2, vertical, item_name),
             parse_mode="Markdown"
         )
@@ -912,22 +853,19 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         user_balances[uid] = round(balance - price, 2)
-        
-        items = load_country_data(iso2, vertical)
-        if items:
-            for item in items:
-                if item["name"] == item_name:
-                    item["stock"] = max(0, item.get("stock", 0) - qty)
-                    break
-            save_country_data(iso2, vertical, items)
         save_data()
         
         await log_activity(update.effective_user, "Purchase", f"Bought Leads: {item_name} ({qty}) for £{price}")
 
+        if iso2 not in LEADS: await query.answer("Country not found."); return
+        d = LEADS[iso2]
+        c_name = d["name"]
+        flag = d["flag"]
+
         await query.edit_message_text(
             f"✅ *Export Order Confirmed!*\n\n"
             f"Category: *{vertical.title()}*\n"
-            f"Region: {get_country_flag(iso2)} *{iso2}*\n"
+            f"Region: {flag} *{c_name}*\n"
             f"Entity: *{item_name}*\n"
             f"Quantity: *{qty:,}*\n"
             f"Paid: *£{price:g}*\n\n"
@@ -1062,7 +1000,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(f"✅ *Purchase Successful!*\n\n📁 *{label}*\n\nContact @{SUPER_ADMIN} for files.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back to Store", callback_data="store")]]), parse_mode="Markdown")
         return
 
-    # Scanner
+    # Scanner - Reverted to static functionality as per OLD python file
     if data == "scanner":
         await log_activity(update.effective_user, "Navigation", "Opened Scanner")
         await query.edit_message_text("🔍 *Scanner*", reply_markup=scanner_keyboard("all", 0), parse_mode="Markdown")
@@ -1075,29 +1013,29 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data.startswith("sni|"):
         idx = int(data.split("|")[1])
-        item = DYNAMIC_SCANNER_ITEMS[idx]
-        await query.edit_message_text(f"🔍 *{item['label']}*\nPrice: *${item['price']:.2f} / k*\nSelect quantity:", reply_markup=scanner_qty_keyboard(idx, item["category"]), parse_mode="Markdown")
+        label, category, price = SCANNER_ITEMS[idx]
+        await query.edit_message_text(f"🔍 *{label}*\nPrice: *${price:.2f} / k*\nSelect quantity:", reply_markup=scanner_qty_keyboard(idx, category), parse_mode="Markdown")
         return
 
     if data.startswith("snq|"):
         _, idx_s, qty_s = data.split("|"); idx = int(idx_s); qty_k = int(qty_s)
-        item = DYNAMIC_SCANNER_ITEMS[idx]
-        total_gbp = round(qty_k * item['price'], 2); balance = user_balances.get(uid, 0)
-        await query.edit_message_text(f"🛒 *Confirmation*\n\n{item['label']}\nQty: *{qty_k}k*\nTotal: *£{total_gbp:.2f}*\n\nConfirm?", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("✅ Confirm", callback_data=f"snc|{idx}|{qty_k}"), InlineKeyboardButton("❌ Cancel", callback_data=f"sni|{idx}")]]) , parse_mode="Markdown")
+        label, category, price = SCANNER_ITEMS[idx]
+        total_gbp = round(qty_k * price, 2); balance = user_balances.get(uid, 0)
+        await query.edit_message_text(f"🛒 *Confirmation*\n\n{label}\nQty: *{qty_k}k*\nTotal: *£{total_gbp:.2f}*\n\nConfirm?", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("✅ Confirm", callback_data=f"snc|{idx}|{qty_k}"), InlineKeyboardButton("❌ Cancel", callback_data=f"sni|{idx}")]]) , parse_mode="Markdown")
         return
 
     if data.startswith("snc|"):
         _, idx_s, qty_s = data.split("|"); idx = int(idx_s); qty_k = int(qty_s)
-        item = DYNAMIC_SCANNER_ITEMS[idx]
-        total_gbp = round(qty_k * item['price'], 2); balance = user_balances.get(uid, 0)
+        label, category, price = SCANNER_ITEMS[idx]
+        total_gbp = round(qty_k * price, 2); balance = user_balances.get(uid, 0)
 
         blocked_text, blocked_kbd = get_blocked_message(balance, total_gbp, f"sni|{idx}")
         if blocked_text: await query.edit_message_text(blocked_text, reply_markup=blocked_kbd, parse_mode="Markdown"); return
 
         user_balances[uid] = round(balance - total_gbp, 2)
         save_data()
-        await log_activity(update.effective_user, "Purchase", f"Bought Scanner: {item['label']} ({qty_k}k) for £{total_gbp}")
-        await query.edit_message_text(f"✅ *Purchase Successful!*\n\n{item['label']} ({qty_k}k)\n\nContact @{SUPER_ADMIN} to receive.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back to Scanner", callback_data="scanner")]]), parse_mode="Markdown")
+        await log_activity(update.effective_user, "Purchase", f"Bought Scanner: {label} ({qty_k}k) for £{total_gbp}")
+        await query.edit_message_text(f"✅ *Purchase Successful!*\n\n{label} ({qty_k}k)\n\nContact @{SUPER_ADMIN} to receive.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back to Scanner", callback_data="scanner")]]), parse_mode="Markdown")
         return
 
     # Targeted Source
@@ -1149,31 +1087,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ── Message Handler ───────────────────────────────────────────────────────────
 
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Country Search Handling
-    if context.user_data.get("awaiting_country_search"):
-        query_text = update.message.text.strip().lower()
-        context.user_data["awaiting_country_search"] = False
-        
-        filtered_countries = [c for c in ALL_COUNTRIES if query_text in c.name.lower() or query_text == c.alpha_2.lower()]
-        
-        await log_activity(update.effective_user, "Search", f"Searched Countries for: '{query_text}'")
-
-        if not filtered_countries:
-            await update.message.reply_text(
-                f"⚠️ No matching country found for '{query_text}'. Please try another name.",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back to Directory", callback_data="leads")]]),
-                parse_mode="Markdown"
-            )
-            return
-            
-        context.user_data["current_country_list"] = filtered_countries
-        await update.message.reply_text(
-            f"🔍 *Country Search Results for \"{query_text}\"* ({len(filtered_countries)} found):",
-            reply_markup=a_z_country_keyboard(0, filtered_countries),
-            parse_mode="Markdown"
-        )
-        return
-
     # Strict Country-Scoped Entity Search
     if context.user_data.get("awaiting_search"):
         query_text = update.message.text.strip().lower()
@@ -1185,8 +1098,8 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         filtered = [item for item in items if query_text in item["name"].lower()]
 
-        c = pycountry.countries.get(alpha_2=iso2)
-        c_name = c.name if c else iso2
+        d = LEADS.get(iso2, {})
+        c_name = d.get("name", iso2)
 
         await log_activity(update.effective_user, "Search", f"Searched {vertical} in {c_name} for: '{query_text}'")
 
@@ -1261,10 +1174,6 @@ ADMIN_HELP_TEXT = (
     "*Dynamic Pricing - Leads*\n"
     "`/setleadprice <network|bank|business|crypto|nodes> <qty> <price>`\n"
     "`/delleadprice <category> <qty>`\n\n"
-    "*Dynamic Pricing - Scanner*\n"
-    "`/addscanitem <label> | <category> | <price>`\n"
-    "`/delscanitem <label>`\n"
-    "`/setscantiers <qty1> <qty2> <qty3>...`\n\n"
     "*Balance Management*\n"
     "`/addbalance <user_id> <amount>`\n"
     "`/removebalance <user_id> <amount>`\n"
@@ -1323,53 +1232,6 @@ async def cmd_delleadprice(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("Tier not found.")
     except Exception:
         await update.message.reply_text("Usage: `/delleadprice <category> <qty>`", parse_mode="Markdown")
-
-# Scanner Dynamic Pricing
-async def cmd_addscanitem(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update): await update.message.reply_text("❌ Not authorised."); return
-    try:
-        raw = " ".join(context.args)
-        label, cat, price = [x.strip() for x in raw.split("|")]
-        price = float(price)
-        # Check if exists and update
-        for item in DYNAMIC_SCANNER_ITEMS:
-            if item["label"].lower() == label.lower():
-                item["category"] = cat
-                item["price"] = price
-                save_data()
-                await update.message.reply_text(f"✅ Updated Scanner: *{label}* | {cat} | £{price:.2f}", parse_mode="Markdown")
-                return
-        DYNAMIC_SCANNER_ITEMS.append({"label": label, "category": cat, "price": price})
-        save_data()
-        await update.message.reply_text(f"✅ Added Scanner: *{label}* | {cat} | £{price:.2f}", parse_mode="Markdown")
-    except Exception:
-        await update.message.reply_text("Usage: `/addscanitem <label> | <category> | <price>`\nExample: `/addscanitem WhatsApp Filter | socials | 2.50`", parse_mode="Markdown")
-
-async def cmd_delscanitem(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update): await update.message.reply_text("❌ Not authorised."); return
-    try:
-        label = " ".join(context.args).strip()
-        global DYNAMIC_SCANNER_ITEMS
-        initial_len = len(DYNAMIC_SCANNER_ITEMS)
-        DYNAMIC_SCANNER_ITEMS = [i for i in DYNAMIC_SCANNER_ITEMS if i["label"].lower() != label.lower()]
-        if len(DYNAMIC_SCANNER_ITEMS) < initial_len:
-            save_data()
-            await update.message.reply_text(f"✅ Removed Scanner item: *{label}*", parse_mode="Markdown")
-        else:
-            await update.message.reply_text("Item not found.")
-    except Exception:
-        await update.message.reply_text("Usage: `/delscanitem <label>`", parse_mode="Markdown")
-
-async def cmd_setscantiers(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update): await update.message.reply_text("❌ Not authorised."); return
-    try:
-        qtys = [int(x) for x in context.args]
-        global DYNAMIC_SCANNER_QTYS
-        DYNAMIC_SCANNER_QTYS = sorted(qtys)
-        save_data()
-        await update.message.reply_text(f"✅ Scanner Quantity Tiers updated: {DYNAMIC_SCANNER_QTYS}")
-    except Exception:
-        await update.message.reply_text("Usage: `/setscantiers 1 5 10 25 50 100`", parse_mode="Markdown")
 
 
 async def cmd_addbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1563,9 +1425,6 @@ def main():
     app.add_handler(CommandHandler("adminlogs",     cmd_adminlogs))
     app.add_handler(CommandHandler("setleadprice",  cmd_setleadprice))
     app.add_handler(CommandHandler("delleadprice",  cmd_delleadprice))
-    app.add_handler(CommandHandler("addscanitem",   cmd_addscanitem))
-    app.add_handler(CommandHandler("delscanitem",   cmd_delscanitem))
-    app.add_handler(CommandHandler("setscantiers",  cmd_setscantiers))
     app.add_handler(CommandHandler("addbalance",    cmd_addbalance))
     app.add_handler(CommandHandler("removebalance", cmd_removebalance))
     app.add_handler(CommandHandler("setbalance",    cmd_setbalance))
