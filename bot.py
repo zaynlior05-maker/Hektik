@@ -45,7 +45,7 @@ user_join_dates  = {}
 logged_in_admins = set()
 channel_verified = set()
 
-live_stock       = {"leads": 63_629_085} # Store stock is calculated dynamically
+live_stock       = {"leads": 63_629_085} # Legacy fallback, heavily bypassed by dynamic calculation
 TOPUP_AMOUNTS    = [70, 100, 150, 200, 250, 300, 350, 400, 450, 500, 750, 1000]
 BINS_PER_PAGE    = 20
 
