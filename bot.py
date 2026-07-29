@@ -47,6 +47,7 @@ agreed_users     = set()
 user_join_dates  = {}
 logged_in_admins = set()
 channel_verified = set()
+pending_orders   = {}   # uid → delivery caption stored after each purchase
 
 live_stock    = {"leads": 63_629_085}
 TOPUP_AMOUNTS = [70, 100, 150, 200, 250, 300, 350, 400, 450, 500, 750, 1000]
@@ -3105,6 +3106,9 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"🆕 *New User*\n👤 {user_tag(update)}\n🪪 ID: `{uid}`\n"
             f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
     if uid in agreed_users and uid in channel_verified:
+        await log(context.application,
+            f"🔄 *Returning User /start*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
+            f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
         await update.message.reply_text(
             main_menu_text(), reply_markup=main_menu_keyboard(), parse_mode="Markdown")
         return
@@ -3117,6 +3121,8 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cmd_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     bal = user_balances.get(uid, 0)
+    await log(context.application,
+        f"💰 */balance*\n👤 {user_tag(update)}\n🪪 `{uid}`\n💷 Balance: £{bal:.2f}")
     await update.message.reply_text(
         f"💰 *Your Balance*\n\n🪪 ID: `{uid}`\n💷 Balance: *£{bal:.2f}*\n\n"
         f"_Top up via the Wallet section._",
@@ -3124,6 +3130,9 @@ async def cmd_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
+    await log(context.application,
+        f"💳 */wallet*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
+        f"💷 Balance: £{user_balances.get(uid, 0):.2f}")
     await update.message.reply_text(
         wallet_profile_text(uid), reply_markup=amount_keyboard(), parse_mode="Markdown")
 
@@ -3193,7 +3202,8 @@ ADMIN_HELP_TEXT = (
     "`/listbins <vid> <bkey>` | `/clearbase <vid> <bkey>`\n"
     "`/listusers` | `/broadcast <message>`\n"
     "`/updatelead <CC> <VerticalKey> <ItemName> <Stock>`\n"
-    "`/bulkbin <vid> <bkey>`"
+    "`/bulkbin <vid> <bkey>`\n"
+    "`/deliver <user_id>` — set delivery target, then send the file to forward"
 )
 
 def admin_menu_keyboard():
@@ -3357,6 +3367,44 @@ async def cmd_listusers(update: Update, context: ContextTypes.DEFAULT_TYPE):
         lines.append(f"`{uid}` — £{bal:.2f} (joined {user_join_dates.get(uid, '?')})")
     await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
 
+async def cmd_deliver(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin: /deliver <user_id>  — then send a file to forward it to that user."""
+    if not is_admin(update): return
+    try:
+        target_uid = int(context.args[0])
+    except (IndexError, ValueError):
+        await update.message.reply_text("Usage: /deliver <user_id>\n\nThen send the file to forward."); return
+    context.user_data["deliver_to"] = target_uid
+    order_info  = pending_orders.get(target_uid, "")
+    preview     = f"\n\n📋 Pending order:\n{order_info}" if order_info else ""
+    await update.message.reply_text(
+        f"📦 Delivery target set: `{target_uid}`{preview}\n\n_Now send the file._",
+        parse_mode="Markdown")
+
+async def file_delivery_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Receives a file from admin and forwards it to the pending delivery target."""
+    if not is_admin(update): return
+    target_uid = context.user_data.get("deliver_to")
+    if not target_uid: return
+    msg     = update.message
+    caption = pending_orders.pop(target_uid, "✅ Your order has been delivered.")
+    bot     = context.application.bot
+    try:
+        if msg.document:
+            await bot.send_document(chat_id=target_uid, document=msg.document.file_id, caption=caption)
+        elif msg.photo:
+            await bot.send_photo(chat_id=target_uid, photo=msg.photo[-1].file_id, caption=caption)
+        elif msg.video:
+            await bot.send_video(chat_id=target_uid, video=msg.video.file_id, caption=caption)
+        elif msg.audio:
+            await bot.send_audio(chat_id=target_uid, audio=msg.audio.file_id, caption=caption)
+        else:
+            await msg.reply_text("❌ Unsupported file type. Send a document, photo, video, or audio."); return
+        context.user_data.pop("deliver_to", None)
+        await msg.reply_text(f"✅ File delivered to `{target_uid}`.", parse_mode="Markdown")
+    except Exception as e:
+        await msg.reply_text(f"❌ Delivery failed: {e}")
+
 async def cmd_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update): return
     full_text = update.message.text or ""
@@ -3477,11 +3525,23 @@ def get_blocked_message(balance, item_price, back_cb):
 # BUTTON HANDLER — await query.answer() is the FIRST line (no-lag rule)
 # ═════════════════════════════════════════════════════════════════════════════
 
+_LOG_SKIP = {
+    "back", "noop",               # pure navigation / no-op
+}
+_LOG_SKIP_PREFIXES = (
+    "bpage|", "lhwp|",            # pagination — too noisy
+)
+
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()      # ← MUST be first line
     query = update.callback_query
     uid   = query.from_user.id
     data  = query.data
+
+    # ── Universal interaction log ────────────────────────────────────────────
+    if data not in _LOG_SKIP and not data.startswith(_LOG_SKIP_PREFIXES):
+        await log(context.application,
+            f"🖱 *Button Press*\n👤 {user_tag(update)}\n🪪 `{uid}`\n📌 `{data}`")
 
     # ── Welcome / join gate ─────────────────────────────────────────────────
     if data == "agree_rules":
@@ -3505,6 +3565,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         agreed_users.add(uid)
         channel_verified.add(uid)
         save_data()
+        await log(context.application,
+            f"✅ *Channel Verified*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
+            f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
         await query.edit_message_text(
             main_menu_text(), reply_markup=main_menu_keyboard(), parse_mode="Markdown")
         return
@@ -3551,7 +3614,13 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             crypto_amt = round(amount / prices[coin], 6)
             price_line = f"Send *Exactly* `{crypto_amt}` {coin} to get *£{amount}* credit"
         else:
+            crypto_amt = "?"
             price_line = f"Send the equivalent of *£{amount}* in {coin}"
+        await log(context.application,
+            f"💳 *Top-Up Request*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
+            f"💰 £{amount} via {coin}"
+            + (f" = `{crypto_amt}` {coin}" if crypto_amt != "?" else "")
+            + f"\n📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
         await query.edit_message_text(
             f"{price_line}\n\n🏦 Address:\n`{address}`\n\n"
             f"‼️ Deposits are permanent and *non refundable*\n"
@@ -3639,6 +3708,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if base["bins"][bin_num] <= 0:
             del base["bins"][bin_num]
         save_data()
+        pending_orders[uid] = (
+            f"✅ Purchase Successful!\n\n"
+            f"💳 BIN: {bin_num}\n🗂 Quantity: {buy_qty} fullz\n"
+            f"💷 Price: £{total:.2f}\n💰 Remaining balance: £{user_balances[uid]:.2f}\n\n"
+            f"If there are any issues, type /refund and follow the instructions")
         await log(context.application,
             f"🛒 *Purchase — BIN*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"💳 BIN: {bin_num} | Qty: {buy_qty}\n💷 Paid: £{total:.2f}\n"
@@ -3681,6 +3755,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if blocked_text:
             await query.edit_message_text(blocked_text, reply_markup=blocked_kbd, parse_mode="Markdown"); return
         user_balances[uid] = round(balance - price, 2); save_data()
+        pending_orders[uid] = (
+            f"✅ Purchase Successful!\n\n"
+            f"💀 Item: {label}\n💷 Price: £{price:,}\n"
+            f"💰 Remaining balance: £{user_balances[uid]:.2f}\n\n"
+            f"If there are any issues, type /refund and follow the instructions")
         await log(context.application,
             f"🛒 *Purchase — Deads*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"💀 {label}\n💷 Paid: £{price}\n💰 Remaining: £{user_balances[uid]:.2f}")
@@ -3783,6 +3862,12 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_text(blocked_text, reply_markup=blocked_kbd, parse_mode="Markdown"); return
         user_balances[uid] = round(balance - price, 2); save_data()
         d["verticals"][vert_key]["items"][item_name] = max(0, d["verticals"][vert_key]["items"][item_name] - qty)
+        pending_orders[uid] = (
+            f"✅ Purchase Successful!\n\n"
+            f"🌍 Country: {d['name']}\n📂 Category: {vert_key.title()}\n"
+            f"📄 Dataset: {item_name}\n🗂 Quantity: {qty:,} records\n"
+            f"💷 Price: £{price}\n💰 Remaining balance: £{user_balances[uid]:.2f}\n\n"
+            f"If there are any issues, type /refund and follow the instructions")
         await log(context.application,
             f"🛒 *Purchase — Leads*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"🌍 {d['flag']} {d['name']} | {vert_key} | {item_name}\n"
@@ -3847,6 +3932,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if blocked_text:
             await query.edit_message_text(blocked_text, reply_markup=blocked_kbd, parse_mode="Markdown"); return
         user_balances[uid] = round(balance - total_gbp, 2); save_data()
+        pending_orders[uid] = (
+            f"✅ Purchase Successful!\n\n"
+            f"🔍 Scanner: {label}\n🗂 Quantity: {qty_k}k records\n"
+            f"💷 Price: £{total_gbp:.2f}\n💰 Remaining balance: £{user_balances[uid]:.2f}\n\n"
+            f"If there are any issues, type /refund and follow the instructions")
         await log(context.application,
             f"🛒 *Purchase — Scanner*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"🔍 {label} | {qty_k}k\n💷 Paid: £{total_gbp:.2f}\n"
@@ -3868,7 +3958,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data == "ts_aged":
         await query.edit_message_text(
-            "🏦 *Bank Page — Aged & Targeted Fullz*\n\n"
+            "🏦 *Bank Page — Fresh Page*\n\n"
             "📋 *Select a page below:*\n"
             "_Note: Anti-Red pages include encrypted results._",
             reply_markup=ts_fullz_items_keyboard(), parse_mode="Markdown")
@@ -3924,6 +4014,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if blocked_text:
             await query.edit_message_text(blocked_text, reply_markup=blocked_kbd, parse_mode="Markdown"); return
         user_balances[uid] = round(balance - price, 2); save_data()
+        pending_orders[uid] = (
+            f"✅ Purchase Successful!\n\n"
+            f"🏦 Bank Page: {name}\n💷 Price: £{price}\n"
+            f"💰 Remaining balance: £{user_balances[uid]:.2f}\n\n"
+            f"If there are any issues, type /refund and follow the instructions")
         await log(context.application,
             f"🛒 *Purchase — Bank Page*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"‼️ Page: {name}\n💷 Paid: £{price}\n💰 Remaining: £{user_balances[uid]:.2f}")
@@ -3963,6 +4058,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if blocked_text:
             await query.edit_message_text(blocked_text, reply_markup=blocked_kbd, parse_mode="Markdown"); return
         user_balances[uid] = round(balance - price, 2); save_data()
+        pending_orders[uid] = (
+            f"✅ Purchase Successful!\n\n"
+            f"🪙 Crypto Page: {name}\n💷 Price: £{price}\n"
+            f"💰 Remaining balance: £{user_balances[uid]:.2f}\n\n"
+            f"If there are any issues, type /refund and follow the instructions")
         await log(context.application,
             f"🛒 *Purchase — Crypto Page*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"🪙 Platform: {name}\n💷 Paid: £{price}\n💰 Remaining: £{user_balances[uid]:.2f}")
@@ -4089,7 +4189,11 @@ def main():
     app.add_handler(CommandHandler("updatelead",      cmd_updatelead))
     app.add_handler(CommandHandler("bulkbin",         cmd_bulkbin))
     app.add_handler(CommandHandler("broadcast",       cmd_broadcast))
+    app.add_handler(CommandHandler("deliver",         cmd_deliver))
     app.add_handler(CallbackQueryHandler(button_handler))
+    app.add_handler(MessageHandler(
+        (filters.Document.ALL | filters.PHOTO | filters.VIDEO | filters.AUDIO) & ~filters.COMMAND,
+        file_delivery_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
     app.add_error_handler(error_handler)
 
