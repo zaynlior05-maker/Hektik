@@ -28,14 +28,10 @@ ADMIN_PASSWORD       = os.environ.get("ADMIN_PASSWORD", "changeme123")
 LOG_CHANNEL_ID       = os.environ.get("LOG_CHANNEL_ID")
 MIN_TOPUP            = 70
 
-# NEW: The minimum required balance a user must have to make a purchase.
-# You can change this directly in your Railway Variables by adding MIN_DEPOSIT_REQUIRED
+# The minimum required balance a user must have to make a purchase.
 MIN_DEPOSIT_REQUIRED = float(os.environ.get("MIN_DEPOSIT_REQUIRED", 150.00))
 
 # Private channel setup — two variables:
-#   JOIN_CHANNEL     = your channel's numeric ID, e.g. -1001234567890
-#                      (forward any message from your channel to @userinfobot to get it)
-#   JOIN_CHANNEL_URL = your private invite link, e.g. https://t.me/+aBcDeFgHiJk
 _raw = os.environ.get("JOIN_CHANNEL", "")
 JOIN_CHANNEL     = _raw if _raw else None
 JOIN_CHANNEL_URL = os.environ.get("JOIN_CHANNEL_URL", "https://t.me/+yourchannelinvitelink")
@@ -57,7 +53,7 @@ live_stock    = {"leads": 63_629_085} # Store stock is calculated dynamically
 TOPUP_AMOUNTS = [70, 100, 150, 200, 250, 300, 350, 400, 450, 500, 750, 1000]
 BINS_PER_PAGE = 20   # 20 bins per page = 10 rows of 2
 
-# ── Store Data  (NOTE: base keys must NOT contain the | character) ─────────────
+# ── Store Data ────────────────────────────────────────────────────────────────
 STORE = {
     "8888": {
         "label": "Vendor 8888",
@@ -105,10 +101,7 @@ DEADS_ITEMS = [
 ]
 
 # ── Scanner Items ─────────────────────────────────────────────────────────────
-# Format: (label, category, price_per_k_usd)
-# Categories: all | socials | crypto | shopping | carrier
 SCANNER_ITEMS = [
-    # ── Crypto ───────────────────────────────────────────────────────────────
     ("Binance · Email",       "crypto",   3.00),
     ("Binance · Filter",      "crypto",   1.50),
     ("CoinW · Email",         "crypto",   1.50),
@@ -119,17 +112,14 @@ SCANNER_ITEMS = [
     ("KuCoin · Mobile",       "crypto",   1.00),
     ("OKX · Filter",          "crypto",   3.00),
     ("Robinhood · Check",     "crypto",   2.50),
-    # ── Socials ──────────────────────────────────────────────────────────────
     ("Facebook · Email",      "socials",  1.00),
     ("Instagram · Mobile",    "socials",  1.00),
     ("LinkedIn · Profile",    "socials",  15.00),
     ("Signal",                "socials",  1.00),
     ("Snapchat",              "socials",  2.00),
     ("iMessage · Filter",     "socials",  0.35),
-    # ── Shopping ─────────────────────────────────────────────────────────────
     ("DHL",                   "shopping", 1.50),
     ("Shein",                 "shopping", 15.00),
-    # ── Carrier ──────────────────────────────────────────────────────────────
     ("Carrier · Any",         "carrier",  1.50),
     ("Carrier · Bangladesh",  "carrier",  0.75),
     ("Carrier · Belgium",     "carrier",  0.75),
@@ -152,11 +142,8 @@ SCANNER_ITEMS = [
     ("Carrier · Vietnam",     "carrier",  0.75),
 ]
 
-SCANNER_PER_PAGE = 10   # items shown per page
-
-# Scanner quantity tiers: (qty_k, label)
-SCANNER_QTYS = [1, 5, 10, 25, 50, 100]   # in thousands
-
+SCANNER_PER_PAGE = 10
+SCANNER_QTYS = [1, 5, 10, 25, 50, 100]
 
 LEADS_PRICING = [
     (1_000,   15),  (2_000,  30),  (3_000,   45),  (4_000,  50),
@@ -166,60 +153,181 @@ LEADS_PRICING = [
 ]
 
 # ── Leads Country & Carrier Data ─────────────────────────────────────────────
-# Schema: "CC": {"flag":"🏳️", "name":"Country", "verticals": {"sim": {"carriers": {"Carrier":stock}}, ...}}
 LEADS = {
-    "AU": {"flag":"🇦🇺","name":"Australia", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Telstra":4_200_000,"Optus":3_100_000,"Vodafone":1_800_000,"Boost Mobile":620_000,"TPG":430_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "AT": {"flag":"🇦🇹","name":"Austria", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"A1":1_540_000,"Magenta":890_000,"Drei":760_000,"Spusu":210_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "BH": {"flag":"🇧🇭","name":"Bahrain", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Batelco":480_000,"Zain":390_000,"STC":210_000,"Viva":170_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "BE": {"flag":"🇧🇪","name":"Belgium", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Proximus":1_920_000,"Orange":1_340_000,"Base":980_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "BR": {"flag":"🇧🇷","name":"Brazil", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Vivo":7_800_000,"Claro":6_500_000,"TIM":5_200_000,"Oi":2_100_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "BG": {"flag":"🇧🇬","name":"Bulgaria", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"A1":1_100_000,"Telenor":890_000,"Vivacom":760_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "CA": {"flag":"🇨🇦","name":"Canada", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Rogers":4_100_000,"Bell":3_800_000,"Telus":3_500_000,"Fido":980_000,"Koodo":760_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "CY": {"flag":"🇨🇾","name":"Cyprus", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Cyta":340_000,"MTN":210_000,"Epic":180_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "CZ": {"flag":"🇨🇿","name":"Czech Republic", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"T-Mobile":2_100_000,"O2":1_800_000,"Vodafone":1_400_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "DK": {"flag":"🇩🇰","name":"Denmark", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"TDC":1_540_000,"Telenor":1_100_000,"Telia":980_000,"Tre":760_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "ET": {"flag":"🇪🇪","name":"Estonia", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Telia":430_000,"Elisa":380_000,"Tele2":290_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "FI": {"flag":"🇫🇮","name":"Finland", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Elisa":1_800_000,"DNA":1_500_000,"Telia":1_200_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "FR": {"flag":"🇫🇷","name":"France", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Orange":6_200_000,"SFR":4_800_000,"Bouygues":4_100_000,"Free Mobile":3_500_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "DE": {"flag":"🇩🇪","name":"Germany", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Telekom":8_900_000,"Vodafone":7_200_000,"O2":5_800_000,"1&1":1_400_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "GR": {"flag":"🇬🇷","name":"Greece", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Cosmote":2_800_000,"Vodafone":1_900_000,"Wind Hellas":1_400_000,"Nova":680_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "HU": {"flag":"🇭🇺","name":"Hungary", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Telekom":2_100_000,"Yettel":1_400_000,"Vodafone":980_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "IS": {"flag":"🇮🇸","name":"Iceland", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Siminn":180_000,"Vodafone":140_000,"Nova":110_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "IE": {"flag":"🇮🇪","name":"Ireland", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Eir":833_503,"Tesco Mobile":520_700,"Three A":351_645,"Three B":861_444,"Vodafone":1_720_550}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "IT": {"flag":"🇮🇹","name":"Italy", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"TIM":5_900_000,"Vodafone":4_200_000,"WindTre":5_100_000,"Iliad":1_800_000,"PosteMobile":890_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "LV": {"flag":"🇱🇻","name":"Latvia", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"LMT":540_000,"Tele2":430_000,"Bite":320_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "LT": {"flag":"🇱🇹","name":"Lithuania", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Tele2":890_000,"Bite":760_000,"Telia":540_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "MY": {"flag":"🇲🇾","name":"Malaysia", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Maxis":4_200_000,"Celcom":3_100_000,"Digi":3_800_000,"U Mobile":1_400_000,"Unifi":980_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "MT": {"flag":"🇲🇹","name":"Malta", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"GO":180_000,"Melita":140_000,"Epic":110_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "NL": {"flag":"🇳🇱","name":"Netherlands", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"KPN":3_200_000,"VodafoneZiggo":2_800_000,"T-Mobile":2_100_000,"Tele2":890_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "NZ": {"flag":"🇳🇿","name":"New Zealand", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Spark":1_800_000,"One NZ":1_400_000,"2degrees":980_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "NO": {"flag":"🇳🇴","name":"Norway", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Telenor":2_400_000,"Telia":1_800_000,"Ice":760_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "PL": {"flag":"🇵🇱","name":"Poland", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Orange":4_100_000,"Play":3_800_000,"Plus":3_200_000,"T-Mobile":2_900_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "PT": {"flag":"🇵🇹","name":"Portugal", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"NOS":2_800_000,"MEO":2_400_000,"Vodafone":1_900_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "PR": {"flag":"🇵🇷","name":"Puerto Rico", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Claro":1_100_000,"Liberty":540_000,"T-Mobile":890_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "QA": {"flag":"🇶🇦","name":"Qatar", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Ooredoo":980_000,"Vodafone Qatar":760_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "RO": {"flag":"🇷🇴","name":"Romania", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Orange":3_200_000,"Vodafone":2_800_000,"Digi":2_100_000,"Telekom":1_400_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "SG": {"flag":"🇸🇬","name":"Singapore", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Singtel":2_100_000,"StarHub":1_400_000,"M1":980_000,"TPG":320_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "SK": {"flag":"🇸🇰","name":"Slovakia", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Slovak Telekom":1_400_000,"Orange":1_100_000,"O2":760_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "SI": {"flag":"🇸🇮","name":"Slovenia", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"A1":540_000,"Telekom SI":430_000,"T-2":210_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "ZA": {"flag":"🇿🇦","name":"South Africa", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Vodacom":5_200_000,"MTN":4_800_000,"Cell C":2_100_000,"Telkom":1_400_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "ES": {"flag":"🇪🇸","name":"Spain", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Movistar":7_200_000,"Orange":5_800_000,"Vodafone":4_900_000,"MásMóvil":2_100_000,"Yoigo":1_400_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "SE": {"flag":"🇸🇪","name":"Sweden", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Telia":3_200_000,"Tele2":2_800_000,"Tre":1_900_000,"Telenor":1_400_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "CH": {"flag":"🇨🇭","name":"Switzerland", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Swisscom":2_800_000,"Sunrise":1_900_000,"Salt":980_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "TW": {"flag":"🇹🇼","name":"Taiwan", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Chunghwa":4_100_000,"Taiwan Mobile":3_200_000,"FarEasTone":2_800_000,"TSTAR":1_100_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "TR": {"flag":"🇹🇷","name":"Turkey", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Turkcell":6_800_000,"Vodafone":4_900_000,"Türk Telekom":4_200_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "AE": {"flag":"🇦🇪","name":"UAE", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Etisalat (e&)":2_400_000,"du":1_800_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "UA": {"flag":"🇺🇦","name":"Ukraine", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"Kyivstar":4_800_000,"Vodafone":3_200_000,"lifecell":2_100_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "UK": {"flag":"🇬🇧","name":"United Kingdom", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"EE":3_544_000,"O2":1_831_000,"Sky":553_000,"Three":4_515_000,"Virgin":114_000,"Vodafone":530_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
-    "US": {"flag":"🇺🇸","name":"United States", "verticals": {"banks": {"label": "🏦 Banks & Financial", "items": {}}, "biz": {"label": "🏢 Business Registries", "items": {}}, "sim": {"label": "📡 Mobile Networks", "carriers": {"AT&T":12_800_000,"Verizon":11_400_000,"T-Mobile":9_700_000,"Boost Mobile":2_100_000,"Cricket":1_900_000,"Metro by T-Mobile":1_700_000,"US Cellular":890_000,"Mint Mobile":640_000}}, "crypto": {"label": "🪙 Crypto Exchanges", "items": {}}, "ledger": {"label": "🔗 Ledgers & Nodes", "items": {}}}},
+    "AU": {
+        "flag": "🇦🇺", "name": "Australia",
+        "verticals": {
+            "banks": {"label": "🏦 Banks & Financial", "items": {"ANZ Bank": 1250000, "Bank of Queensland": 420000, "Bankwest": 380000, "Bendigo Bank": 510000, "Commonwealth Bank (CBA)": 3100000, "HSBC Australia": 290000, "ING Australia": 620000, "Macquarie Bank": 890000, "National Australia Bank (NAB)": 2400000, "Suncorp Bank": 450000, "Westpac": 2800000}},
+            "crypto": {"label": "🪙 Crypto Exchanges", "items": {"Binance AU": 1100000, "BTC Markets": 450000, "CoinJar": 320000, "CoinSpot": 1500000, "Coinbase": 890000, "Crypto.com": 760000, "Independent Reserve": 340000, "Kraken AU": 520000, "Swyftx": 980000}},
+            "biz": {"label": "🏢 Business Registries", "items": {"ABR Registered Entities": 1400000, "ASIC Corporate Index": 2100000, "GST Registered Businesses": 1800000}},
+            "sim": {"label": "📡 Mobile Networks", "items": {"Telstra": 4200000, "Optus": 3100000, "Vodafone": 1800000, "Boost Mobile": 620000, "TPG": 430000}},
+            "ledger": {"label": "🔗 Ledgers & Nodes", "items": {"Bitcoin Validator Nodes": 120000, "Ethereum Staking Index": 340000, "Solana RPC Nodes": 210000}}
+        }
+    },
+    "AT": {
+        "flag": "🇦🇹", "name": "Austria",
+        "verticals": {
+            "banks": {"label": "🏦 Banks & Financial", "items": {"Erste Bank": 1400000, "Raiffeisen Bank": 1100000, "Bank Austria": 850000, "Bawag PSK": 600000, "Volksbank": 320000}},
+            "crypto": {"label": "🪙 Crypto Exchanges", "items": {"Bitpanda": 1200000, "Coinbase AT": 550000, "Binance": 890000, "Kraken": 410000}},
+            "biz": {"label": "🏢 Business Registries", "items": {"Firmenbuch Index": 980000, "WKO Business Directory": 720000}},
+            "sim": {"label": "📡 Mobile Networks", "items": {"A1": 1540000, "Magenta": 890000, "Drei": 760000, "Spusu": 210000}},
+            "ledger": {"label": "🔗 Ledgers & Nodes", "items": {"Bitcoin Nodes AT": 45000, "Ethereum Nodes": 82000}}
+        }
+    },
+    "BE": {
+        "flag": "🇧🇪", "name": "Belgium",
+        "verticals": {
+            "banks": {"label": "🏦 Banks & Financial", "items": {"BNP Paribas Fortis": 1900000, "KBC Bank": 1500000, "Belfius": 1200000, "ING Belgium": 1100000, "Argenta": 540000}},
+            "crypto": {"label": "🪙 Crypto Exchanges", "items": {"Binance BE": 750000, "Bitvavo": 620000, "Coinbase": 510000, "Kraken": 380000}},
+            "biz": {"label": "🏢 Business Registries", "items": {"KBO/BCE Registry": 1100000, "VAT Registered Entities": 1300000}},
+            "sim": {"label": "📡 Mobile Networks", "items": {"Proximus": 1920000, "Orange": 1340000, "Base": 980000}},
+            "ledger": {"label": "🔗 Ledgers & Nodes", "items": {"Bitcoin Network Nodes": 55000, "ETH Validators": 91000}}
+        }
+    },
+    "BR": {
+        "flag": "🇧🇷", "name": "Brazil",
+        "verticals": {
+            "banks": {"label": "🏦 Banks & Financial", "items": {"Nubank": 8500000, "Itau Unibanco": 6200000, "Banco do Brasil": 5100000, "Bradesco": 4800000, "Caixa Economica": 4500000, "Santander BR": 3100000}},
+            "crypto": {"label": "🪙 Crypto Exchanges", "items": {"Mercado Bitcoin": 3100000, "Binance BR": 2800000, "Foxbit": 1200000, "NovaDAX": 950000}},
+            "biz": {"label": "🏢 Business Registries", "items": {"CNPJ Directory": 4500000, "Junta Comercial": 2100000}},
+            "sim": {"label": "📡 Mobile Networks", "items": {"Vivo": 7800000, "Claro": 6500000, "TIM": 5200000, "Oi": 2100000}},
+            "ledger": {"label": "🔗 Ledgers & Nodes", "items": {"BTC Full Nodes": 110000, "ETH Validators BR": 185000}}
+        }
+    },
+    "CA": {
+        "flag": "🇨🇦", "name": "Canada",
+        "verticals": {
+            "banks": {"label": "🏦 Banks & Financial", "items": {"RBC Royal Bank": 4100000, "TD Bank": 3800000, "Scotiabank": 3100000, "BMO": 2700000, "CIBC": 2500000, "Tangerine": 1200000, "National Bank": 950000}},
+            "crypto": {"label": "🪙 Crypto Exchanges", "items": {"Wealthsimple Crypto": 2100000, "Bitbuy": 850000, "Coinberry": 620000, "Kraken CA": 940000, "Coinbase": 1500000, "NDAX": 410000}},
+            "biz": {"label": "🏢 Business Registries", "items": {"Corporations Canada": 3100000, "CRA Business Numbers": 4200000, "Provincial Registries": 2800000}},
+            "sim": {"label": "📡 Mobile Networks", "items": {"Rogers": 4100000, "Bell": 3800000, "Telus": 3500000, "Fido": 980000, "Koodo": 760000}},
+            "ledger": {"label": "🔗 Ledgers & Nodes", "items": {"Bitcoin Nodes CA": 210000, "ETH Staking Pools": 390000, "Solana Nodes": 115000}}
+        }
+    },
+    "FR": {
+        "flag": "🇫🇷", "name": "France",
+        "verticals": {
+            "banks": {"label": "🏦 Banks & Financial", "items": {"BNP Paribas": 4200000, "Credit Agricole": 3900000, "Societe Generale": 3100000, "BPCE": 2800000, "Boursorama": 2100000, "Credit Mutuel": 1900000}},
+            "crypto": {"label": "🪙 Crypto Exchanges", "items": {"Coinhouse": 1200000, "Binance FR": 2900000, "Kraken": 1500000, "Paymium": 450000, "SwissBorg": 820000}},
+            "biz": {"label": "🏢 Business Registries", "items": {"SIRENE Database": 5100000, "Infogreffe": 3200000}},
+            "sim": {"label": "📡 Mobile Networks", "items": {"Orange": 6200000, "SFR": 4800000, "Bouygues": 4100000, "Free Mobile": 3500000}},
+            "ledger": {"label": "🔗 Ledgers & Nodes", "items": {"Bitcoin Nodes FR": 280000, "Tezos Bakers": 120000, "ETH Validators": 410000}}
+        }
+    },
+    "DE": {
+        "flag": "🇩🇪", "name": "Germany",
+        "verticals": {
+            "banks": {"label": "🏦 Banks & Financial", "items": {"Deutsche Bank": 5100000, "Commerzbank": 4200000, "Sparkasse": 7800000, "Volksbank": 6500000, "N26": 3200000, "ING DiBa": 4100000}},
+            "crypto": {"label": "🪙 Crypto Exchanges", "items": {"Bison App": 1800000, "Bitwala/Nuri": 950000, "Binance DE": 3500000, "Kraken": 2100000, "Coinbase": 2400000}},
+            "biz": {"label": "🏢 Business Registries", "items": {"Handelsregister": 4500000, "Unternehmensregister": 5200000}},
+            "sim": {"label": "📡 Mobile Networks", "items": {"Telekom": 8900000, "Vodafone": 7200000, "O2": 5800000, "1&1": 1400000}},
+            "ledger": {"label": "🔗 Ledgers & Nodes", "items": {"Bitcoin Nodes DE": 520000, "ETH Validators DE": 680000, "Polkadot Nodes": 140000}}
+        }
+    },
+    "IT": {
+        "flag": "🇮🇹", "name": "Italy",
+        "verticals": {
+            "banks": {"label": "🏦 Banks & Financial", "items": {"Intesa Sanpaolo": 5800000, "UniCredit": 5100000, "Poste Italiane": 6200000, "BPM": 2100000, "BPER Banca": 1800000}},
+            "crypto": {"label": "🪙 Crypto Exchanges", "items": {"Young Platform": 950000, "The Rock Trading": 420000, "Binance IT": 2800000, "Crypto.com": 1500000}},
+            "biz": {"label": "🏢 Business Registries", "items": {"Registro Imprese": 4200000, "Partita IVA Index": 5100000}},
+            "sim": {"label": "📡 Mobile Networks", "items": {"TIM": 5900000, "Vodafone": 4200000, "WindTre": 5100000, "Iliad": 1800000, "PosteMobile": 890000}},
+            "ledger": {"label": "🔗 Ledgers & Nodes", "items": {"Bitcoin Nodes IT": 150000, "Algorand Nodes": 85000, "ETH Validators": 210000}}
+        }
+    },
+    "ES": {
+        "flag": "🇪🇸", "name": "Spain",
+        "verticals": {
+            "banks": {"label": "🏦 Banks & Financial", "items": {"Santander": 6100000, "BBVA": 5800000, "CaixaBank": 5200000, "Sabadell": 2500000, "Bankinter": 1400000, "ING Spain": 1900000}},
+            "crypto": {"label": "🪙 Crypto Exchanges", "items": {"Bit2Me": 1200000, "Binance ES": 2500000, "Kraken": 1100000, "Coinbase": 1600000}},
+            "biz": {"label": "🏢 Business Registries", "items": {"Registro Mercantil": 3800000, "CIF Database": 4200000}},
+            "sim": {"label": "📡 Mobile Networks", "items": {"Movistar": 7200000, "Orange": 5800000, "Vodafone": 4900000, "MásMóvil": 2100000, "Yoigo": 1400000}},
+            "ledger": {"label": "🔗 Ledgers & Nodes", "items": {"Bitcoin Nodes ES": 110000, "ETH Staking": 195000}}
+        }
+    },
+    "UK": {
+        "flag": "🇬🇧", "name": "United Kingdom",
+        "verticals": {
+            "banks": {"label": "🏦 Banks & Financial", "items": {"Barclays": 4500000, "HSBC UK": 4100000, "Lloyds Bank": 5200000, "Monzo": 3100000, "NatWest": 3800000, "Revolut": 2900000, "Royal Bank of Scotland": 1800000, "Santander UK": 3400000, "Starling Bank": 1500000, "Virgin Money": 1200000}},
+            "crypto": {"label": "🪙 Crypto Exchanges", "items": {"Binance UK": 3500000, "Coinbase Pro": 2800000, "Kraken UK": 1900000, "Gemini": 1200000, "KuCoin": 1500000, "Bitstamp": 850000}},
+            "biz": {"label": "🏢 Business Registries", "items": {"Companies House Direct": 6200000, "UK Corporate Officer Index": 4100000, "VAT Registered Businesses": 3500000}},
+            "sim": {"label": "📡 Mobile Networks", "items": {"EE": 3544000, "O2": 1831000, "Sky": 553000, "Three": 4515000, "Virgin": 114000, "Vodafone": 530000}},
+            "ledger": {"label": "🔗 Ledgers & Nodes", "items": {"Bitcoin Full Nodes": 320000, "Ethereum Validator Index": 510000, "XRP Ledger Nodes": 180000}}
+        }
+    },
+    "US": {
+        "flag": "🇺🇸", "name": "United States",
+        "verticals": {
+            "banks": {"label": "🏦 Banks & Financial", "items": {"Bank of America": 12500000, "Capital One": 8100000, "Chase": 15200000, "Citigroup": 7500000, "PNC Bank": 4200000, "TD Bank": 5100000, "Truist": 3800000, "US Bank": 4900000, "Wells Fargo": 11200000, "Discover": 6500000}},
+            "crypto": {"label": "🪙 Crypto Exchanges", "items": {"Coinbase": 14500000, "Binance.US": 4200000, "Kraken": 5800000, "Gemini": 3500000, "Crypto.com": 4800000, "Robinhood Crypto": 8900000, "KuCoin": 2100000}},
+            "biz": {"label": "🏢 Business Registries", "items": {"SEC EDGAR Database": 18500000, "State Secretary Corporations Index": 22000000, "Delaware Corporate Directory": 4500000}},
+            "sim": {"label": "📡 Mobile Networks", "items": {"AT&T": 12800000, "Verizon": 11400000, "T-Mobile": 9700000, "Boost Mobile": 2100000, "Cricket": 1900000, "Metro by T-Mobile": 1700000, "US Cellular": 890000, "Mint Mobile": 640000}},
+            "ledger": {"label": "🔗 Ledgers & Nodes", "items": {"Bitcoin Full Nodes": 950000, "Ethereum Validator Index": 1850000, "Solana RPC Nodes": 650000, "Cardano Stake Pools": 320000}}
+        }
+    }
 }
 
-# ── Auto-add a "MIX" carrier to every country ─────────────────────────────────
-# MIX is always the LARGEST option — set higher than the biggest single carrier
+# Automatically populate generic data for any countries missing in the explicit dict above
+_GLOBAL_BANKS = {"National Bank": 1200000, "Standard Chartered": 850000, "CitiBank": 650000, "HSBC": 1100000, "Digital Bank": 450000, "Union Bank": 780000}
+_GLOBAL_CRYPTO = {"Binance": 1500000, "Coinbase": 980000, "Kraken": 650000, "KuCoin": 540000, "OKX": 710000, "Huobi": 420000, "Bybit": 850000}
+_GLOBAL_BIZ = {"National Business Registry": 1250000, "Corporate Index": 950000, "Chamber of Commerce Data": 650000, "VAT Database": 1100000}
+_GLOBAL_LEDGER = {"Bitcoin Full Nodes": 85000, "Ethereum Validators": 120000, "Solana RPC": 45000, "Cardano Pools": 25000, "Polygon Nodes": 35000}
+
+_ALL_COUNTRIES = {
+    "BH": {"flag":"🇧🇭","name":"Bahrain", "carriers": {"Batelco":480000,"Zain":390000,"STC":210000,"Viva":170000}},
+    "BG": {"flag":"🇧🇬","name":"Bulgaria", "carriers": {"A1":1100000,"Telenor":890000,"Vivacom":760000}},
+    "CY": {"flag":"🇨🇾","name":"Cyprus", "carriers": {"Cyta":340000,"MTN":210000,"Epic":180000}},
+    "CZ": {"flag":"🇨🇿","name":"Czech Republic", "carriers": {"T-Mobile":2100000,"O2":1800000,"Vodafone":1400000}},
+    "DK": {"flag":"🇩🇰","name":"Denmark", "carriers": {"TDC":1540000,"Telenor":1100000,"Telia":980000,"Tre":760000}},
+    "ET": {"flag":"🇪🇪","name":"Estonia", "carriers": {"Telia":430000,"Elisa":380000,"Tele2":290000}},
+    "FI": {"flag":"🇫🇮","name":"Finland", "carriers": {"Elisa":1800000,"DNA":1500000,"Telia":1200000}},
+    "GR": {"flag":"🇬🇷","name":"Greece", "carriers": {"Cosmote":2800000,"Vodafone":1900000,"Wind Hellas":1400000,"Nova":680000}},
+    "HU": {"flag":"🇭🇺","name":"Hungary", "carriers": {"Telekom":2100000,"Yettel":1400000,"Vodafone":980000}},
+    "IS": {"flag":"🇮🇸","name":"Iceland", "carriers": {"Siminn":180000,"Vodafone":140000,"Nova":110000}},
+    "IE": {"flag":"🇮🇪","name":"Ireland", "carriers": {"Eir":833503,"Tesco Mobile":520700,"Three A":351645,"Three B":861444,"Vodafone":1720550}},
+    "LV": {"flag":"🇱🇻","name":"Latvia", "carriers": {"LMT":540000,"Tele2":430000,"Bite":320000}},
+    "LT": {"flag":"🇱🇹","name":"Lithuania", "carriers": {"Tele2":890000,"Bite":760000,"Telia":540000}},
+    "MY": {"flag":"🇲🇾","name":"Malaysia", "carriers": {"Maxis":4200000,"Celcom":3100000,"Digi":3800000,"U Mobile":1400000,"Unifi":980000}},
+    "MT": {"flag":"🇲🇹","name":"Malta", "carriers": {"GO":180000,"Melita":140000,"Epic":110000}},
+    "NL": {"flag":"🇳🇱","name":"Netherlands", "carriers": {"KPN":3200000,"VodafoneZiggo":2800000,"T-Mobile":2100000,"Tele2":890000}},
+    "NZ": {"flag":"🇳🇿","name":"New Zealand", "carriers": {"Spark":1800000,"One NZ":1400000,"2degrees":980000}},
+    "NO": {"flag":"🇳🇴","name":"Norway", "carriers": {"Telenor":2400000,"Telia":1800000,"Ice":760000}},
+    "PL": {"flag":"🇵🇱","name":"Poland", "carriers": {"Orange":4100000,"Play":3800000,"Plus":3200000,"T-Mobile":2900000}},
+    "PT": {"flag":"🇵🇹","name":"Portugal", "carriers": {"NOS":2800000,"MEO":2400000,"Vodafone":1900000}},
+    "PR": {"flag":"🇵🇷","name":"Puerto Rico", "carriers": {"Claro":1100000,"Liberty":540000,"T-Mobile":890000}},
+    "QA": {"flag":"🇶🇦","name":"Qatar", "carriers": {"Ooredoo":980000,"Vodafone Qatar":760000}},
+    "RO": {"flag":"🇷🇴","name":"Romania", "carriers": {"Orange":3200000,"Vodafone":2800000,"Digi":2100000,"Telekom":1400000}},
+    "SG": {"flag":"🇸🇬","name":"Singapore", "carriers": {"Singtel":2100000,"StarHub":1400000,"M1":980000,"TPG":320000}},
+    "SK": {"flag":"🇸🇰","name":"Slovakia", "carriers": {"Slovak Telekom":1400000,"Orange":1100000,"O2":760000}},
+    "SI": {"flag":"🇸🇮","name":"Slovenia", "carriers": {"A1":540000,"Telekom SI":430000,"T-2":210000}},
+    "ZA": {"flag":"🇿🇦","name":"South Africa", "carriers": {"Vodacom":5200000,"MTN":4800000,"Cell C":2100000,"Telkom":1400000}},
+    "SE": {"flag":"🇸🇪","name":"Sweden", "carriers": {"Telia":3200000,"Tele2":2800000,"Tre":1900000,"Telenor":1400000}},
+    "CH": {"flag":"🇨🇭","name":"Switzerland", "carriers": {"Swisscom":2800000,"Sunrise":1900000,"Salt":980000}},
+    "TW": {"flag":"🇹🇼","name":"Taiwan", "carriers": {"Chunghwa":4100000,"Taiwan Mobile":3200000,"FarEasTone":2800000,"TSTAR":1100000}},
+    "TR": {"flag":"🇹🇷","name":"Turkey", "carriers": {"Turkcell":6800000,"Vodafone":4900000,"Türk Telekom":4200000}},
+    "AE": {"flag":"🇦🇪","name":"UAE", "carriers": {"Etisalat (e&)":2400000,"du":1800000}},
+    "UA": {"flag":"🇺🇦","name":"Ukraine", "carriers": {"Kyivstar":4800000,"Vodafone":3200000,"lifecell":2100000}},
+}
+
+for cc, info in _ALL_COUNTRIES.items():
+    if cc not in LEADS:
+        LEADS[cc] = {
+            "flag": info["flag"],
+            "name": info["name"],
+            "verticals": {
+                "banks": {"label": "🏦 Banks & Financial", "items": _copy.deepcopy(_GLOBAL_BANKS)},
+                "crypto": {"label": "🪙 Crypto Exchanges", "items": _copy.deepcopy(_GLOBAL_CRYPTO)},
+                "biz": {"label": "🏢 Business Registries", "items": _copy.deepcopy(_GLOBAL_BIZ)},
+                "sim": {"label": "📡 Mobile Networks", "items": _copy.deepcopy(info["carriers"])},
+                "ledger": {"label": "🔗 Ledgers & Nodes", "items": _copy.deepcopy(_GLOBAL_LEDGER)}
+            }
+        }
+
+# ── Auto-add a "MIX" carrier to EVERY vertical in EVERY country ───────────────
 for _cc, _d in LEADS.items():
-    if "MIX" not in _d["verticals"]["sim"]["carriers"]:
-        _biggest = max(_d["verticals"]["sim"]["carriers"].values())
-        _d["verticals"]["sim"]["carriers"]["MIX"] = int(_biggest * 1.25)   # 25% bigger than the top carrier
+    for vert_key, vert_data in _d["verticals"].items():
+        if "MIX" not in vert_data["items"] and vert_data["items"]:
+            _biggest = max(vert_data["items"].values())
+            vert_data["items"]["MIX"] = int(_biggest * 1.25)
 
 # Snapshots of the code defaults, used to merge in NEW countries/vendors on load
 DEFAULT_LEADS = _copy.deepcopy(LEADS)
@@ -308,7 +416,7 @@ def load_data():
         if data.get("LEADS"):
             LEADS.clear(); LEADS.update(data["LEADS"])
 
-        # Merge in any NEW countries/carriers added in the code since last save
+        # Merge in any NEW countries/items added in the code since last save
         for cc, d in DEFAULT_LEADS.items():
             if cc not in LEADS:
                 LEADS[cc] = _copy.deepcopy(d)          # whole new country
@@ -317,14 +425,26 @@ def load_data():
                 if "carriers" in LEADS[cc]:
                     old_carriers = LEADS[cc].pop("carriers")
                     LEADS[cc]["verticals"] = _copy.deepcopy(d["verticals"])
-                    LEADS[cc]["verticals"]["sim"]["carriers"].update(old_carriers)
+                    LEADS[cc]["verticals"]["sim"]["items"].update(old_carriers)
                 elif "verticals" not in LEADS[cc]:
                     LEADS[cc]["verticals"] = _copy.deepcopy(d["verticals"])
 
-                # Merge new carriers in the SIM vertical
-                for carrier, stock in d["verticals"]["sim"]["carriers"].items():
-                    if carrier not in LEADS[cc]["verticals"]["sim"]["carriers"]:
-                        LEADS[cc]["verticals"]["sim"]["carriers"][carrier] = stock
+                # Merge new verticals and items
+                for vert_key, vert_data in d["verticals"].items():
+                    if vert_key not in LEADS[cc]["verticals"]:
+                        LEADS[cc]["verticals"][vert_key] = _copy.deepcopy(vert_data)
+                    else:
+                        # Migrate old 'carriers' under 'sim' to 'items'
+                        if vert_key == "sim" and "carriers" in LEADS[cc]["verticals"]["sim"]:
+                            old_sim = LEADS[cc]["verticals"]["sim"].pop("carriers")
+                            LEADS[cc]["verticals"]["sim"]["items"] = old_sim
+                            
+                        # Add missing items (like auto MIX)
+                        for item, stock in vert_data["items"].items():
+                            if item not in LEADS[cc]["verticals"][vert_key].get("items", {}):
+                                if "items" not in LEADS[cc]["verticals"][vert_key]:
+                                    LEADS[cc]["verticals"][vert_key]["items"] = {}
+                                LEADS[cc]["verticals"][vert_key]["items"][item] = stock
 
         logger.info("✅ Loaded saved data from disk.")
     except Exception as e:
@@ -481,31 +601,31 @@ def vertical_keyboard(cc):
         [InlineKeyboardButton("⬅️ Back to Directory", callback_data="leads")]
     ])
 
-def carrier_keyboard(cc):
-    """Grid of carriers for a country's SIM vertical, 2 per row."""
-    data = LEADS[cc]["verticals"]["sim"]
+def item_keyboard(cc, vert):
+    """Grid of items for a country's vertical, 2 per row."""
+    data = LEADS[cc]["verticals"][vert]
     rows = []
-    carriers = list(data["carriers"].items())
-    for i in range(0, len(carriers), 2):
+    items = list(data["items"].items())
+    for i in range(0, len(items), 2):
         row = [InlineKeyboardButton(
             f"{name} ({stock:,})",
-            callback_data=f"lk|{cc}|{name}")
-            for name, stock in carriers[i:i+2]]
+            callback_data=f"lk|{cc}|{vert}|{name}")
+            for name, stock in items[i:i+2]]
         rows.append(row)
     rows.append([InlineKeyboardButton("⬅️ Back", callback_data=f"lc|{cc}")])
     return InlineKeyboardMarkup(rows)
 
-def qty_keyboard(cc, carrier):
+def qty_keyboard(cc, vert, item):
     """Quantity/tier selection buttons, 2 per row."""
     rows = []
     tiers = LEADS_PRICING
     for i in range(0, len(tiers), 2):
         row = [InlineKeyboardButton(
             f"{qty//1000}k — £{price}",
-            callback_data=f"lq|{cc}|{carrier}|{qty}")
+            callback_data=f"lq|{cc}|{vert}|{item}|{qty}")
             for qty, price in tiers[i:i+2]]
         rows.append(row)
-    rows.append([InlineKeyboardButton("⬅️ Back", callback_data=f"lvert|{cc}|sim")])
+    rows.append([InlineKeyboardButton("⬅️ Back", callback_data=f"lvert|{cc}|{vert}")])
     return InlineKeyboardMarkup(rows)
 
 # ── Targeted Source keyboards ─────────────────────────────────────────────────
@@ -541,11 +661,14 @@ def main_menu_keyboard():
 
 def main_menu_text():
     dynamic_stock = calculate_dynamic_stock()
+    # Calculate universal vertical stock
+    total_leads_stock = sum(sum(v_data["items"].values()) for d in LEADS.values() for v_data in d["verticals"].values())
+    
     return (
         "🏪 *Main Menu*\n\n"
         "*Live Stock*\n"
-        f"🌍 Leads: *{live_stock['leads']:,}*\n"
-        f"🛍️ Stock: *{dynamic_stock}*\n\n"
+        f"🌍 Leads: *{total_leads_stock:,}*\n"
+        f"🛍️ Store: *{dynamic_stock:,}*\n\n"
         "_Choose a section below:_"
     )
 
@@ -674,7 +797,7 @@ async def cmd_targeted(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown"
     )
 
-# Support handle shown to users — change SUPPORT_USER in Railway if different from admin
+# Support handle shown to users
 SUPPORT_USER = os.environ.get("SUPPORT_USERNAME", "HekTikz")
 
 async def cmd_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -748,8 +871,8 @@ ADMIN_HELP_TEXT = (
     "`/setbalance <user_id> <amount>`\n"
     "`/checkbalance <user_id>`\n\n"
     "*Stock*\n"
-    "`/setstock leads <number>`\n"
-    "`/setstock stock <number>` (legacy - use dynamic calculation)\n\n"
+    "`/setstock leads <number>` (legacy - dynamically calculated)\n"
+    "`/setstock stock <number>` (legacy - dynamically calculated)\n\n"
     "*Vendors*\n"
     "`/addvendor <id> <label>`\n"
     "`/removevendor <id>`\n\n"
@@ -761,6 +884,9 @@ ADMIN_HELP_TEXT = (
     "`/removebin <vendor_id> <base_key> <bin>`\n"
     "`/listbins <vendor_id> <base_key>`\n"
     "`/clearbase <vendor_id> <base_key>`\n\n"
+    "*Leads Data*\n"
+    "`/updatelead <CC> <CategoryKey> <ItemName> <Stock>`\n"
+    "(Example: `/updatelead AU banks Westpac 3000000`)\n\n"
     "*Users*\n"
     "`/listusers`\n"
     "`/broadcast <message>`"
@@ -925,10 +1051,6 @@ async def cmd_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode="Markdown")
             return
 
-        # ── Fetch all registered user IDs we know about ────────────────────────
-        # (This bot stores users in-memory / in botdata.json rather than a SQL
-        # DB, so "all registered users" = everyone who has ever started the bot,
-        # topped up, or agreed to the rules.)
         targets = set(user_join_dates.keys()) | set(user_balances.keys()) | agreed_users
         total_users = len(targets)
 
@@ -945,9 +1067,6 @@ async def cmd_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await context.application.bot.send_message(chat_id=target_uid, text=msg, parse_mode="Markdown")
                 sent += 1
             except (Forbidden, BadRequest):
-                # Forbidden  -> user blocked the bot / deleted their account / never started a DM with it
-                # BadRequest -> e.g. invalid Markdown in the message, chat not found
-                # Try once more as plain text in case it was just a Markdown formatting issue
                 try:
                     plain = msg.replace("*", "").replace("_", "").replace("`", "")
                     await context.application.bot.send_message(chat_id=target_uid, text=plain)
@@ -955,7 +1074,6 @@ async def cmd_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 except Exception:
                     failed += 1
             except Exception:
-                # Any other unexpected error for this user — don't let it stop the broadcast
                 failed += 1
             await asyncio.sleep(0.05)  # ~20 msg/sec, safely under Telegram's 30/sec limit
 
@@ -989,13 +1107,6 @@ def get_blocked_message(balance, item_price, back_cb):
     purchase should proceed to normal price-vs-balance handling... actually
     this function now fully owns that check too, so callers can just use
     its result directly.
-
-    Validation order:
-      1. balance == 0                -> Insufficient Balance (top-up only)
-      2. 0 < balance < MIN_DEPOSIT    -> Minimum Deposit Required
-      3. balance >= MIN_DEPOSIT:
-           - balance < item_price     -> Insufficient Balance (with real price)
-           - balance >= item_price    -> (None, None) -> allow purchase
     """
     # 1. Zero balance — insufficient balance message, no mention of minimum deposit
     if balance == 0:
@@ -1052,7 +1163,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data  = query.data
 
     # ── Welcome / join gate ───────────────────────────────────────────────────
-    # MUST be handled BEFORE query.answer() so we can use show_alert=True
     if data == "agree_rules":
         try:
             is_member, reason = await check_channel_membership(context.bot, uid)
@@ -1083,7 +1193,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             pass
 
-        # Send main menu — try Markdown, fall back to plain text if it errors
         try:
             await context.bot.send_message(
                 chat_id=uid, text=main_menu_text(),
@@ -1098,11 +1207,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 logger.error(f"send plain failed: {e2}")
         return
 
-    # All other callbacks — answer immediately to remove loading spinner
     await query.answer()
 
-    # Clear any pending text-input modes — user navigated away, so cancel them.
-    # The handlers below (custom_amount, bsearch, buybin) re-set their own flag after this.
     for _k in ("awaiting_custom", "awaiting_bin_search", "awaiting_qty"):
         context.user_data.pop(_k, None)
 
@@ -1166,7 +1272,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("👥 *Select a vendor:*", reply_markup=vendor_select_keyboard(), parse_mode="Markdown")
         return
 
-    # Vendor
     if data.startswith("vendor|"):
         vid = data.split("|")[1]
         if vid not in STORE: await query.answer("Vendor not found."); return
@@ -1175,7 +1280,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=base_select_keyboard(vid), parse_mode="Markdown")
         return
 
-    # Base — show BIN list page 0
     if data.startswith("base|"):
         _, vid, bkey = data.split("|", 2)
         base = STORE[vid]["bases"][bkey]
@@ -1191,7 +1295,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=kbd, parse_mode="Markdown")
         return
 
-    # Paginate BIN list
     if data.startswith("bpage|"):
         _, vid, bkey, page = data.split("|", 3); page = int(page)
         base = STORE[vid]["bases"][bkey]
@@ -1204,7 +1307,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=kbd, parse_mode="Markdown")
         return
 
-    # BIN search prompt
     if data.startswith("bsearch|"):
         vid = data.split("|")[1]
         context.user_data["bin_search_vendor"] = vid
@@ -1215,13 +1317,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown")
         return
 
-    # BIN selected → show quantity entry screen
     if data.startswith("buybin|"):
         _, vid, bkey, bin_num, page = data.split("|", 4)
         base = STORE[vid]["bases"][bkey]; qty = base["bins"].get(bin_num, 0)
         if qty == 0: await query.answer("Out of stock."); return
         price   = base["price_per_card"]
-        # Save what they're buying so the text handler can process the quantity
         context.user_data["buy_bin"] = {
             "vid": vid, "bkey": bkey, "bin_num": bin_num, "page": page,
             "price": price, "available": qty
@@ -1239,7 +1339,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown")
         return
 
-    # Quantity confirmed → process purchase
     if data.startswith("cfmqty|"):
         _, vid, bkey, bin_num, qty_s = data.split("|", 4)
         buy_qty = int(qty_s)
@@ -1252,13 +1351,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if buy_qty > stock:
             await query.answer(f"Only {stock} available now.", show_alert=True); return
         
-        # Security Block Check (handles zero balance / min deposit / insufficient funds)
         blocked_text, blocked_kbd = get_blocked_message(balance, total, f"vendor|{vid}")
         if blocked_text:
             await query.edit_message_text(blocked_text, reply_markup=blocked_kbd, parse_mode="Markdown")
             return
                 
-        # Deduct balance and reduce stock by the bought quantity
         user_balances[uid] = round(balance - total, 2)
         base["bins"][bin_num] = stock - buy_qty
         if base["bins"][bin_num] <= 0:
@@ -1305,7 +1402,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not item: await query.answer("Not found."); return
         label, price, _ = item; balance = user_balances.get(uid, 0)
         
-        # Security Block Check
         blocked_text, blocked_kbd = get_blocked_message(balance, price, "deads")
         if blocked_text:
             await query.edit_message_text(blocked_text, reply_markup=blocked_kbd, parse_mode="Markdown")
@@ -1335,7 +1431,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown")
         return
 
-    # Country selected → show Verticals Hub
     if data.startswith("lc|"):
         cc = data.split("|")[1]
         if cc not in LEADS: await query.answer("Country not found."); return
@@ -1348,96 +1443,100 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown")
         return
 
-    # Vertical selected
     if data.startswith("lvert|"):
         _, cc, vert = data.split("|", 2)
         if cc not in LEADS: await query.answer("Country not found."); return
         d = LEADS[cc]
-        if vert == "sim":
-            total = sum(d["verticals"]["sim"]["carriers"].values())
-            await log(context.application, f"🌍 *Leads — {d['name']} (SIM)*\n👤 {user_tag(update)}")
+        v_data = d["verticals"].get(vert)
+        
+        if not v_data or not v_data.get("items"):
             await query.edit_message_text(
-                f"Country: {d['flag']} {d['name']}\n"
-                f"Stock: {total:,} numbers\n\n"
-                f"Available carriers:",
-                reply_markup=carrier_keyboard(cc),
-                parse_mode="Markdown")
-        else:
-            label = d["verticals"][vert]["label"]
-            await query.edit_message_text(
-                f"{d['flag']} *{d['name']} — {label}*\n\n"
+                f"{d['flag']} *{d['name']} — Vertical not found*\n\n"
                 f"Stock is coming soon. Please check back later.",
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data=f"lc|{cc}")]]),
                 parse_mode="Markdown"
             )
-        return
+            return
 
-    # Carrier selected → show qty tiers
-    if data.startswith("lk|"):
-        _, cc, carrier = data.split("|", 2)
-        if cc not in LEADS: await query.answer("Not found."); return
-        stock = LEADS[cc]["verticals"]["sim"]["carriers"].get(carrier, 0)
-        d = LEADS[cc]
-        await log(context.application, f"📡 *Leads Carrier — {d['name']} / {carrier}*\n👤 {user_tag(update)}")
+        total = sum(v_data["items"].values())
+        await log(context.application, f"🌍 *Leads — {d['name']} ({v_data['label']})*\n👤 {user_tag(update)}")
         await query.edit_message_text(
-            f"*Country:* {d['flag']} {d['name']}\n"
-            f"*Carrier:* {carrier}\n"
-            f"*Available:* {stock:,} numbers\n\n"
-            f"Select quantity:",
-            reply_markup=qty_keyboard(cc, carrier),
+            f"Country: {d['flag']} {d['name']}\n"
+            f"Category: {v_data['label']}\n"
+            f"Stock: {total:,} items\n\n"
+            f"Available options:",
+            reply_markup=item_keyboard(cc, vert),
             parse_mode="Markdown")
         return
 
-    # Qty selected → confirm screen
+    if data.startswith("lk|"):
+        _, cc, vert, item = data.split("|", 3)
+        if cc not in LEADS: await query.answer("Not found."); return
+        stock = LEADS[cc]["verticals"][vert]["items"].get(item, 0)
+        d = LEADS[cc]
+        v_label = d["verticals"][vert]["label"]
+        await log(context.application, f"📡 *Leads Selection — {d['name']} / {item}*\n👤 {user_tag(update)}")
+        await query.edit_message_text(
+            f"*Country:* {d['flag']} {d['name']}\n"
+            f"*Category:* {v_label}\n"
+            f"*Item:* {item}\n"
+            f"*Available:* {stock:,} numbers\n\n"
+            f"Select quantity:",
+            reply_markup=qty_keyboard(cc, vert, item),
+            parse_mode="Markdown")
+        return
+
     if data.startswith("lq|"):
-        _, cc, carrier, qty_str = data.split("|", 3)
+        _, cc, vert, item, qty_str = data.split("|", 4)
         qty     = int(qty_str)
         price   = dict(LEADS_PRICING).get(qty, 0)
         d       = LEADS[cc]
-        stock   = LEADS[cc]["verticals"]["sim"]["carriers"].get(carrier, 0)
+        stock   = LEADS[cc]["verticals"][vert]["items"].get(item, 0)
         balance = user_balances.get(uid, 0)
         if stock < qty:
             await query.answer(f"Not enough stock. Only {stock:,} available.", show_alert=True)
             return
+        
+        v_label = d["verticals"][vert]["label"]
         await query.edit_message_text(
             f"🛒 *Purchase Confirmation*\n\n"
             f"🌍 *Country:* {d['flag']} {d['name']}\n"
-            f"📡 *Carrier:* {carrier}\n"
+            f"📡 *Category:* {v_label}\n"
+            f"📦 *Item:* {item}\n"
             f"🗂 *Quantity:* {qty:,} numbers\n"
             f"💷 *Price: £{price}*\n\n"
             f"Your balance: *£{balance:.2f}*\n\nConfirm purchase?",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("✅ Confirm", callback_data=f"lb|{cc}|{carrier}|{qty}"),
-                 InlineKeyboardButton("❌ Cancel",  callback_data=f"lk|{cc}|{carrier}")]]),
+                [InlineKeyboardButton("✅ Confirm", callback_data=f"lb|{cc}|{vert}|{item}|{qty}"),
+                 InlineKeyboardButton("❌ Cancel",  callback_data=f"lk|{cc}|{vert}|{item}")]]),
             parse_mode="Markdown")
         return
 
-    # Leads purchase confirmed
     if data.startswith("lb|"):
-        _, cc, carrier, qty_str = data.split("|", 3)
+        _, cc, vert, item, qty_str = data.split("|", 4)
         qty     = int(qty_str)
         price   = dict(LEADS_PRICING).get(qty, 0)
         balance = user_balances.get(uid, 0)
         d       = LEADS[cc]
         
-        # Security Block Check
-        blocked_text, blocked_kbd = get_blocked_message(balance, price, f"lk|{cc}|{carrier}")
+        blocked_text, blocked_kbd = get_blocked_message(balance, price, f"lk|{cc}|{vert}|{item}")
         if blocked_text:
             await query.edit_message_text(blocked_text, reply_markup=blocked_kbd, parse_mode="Markdown")
             return
             
         user_balances[uid] = round(balance - price, 2)
         save_data()
-        # Deduct from carrier stock
-        if cc in LEADS and carrier in LEADS[cc]["verticals"]["sim"]["carriers"]:
-            LEADS[cc]["verticals"]["sim"]["carriers"][carrier] = max(0, LEADS[cc]["verticals"]["sim"]["carriers"][carrier] - qty)
+        
+        if cc in LEADS and item in LEADS[cc]["verticals"][vert]["items"]:
+            LEADS[cc]["verticals"][vert]["items"][item] = max(0, LEADS[cc]["verticals"][vert]["items"][item] - qty)
+            
         await log(context.application,
             f"🛒 *Purchase — Leads*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
-            f"🌍 {d['flag']} {d['name']} | {carrier}\n"
+            f"🌍 {d['flag']} {d['name']} | {vert} | {item}\n"
             f"🗂 {qty:,} numbers\n💷 Paid: £{price}\n💰 Remaining: £{user_balances[uid]:.2f}")
         await query.edit_message_text(
             f"✅ *Purchase Successful!*\n\n"
-            f"🌍 *{d['flag']} {d['name']}* — {carrier}\n"
+            f"🌍 *{d['flag']} {d['name']}* — {item}\n"
             f"🗂 *{qty:,} numbers*\n"
             f"💷 Paid: *£{price}*\n"
             f"💰 Remaining: *£{user_balances[uid]:.2f}*\n\n"
@@ -1456,7 +1555,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown")
         return
 
-    # Category tab or page navigation
     if data.startswith("scan|"):
         _, cat, pg = data.split("|"); pg = int(pg)
         items = scanner_items_for_cat(cat)
@@ -1467,7 +1565,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown")
         return
 
-    # Scanner item selected — show qty options
     if data.startswith("sni|"):
         idx = int(data.split("|")[1])
         if idx >= len(SCANNER_ITEMS): await query.answer("Item not found."); return
@@ -1482,7 +1579,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown")
         return
 
-    # Quantity selected — confirm
     if data.startswith("snq|"):
         _, idx_s, qty_s = data.split("|"); idx = int(idx_s); qty_k = int(qty_s)
         if idx >= len(SCANNER_ITEMS): await query.answer("Not found."); return
@@ -1501,7 +1597,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown")
         return
 
-    # Scanner purchase confirmed
     if data.startswith("snc|"):
         _, idx_s, qty_s = data.split("|"); idx = int(idx_s); qty_k = int(qty_s)
         if idx >= len(SCANNER_ITEMS): await query.answer("Not found."); return
@@ -1509,7 +1604,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         total_gbp = round(qty_k * price, 2)
         balance   = user_balances.get(uid, 0)
         
-        # Security Block Check
         blocked_text, blocked_kbd = get_blocked_message(balance, total_gbp, f"sni|{idx}")
         if blocked_text:
             await query.edit_message_text(blocked_text, reply_markup=blocked_kbd, parse_mode="Markdown")
@@ -1604,7 +1698,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown")
         return
 
-    # Aged leads qty → confirm
     if data.startswith("tsaged|"):
         qty   = int(data.split("|")[1])
         price = dict(AGED_LEADS_PRICING).get(qty, 0)
@@ -1629,7 +1722,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         k       = qty // 1000
         balance = user_balances.get(uid, 0)
         
-        # Security Block Check
         blocked_text, blocked_kbd = get_blocked_message(balance, price, "ts_aged")
         if blocked_text:
             await query.edit_message_text(blocked_text, reply_markup=blocked_kbd, parse_mode="Markdown")
@@ -1651,7 +1743,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown")
         return
 
-    # Crypto leads qty → confirm
     if data.startswith("tscrypto|"):
         qty   = int(data.split("|")[1])
         price = dict(CRYPTO_LEADS_PRICING).get(qty, 0)
@@ -1676,7 +1767,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         k       = qty // 1000
         balance = user_balances.get(uid, 0)
         
-        # Security Block Check
         blocked_text, blocked_kbd = get_blocked_message(balance, price, "ts_crypto")
         if blocked_text:
             await query.edit_message_text(blocked_text, reply_markup=blocked_kbd, parse_mode="Markdown")
@@ -1701,7 +1791,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ── Text message handler ──────────────────────────────────────────────────────
 
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # ── Quantity entry for a BIN purchase ──────────────────────────────────────
     if context.user_data.get("awaiting_qty"):
         info = context.user_data.get("buy_bin", {})
         text = update.message.text.strip()
@@ -1776,43 +1865,38 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode="Markdown")
 
 async def cmd_updatelead(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Admin: /updatelead <CC> <CarrierName> <stock>
-    Example: /updatelead UK EE 4000000
-    Use 0 to remove a carrier."""
+    """Admin: /updatelead <CC> <CategoryKey> <ItemName> <Stock>
+    Example: /updatelead AU banks Westpac 3000000
+    Use 0 to remove an item."""
     if not is_admin(update): await update.message.reply_text("❌ Not authorised."); return
     try:
-        cc      = context.args[0].upper()
-        carrier = context.args[1]
-        stock   = int(context.args[2])
+        cc    = context.args[0].upper()
+        vert  = context.args[1].lower()
+        stock = int(context.args[-1])
+        item  = " ".join(context.args[2:-1])
         assert cc in LEADS
+        assert vert in LEADS[cc]["verticals"]
     except (IndexError, ValueError, AssertionError):
         await update.message.reply_text(
-            "Usage: /updatelead <CC> <Carrier> <stock>\n"
-            "Example: /updatelead UK EE 4000000\n"
-            "Country codes: UK, IE, AU, DE, FR, ES..."); return
+            "Usage: /updatelead <CC> <CategoryKey> <ItemName> <Stock>\n"
+            "Example: /updatelead AU banks Westpac 3000000\n"
+            "Categories: banks, crypto, biz, sim, ledger"); return
+            
     if stock <= 0:
-        LEADS[cc]["verticals"]["sim"]["carriers"].pop(carrier, None)
+        LEADS[cc]["verticals"][vert]["items"].pop(item, None)
         save_data()
-        await update.message.reply_text(f"✅ Removed *{carrier}* from {LEADS[cc]['flag']} {LEADS[cc]['name']}", parse_mode="Markdown")
+        await update.message.reply_text(f"✅ Removed *{item}* from {LEADS[cc]['flag']} {LEADS[cc]['name']}", parse_mode="Markdown")
     else:
-        LEADS[cc]["verticals"]["sim"]["carriers"][carrier] = stock
+        LEADS[cc]["verticals"][vert]["items"][item] = stock
         save_data()
         await update.message.reply_text(
-            f"✅ Updated *{carrier}* → *{stock:,}* in {LEADS[cc]['flag']} {LEADS[cc]['name']}", parse_mode="Markdown")
+            f"✅ Updated *{item}* → *{stock:,}* in {LEADS[cc]['flag']} {LEADS[cc]['name']}", parse_mode="Markdown")
 
 async def cmd_bulkbin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Admin: add many BINs at once.
-    Send as ONE message:
-      /bulkbin 1717 10fresh
-      374646 x1
-      402396 x2
-      416598 50
-    Accepts both 'BIN xQTY' and 'BIN QTY' formats."""
     if not is_admin(update):
         await update.message.reply_text("❌ Not authorised. Use /adminlogin <password>"); return
 
     lines = update.message.text.split("\n")
-    # First line holds the command + vendor + base
     first = lines[0].split()
     try:
         vid  = first[1]
@@ -1832,7 +1916,6 @@ async def cmd_bulkbin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         line = line.strip()
         if not line:
             continue
-        # Accept "374646 x1", "374646 1", "374646x1"
         line = line.replace("x", " ").replace("X", " ")
         parts = line.split()
         if len(parts) < 2:
@@ -1860,23 +1943,12 @@ async def cmd_bulkbin(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 async def error_handler(update, context):
-    """Catches ANY unhandled exception raised while processing an update.
-    Without this, such errors are logged deep in PTB's internals and can be
-    easy to miss — this makes them impossible to miss in the Railway logs."""
     logger.error("🔥 Unhandled exception while processing update:", exc_info=context.error)
 
 def main():
     if not BOT_TOKEN: raise ValueError("BOT_TOKEN is not set!")
-    load_data()   # restore saved BINs, balances, stock from disk
+    load_data()
 
-    # ── Network resilience ────────────────────────────────────────────────────
-    # Railway's outbound network to api.telegram.org can be slow/flaky, and the
-    # library's default timeouts are too tight for that — causing httpx.ReadTimeout
-    # errors during long-polling that make the bot appear to "go silent" for
-    # stretches at a time. Give both regular requests and the getUpdates
-    # long-poll connection much more generous timeouts. Note: get_updates_read_timeout
-    # must stay comfortably ABOVE the `timeout=` value passed to run_polling() below,
-    # since that's how long Telegram holds the connection open waiting for updates.
     request = HTTPXRequest(
         connect_timeout=30.0,
         read_timeout=30.0,
@@ -1929,8 +2001,6 @@ def main():
     app.add_error_handler(error_handler)
     logger.info("Bot started ✅")
 
-    # timeout= here is how long Telegram holds each long-poll connection open;
-    # it must stay BELOW get_updates_read_timeout set above.
     app.run_polling(timeout=30, drop_pending_updates=False)
 
 if __name__ == "__main__":
@@ -1938,7 +2008,7 @@ if __name__ == "__main__":
     while True:
         try:
             main()
-            break  # main() only returns if run_polling stopped cleanly (e.g. Ctrl+C)
+            break
         except Exception:
             logger.exception("Fatal error — restarting bot in 5s")
             time.sleep(5)
