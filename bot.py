@@ -101,27 +101,27 @@ DEADS_ITEMS = [
 
 # ── Scanner Items ─────────────────────────────────────────────────────────────
 SCANNER_ITEMS = [
-    ("Binance · Email",       "crypto",   3.00),
-    ("Binance · Filter",      "crypto",   1.50),
-    ("CoinW · Email",         "crypto",   1.50),
-    ("CoinW · Mobile",        "crypto",   1.50),
-    ("HTX · Email",           "crypto",   1.50),
-    ("HTX · Mobile",          "crypto",   1.50),
-    ("KuCoin · Email",        "crypto",   1.50),
-    ("KuCoin · Mobile",       "crypto",   1.00),
-    ("OKX · Filter",          "crypto",   3.00),
-    ("Robinhood · Check",     "crypto",   2.50),
-    ("Facebook · Email",      "socials",  1.00),
-    ("Instagram · Mobile",    "socials",  1.00),
-    ("LinkedIn · Profile",    "socials",  15.00),
-    ("Signal",                "socials",  1.00),
-    ("Snapchat",              "socials",  2.00),
-    ("iMessage · Filter",     "socials",  0.35),
-    ("DHL",                   "shopping", 1.50),
+    ("Binance · Email",       "crypto",   30.00),
+    ("Binance · Filter",      "crypto",   30.50),
+    ("CoinW · Email",         "crypto",   25.50),
+    ("CoinW · Mobile",        "crypto",   25.50),
+    ("HTX · Email",           "crypto",   25.50),
+    ("HTX · Mobile",          "crypto",   25.50),
+    ("KuCoin · Email",        "crypto",   30.50),
+    ("KuCoin · Mobile",       "crypto",   30.00),
+    ("OKX · Filter",          "crypto",   30.00),
+    ("Robinhood · Check",     "crypto",   15.50),
+    ("Facebook · Email",      "socials",   4.00),
+    ("Instagram · Mobile",    "socials",   5.00),
+    ("LinkedIn · Profile",    "socials",  20.00),
+    ("Signal",                "socials",   5.00),
+    ("Snapchat",              "socials",   5.00),
+    ("iMessage · Filter",     "socials",   3.35),
+    ("DHL",                   "shopping", 11.50),
     ("Shein",                 "shopping", 15.00),
-    ("Carrier · Any",         "carrier",  1.50),
-    ("Carrier · UK",          "carrier",  0.75),
-    ("Carrier · US",          "carrier",  0.75),
+    ("Carrier · Any",         "carrier",   5.50),
+    ("Carrier · UK",          "carrier",   7.75),
+    ("Carrier · US",          "carrier",   6.75),
 ]
 SCANNER_PER_PAGE = 10
 SCANNER_QTYS = [1, 5, 10, 25, 50, 100]
@@ -132,6 +132,50 @@ LEADS_PRICING = [
     (10_000, 100),  (15_000,125),  (20_000, 150),  (25_000,175),
     (30_000, 200),  (50_000,300),  (100_000,600),
 ]
+
+# ── Per-vertical pricing (edit each independently) ────────────────────────────
+CRYPTO_VERT_PRICING = [
+    (1_000,   200),  (2_000,  395),  (3_000,  590),  (4_000,   785),
+    (5_000,   800),  (6_000,  990),  (7_000, 1190),  (8_000,  1380),
+    (10_000, 1500),  (15_000,2300),  (20_000,2300),  (25_000, 3450),
+    (30_000, 4200),  (50_000,5900),  (100_000,10000),
+]
+
+BANKS_VERT_PRICING = [
+    (1_000,    90),  (2_000,  175),  (3_000,  260),  (4_000,   345),
+    (5_000,   350),  (6_000,  435),  (7_000,  525),  (8_000,   610),
+    (10_000,  660),  (15_000,1010),  (20_000,1010),  (25_000, 1515),
+    (30_000, 1845),  (50_000,2595),  (100_000,4400),
+]
+
+BIZ_VERT_PRICING = [
+    (1_000,    60),  (2_000,  115),  (3_000,  170),  (4_000,   225),
+    (5_000,   230),  (6_000,  285),  (7_000,  345),  (8_000,   400),
+    (10_000,  435),  (15_000, 665),  (20_000, 665),  (25_000,  995),
+    (30_000, 1215),  (50_000,1705),  (100_000,2890),
+]
+
+SIM_VERT_PRICING = [
+    (1_000,    25),  (2_000,   48),  (3_000,   71),  (4_000,    94),
+    (5_000,    96),  (6_000,  119),  (7_000,  144),  (8_000,   167),
+    (10_000,  181),  (15_000, 277),  (20_000, 277),  (25_000,  415),
+    (30_000,  506),  (50_000, 711),  (100_000,1205),
+]
+
+LEDGER_VERT_PRICING = [
+    (1_000,    250),  (2_000,   480),  (3_000,   710),  (4_000,    940),
+    (5_000,    960),  (6_000,  1190),  (7_000,  1440),  (8_000,   1670),
+    (10_000,  1810),  (15_000, 2770),  (20_000, 2770),  (25_000,  4150),
+    (30_000,  5060),  (50_000, 7110),  (100_000,12050),
+]
+
+VERT_PRICING = {
+    "crypto": CRYPTO_VERT_PRICING,
+    "banks":  BANKS_VERT_PRICING,
+    "biz":    BIZ_VERT_PRICING,
+    "sim":    SIM_VERT_PRICING,
+    "ledger": LEDGER_VERT_PRICING,
+}
 
 # ══════════════════════════════════════════════════════════════════════════════
 # LEADS — Full dataset for all 44 countries, 5 verticals each.
@@ -144,7 +188,7 @@ LEADS = {
         "flag": "🇦🇺", "name": "Australia",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "AMP Bank":                     210_000,
                     "ANZ Bank":                   1_250_000,
@@ -163,7 +207,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance AU":          1_100_000,
                     "BTC Markets":           450_000,
@@ -177,7 +221,7 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "ABR Registered Entities":   1_400_000,
                     "ASIC Corporate Index":       2_100_000,
@@ -185,7 +229,7 @@ LEADS = {
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Telstra":      4_200_000,
                     "Optus":        3_100_000,
@@ -195,7 +239,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Validator Nodes AU":  120_000,
                     "Ethereum Staking Index AU":   340_000,
@@ -210,7 +254,7 @@ LEADS = {
         "flag": "🇦🇹", "name": "Austria",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Bank Austria (UniCredit)": 1_200_000,
                     "Bawag P.S.K.":              760_000,
@@ -222,7 +266,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance AT":   480_000,
                     "Bitpanda":     920_000,
@@ -231,14 +275,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "Firmenbuch (Austrian Business Register)": 980_000,
                     "WKO Member Entities":                     760_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "A1":      1_540_000,
                     "Magenta":   890_000,
@@ -247,7 +291,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes AT":       42_000,
                     "Ethereum Stakers AT":    95_000,
@@ -261,7 +305,7 @@ LEADS = {
         "flag": "🇧🇭", "name": "Bahrain",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Ahli United Bank":   310_000,
                     "Al Salam Bank":      180_000,
@@ -274,7 +318,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance BH":     180_000,
                     "CoinMENA":       120_000,
@@ -282,14 +326,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "Ministry of Industry & Commerce Entities": 210_000,
                     "Bahrain CR Registered Firms":              180_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Batelco":   480_000,
                     "Zain BH":   390_000,
@@ -298,7 +342,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes BH":    12_000,
                     "Ethereum Stakers BH": 28_000,
@@ -312,7 +356,7 @@ LEADS = {
         "flag": "🇧🇪", "name": "Belgium",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Argenta":          680_000,
                     "AXA Bank BE":      420_000,
@@ -326,7 +370,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance BE":   620_000,
                     "Bit4You":       95_000,
@@ -336,14 +380,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "Crossroads Bank for Enterprises": 1_200_000,
                     "Belgian VAT Registered Entities":   890_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Proximus":  1_920_000,
                     "Orange BE": 1_340_000,
@@ -351,7 +395,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes BE":      65_000,
                     "Ethereum Stakers BE":  140_000,
@@ -365,7 +409,7 @@ LEADS = {
         "flag": "🇧🇷", "name": "Brazil",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Banco do Brasil":      8_200_000,
                     "Banco Inter":          3_400_000,
@@ -380,7 +424,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance BR":    4_200_000,
                     "Bitso BR":        980_000,
@@ -392,7 +436,7 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "CNPJ Registered Entities":  18_000_000,
                     "Receita Federal Tax Base":  12_000_000,
@@ -400,7 +444,7 @@ LEADS = {
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Vivo":   7_800_000,
                     "Claro":  6_500_000,
@@ -409,7 +453,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes BR":      380_000,
                     "Ethereum Stakers BR":   520_000,
@@ -424,7 +468,7 @@ LEADS = {
         "flag": "🇧🇬", "name": "Bulgaria",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Allianz Bank BG":   180_000,
                     "Bulgarian Development Bank": 95_000,
@@ -437,7 +481,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance BG":   320_000,
                     "Coinbase BG":  180_000,
@@ -445,14 +489,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "Bulgarian Trade Register":  980_000,
                     "BULSTAT Registry":          760_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "A1 BG":       1_100_000,
                     "Telenor BG":    890_000,
@@ -460,7 +504,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes BG":     28_000,
                     "Ethereum Stakers BG":  55_000,
@@ -474,7 +518,7 @@ LEADS = {
         "flag": "🇨🇦", "name": "Canada",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "BMO Bank":                 1_500_000,
                     "CIBC":                     1_200_000,
@@ -489,7 +533,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Bitbuy":               210_000,
                     "Coinberry":            420_000,
@@ -502,7 +546,7 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "Corporations Canada Federal":  1_800_000,
                     "Ontario Business Registry":    2_100_000,
@@ -511,7 +555,7 @@ LEADS = {
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Rogers":  4_100_000,
                     "Bell":    3_800_000,
@@ -521,7 +565,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes CA":      120_000,
                     "Ethereum Stakers CA":   210_000,
@@ -536,7 +580,7 @@ LEADS = {
         "flag": "🇨🇾", "name": "Cyprus",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Alpha Bank Cyprus":   210_000,
                     "AstroBank":           180_000,
@@ -547,7 +591,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance CY":   120_000,
                     "Coinbase CY":   80_000,
@@ -555,14 +599,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "Registrar of Companies CY":  420_000,
                     "VAT Registered Entities CY": 280_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Cyta":     340_000,
                     "MTN CY":   210_000,
@@ -570,7 +614,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes CY":    8_500,
                     "Ethereum Stakers CY": 18_000,
@@ -584,7 +628,7 @@ LEADS = {
         "flag": "🇨🇿", "name": "Czech Republic",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Air Bank":              420_000,
                     "Ceska Sporitelna":    2_100_000,
@@ -598,7 +642,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Anycoin CZ":   210_000,
                     "Binance CZ":   480_000,
@@ -608,14 +652,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "Czech Business Register (OR)": 1_200_000,
                     "ARES Registered Entities":     2_800_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "T-Mobile CZ":  2_100_000,
                     "O2 CZ":        1_800_000,
@@ -623,7 +667,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes CZ":      78_000,
                     "Ethereum Stakers CZ":  145_000,
@@ -637,7 +681,7 @@ LEADS = {
         "flag": "🇩🇰", "name": "Denmark",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Arbejdernes Landsbank": 380_000,
                     "Danske Bank":         2_400_000,
@@ -651,7 +695,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance DK":   380_000,
                     "Coinbase DK":  290_000,
@@ -661,14 +705,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "Danish CVR Business Register": 1_100_000,
                     "SKAT Registered Entities":       760_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "TDC":      1_540_000,
                     "Telenor DK": 1_100_000,
@@ -677,7 +721,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes DK":     52_000,
                     "Ethereum Stakers DK": 110_000,
@@ -691,7 +735,7 @@ LEADS = {
         "flag": "🇪🇪", "name": "Estonia",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Coop Pank":      180_000,
                     "LHV Bank":       310_000,
@@ -702,7 +746,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance EE":   210_000,
                     "Coinbase EE":  140_000,
@@ -710,14 +754,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "Estonian Business Register":  380_000,
                     "e-Residency Company Index":   120_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Telia EE":  430_000,
                     "Elisa EE":  380_000,
@@ -725,7 +769,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes EE":    18_000,
                     "Ethereum Stakers EE": 42_000,
@@ -739,7 +783,7 @@ LEADS = {
         "flag": "🇫🇮", "name": "Finland",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Aktia Bank":          310_000,
                     "Ålandsbanken":         95_000,
@@ -752,7 +796,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance FI":   480_000,
                     "Coinbase FI":  280_000,
@@ -761,14 +805,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "Finnish Trade Register (PRH)": 980_000,
                     "YTJ Business Registry":        760_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Elisa FI": 1_800_000,
                     "DNA FI":   1_500_000,
@@ -776,7 +820,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes FI":     62_000,
                     "Ethereum Stakers FI": 130_000,
@@ -790,7 +834,7 @@ LEADS = {
         "flag": "🇫🇷", "name": "France",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "BNP Paribas":         7_200_000,
                     "Boursorama":          3_400_000,
@@ -809,7 +853,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance FR":    2_400_000,
                     "Bitpanda FR":     380_000,
@@ -822,7 +866,7 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "INPI SIRENE Register":      4_800_000,
                     "French VAT (TVA) Entities": 3_200_000,
@@ -830,7 +874,7 @@ LEADS = {
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Orange FR":      6_200_000,
                     "SFR":            4_800_000,
@@ -839,7 +883,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes FR":      320_000,
                     "Ethereum Stakers FR":   540_000,
@@ -854,7 +898,7 @@ LEADS = {
         "flag": "🇩🇪", "name": "Germany",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Commerzbank":       4_200_000,
                     "Comdirect":         1_800_000,
@@ -870,7 +914,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance DE":    3_400_000,
                     "Bitstamp DE":     420_000,
@@ -882,7 +926,7 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "Handelsregister (HRB)":        4_200_000,
                     "German VAT (USt-IdNr.) Entities":3_800_000,
@@ -890,7 +934,7 @@ LEADS = {
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Telekom DE":  8_900_000,
                     "Vodafone DE": 7_200_000,
@@ -899,7 +943,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes DE":      680_000,
                     "Ethereum Stakers DE": 1_200_000,
@@ -914,7 +958,7 @@ LEADS = {
         "flag": "🇬🇷", "name": "Greece",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Alpha Bank":       1_200_000,
                     "Attica Bank":        280_000,
@@ -925,7 +969,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance GR":   480_000,
                     "Coinbase GR":  280_000,
@@ -934,14 +978,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "GEMI Greek Business Registry": 1_100_000,
                     "TAXIS Registered Entities":      760_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Cosmote":      2_800_000,
                     "Vodafone GR":  1_900_000,
@@ -950,7 +994,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes GR":     48_000,
                     "Ethereum Stakers GR":  95_000,
@@ -964,7 +1008,7 @@ LEADS = {
         "flag": "🇭🇺", "name": "Hungary",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Budapest Bank":    540_000,
                     "CIB Bank HU":      480_000,
@@ -978,7 +1022,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance HU":    380_000,
                     "Coinbase HU":   210_000,
@@ -987,14 +1031,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "Hungarian Company Information (Céginfo)": 980_000,
                     "NAV Tax Registered Entities":             760_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Telekom HU": 2_100_000,
                     "Yettel HU":  1_400_000,
@@ -1002,7 +1046,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes HU":     42_000,
                     "Ethereum Stakers HU":  88_000,
@@ -1016,7 +1060,7 @@ LEADS = {
         "flag": "🇮🇸", "name": "Iceland",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Arion Bank":     180_000,
                     "Íslandsbanki":   160_000,
@@ -1025,7 +1069,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance IS":    45_000,
                     "Coinbase IS":   28_000,
@@ -1033,14 +1077,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "Firmaskrá (IS Company Register)": 95_000,
                     "RSK (Tax Authority Register)":    72_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Siminn IS":  180_000,
                     "Vodafone IS":140_000,
@@ -1048,7 +1092,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes IS":    8_200,
                     "Ethereum Stakers IS": 16_000,
@@ -1062,7 +1106,7 @@ LEADS = {
         "flag": "🇮🇪", "name": "Ireland",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "AIB (Allied Irish Banks)": 1_900_000,
                     "An Post Money":              310_000,
@@ -1076,7 +1120,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance IE":   480_000,
                     "BitIreland":    62_000,
@@ -1086,7 +1130,7 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "Companies Registration Office (CRO)": 980_000,
                     "Irish Revenue Tax Entities":          760_000,
@@ -1094,7 +1138,7 @@ LEADS = {
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Eir":          833_503,
                     "Tesco Mobile IE": 520_700,
@@ -1104,7 +1148,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes IE":     62_000,
                     "Ethereum Stakers IE": 140_000,
@@ -1118,7 +1162,7 @@ LEADS = {
         "flag": "🇮🇹", "name": "Italy",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Banco BPM":             2_100_000,
                     "Banca Mediolanum":      1_200_000,
@@ -1135,7 +1179,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance IT":    1_900_000,
                     "Bitfinex IT":     420_000,
@@ -1145,14 +1189,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "Registro Imprese CCIAA":  4_800_000,
                     "Italian VAT (P.IVA) Entities": 3_200_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "TIM":          5_900_000,
                     "Vodafone IT":  4_200_000,
@@ -1162,7 +1206,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes IT":      280_000,
                     "Ethereum Stakers IT":   480_000,
@@ -1177,7 +1221,7 @@ LEADS = {
         "flag": "🇱🇻", "name": "Latvia",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Citadele Bank":  280_000,
                     "Luminor LV":     340_000,
@@ -1187,7 +1231,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance LV":   180_000,
                     "Coinbase LV":  110_000,
@@ -1195,14 +1239,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "Latvian Enterprise Register":  280_000,
                     "VID Tax Entities":             210_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "LMT":      540_000,
                     "Tele2 LV": 430_000,
@@ -1210,7 +1254,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes LV":    12_000,
                     "Ethereum Stakers LV": 28_000,
@@ -1224,7 +1268,7 @@ LEADS = {
         "flag": "🇱🇹", "name": "Lithuania",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Luminor LT":     480_000,
                     "Medicinos Bankas": 120_000,
@@ -1235,7 +1279,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance LT":   280_000,
                     "Coinbase LT":  160_000,
@@ -1244,14 +1288,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "Lithuanian JAR Register":  420_000,
                     "VMI Tax Registered Entities": 380_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Tele2 LT": 890_000,
                     "Bite LT":  760_000,
@@ -1259,7 +1303,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes LT":    18_000,
                     "Ethereum Stakers LT": 38_000,
@@ -1273,7 +1317,7 @@ LEADS = {
         "flag": "🇲🇾", "name": "Malaysia",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Affin Bank":      540_000,
                     "Alliance Bank":   760_000,
@@ -1288,7 +1332,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance MY":    980_000,
                     "Coinbase MY":   420_000,
@@ -1299,7 +1343,7 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "SSM Registered Companies":   2_400_000,
                     "LHDN Tax Entities":          1_800_000,
@@ -1307,7 +1351,7 @@ LEADS = {
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Maxis":    4_200_000,
                     "Digi":     3_800_000,
@@ -1317,7 +1361,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes MY":     120_000,
                     "Ethereum Stakers MY":  210_000,
@@ -1332,7 +1376,7 @@ LEADS = {
         "flag": "🇲🇹", "name": "Malta",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "APS Bank":         95_000,
                     "Bank of Valletta": 210_000,
@@ -1343,7 +1387,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance MT":    95_000,
                     "Coinbase MT":   62_000,
@@ -1351,14 +1395,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "MFSA Registry of Companies": 120_000,
                     "Malta Tax & Customs (CFR)":   88_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "GO Malta":    180_000,
                     "Melita":      140_000,
@@ -1366,7 +1410,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes MT":    4_800,
                     "Ethereum Stakers MT": 9_500,
@@ -1380,7 +1424,7 @@ LEADS = {
         "flag": "🇳🇱", "name": "Netherlands",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "ABN AMRO":            3_800_000,
                     "ASN Bank":              420_000,
@@ -1396,7 +1440,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Bitvavo":           1_200_000,
                     "Binance NL":          980_000,
@@ -1407,14 +1451,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "KVK Dutch Chamber of Commerce": 2_800_000,
                     "Dutch VAT (BTW) Entities":      2_100_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "KPN":             3_200_000,
                     "VodafoneZiggo":   2_800_000,
@@ -1423,7 +1467,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes NL":      210_000,
                     "Ethereum Stakers NL":   380_000,
@@ -1438,7 +1482,7 @@ LEADS = {
         "flag": "🇳🇿", "name": "New Zealand",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "ANZ NZ":              1_400_000,
                     "ASB Bank":            1_100_000,
@@ -1451,7 +1495,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance NZ":      380_000,
                     "BitPrime":         95_000,
@@ -1461,14 +1505,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "NZ Companies Office Register":  680_000,
                     "IRD GST Registered Entities":   540_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Spark NZ": 1_800_000,
                     "One NZ":   1_400_000,
@@ -1476,7 +1520,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes NZ":    28_000,
                     "Ethereum Stakers NZ": 55_000,
@@ -1490,7 +1534,7 @@ LEADS = {
         "flag": "🇳🇴", "name": "Norway",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "DNB Bank":        3_400_000,
                     "Handelsbanken NO":  380_000,
@@ -1502,7 +1546,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance NO":     480_000,
                     "Coinbase NO":    310_000,
@@ -1511,14 +1555,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "Brønnøysund Register Centre": 980_000,
                     "Skatteetaten Entities":        760_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Telenor NO": 2_400_000,
                     "Telia NO":   1_800_000,
@@ -1526,7 +1570,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes NO":     82_000,
                     "Ethereum Stakers NO": 160_000,
@@ -1540,7 +1584,7 @@ LEADS = {
         "flag": "🇵🇱", "name": "Poland",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Alior Bank":     1_200_000,
                     "Bank Millennium": 1_600_000,
@@ -1554,7 +1598,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance PL":    1_200_000,
                     "BitBay (Zonda)": 760_000,
@@ -1565,7 +1609,7 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "KRS National Court Register": 2_800_000,
                     "CEIDG Business Registry":     4_200_000,
@@ -1573,7 +1617,7 @@ LEADS = {
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Orange PL": 4_100_000,
                     "Play PL":   3_800_000,
@@ -1582,7 +1626,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes PL":      180_000,
                     "Ethereum Stakers PL":   320_000,
@@ -1597,7 +1641,7 @@ LEADS = {
         "flag": "🇵🇹", "name": "Portugal",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Activobank":        320_000,
                     "Banco BPI":         980_000,
@@ -1612,7 +1656,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance PT":    480_000,
                     "Coinbase PT":   310_000,
@@ -1622,14 +1666,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "IRN Registo Comercial": 1_100_000,
                     "AT Portuguese Tax Register":  760_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "NOS":         2_800_000,
                     "MEO":         2_400_000,
@@ -1637,7 +1681,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes PT":     88_000,
                     "Ethereum Stakers PT": 160_000,
@@ -1651,7 +1695,7 @@ LEADS = {
         "flag": "🇵🇷", "name": "Puerto Rico",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Banco Popular de PR":  1_200_000,
                     "FirstBankPR":            540_000,
@@ -1661,7 +1705,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance PR":   210_000,
                     "Coinbase PR":  340_000,
@@ -1669,14 +1713,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "Puerto Rico State Dept Corporations": 420_000,
                     "PR Treasury Tax Entities":            310_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Claro PR":    1_100_000,
                     "T-Mobile PR":   890_000,
@@ -1684,7 +1728,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes PR":    22_000,
                     "Ethereum Stakers PR": 48_000,
@@ -1698,7 +1742,7 @@ LEADS = {
         "flag": "🇶🇦", "name": "Qatar",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Al Khaliji Commercial Bank":  180_000,
                     "Ahli Bank QA":                210_000,
@@ -1712,7 +1756,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance QA":     180_000,
                     "CoinMENA QA":    120_000,
@@ -1720,21 +1764,21 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "Qatar MEC Business Registry":  320_000,
                     "QFC Registered Entities":      160_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Ooredoo QA":      980_000,
                     "Vodafone Qatar":  760_000,
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes QA":    22_000,
                     "Ethereum Stakers QA": 48_000,
@@ -1748,7 +1792,7 @@ LEADS = {
         "flag": "🇷🇴", "name": "Romania",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Alpha Bank RO":         640_000,
                     "Banca Transilvania":  2_800_000,
@@ -1762,7 +1806,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance RO":     620_000,
                     "Coinbase RO":    310_000,
@@ -1771,14 +1815,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "ONRC Trade Register RO":  1_600_000,
                     "ANAF Tax Entities":       2_100_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Orange RO":    3_200_000,
                     "Vodafone RO":  2_800_000,
@@ -1787,7 +1831,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes RO":      88_000,
                     "Ethereum Stakers RO":  160_000,
@@ -1801,7 +1845,7 @@ LEADS = {
         "flag": "🇸🇬", "name": "Singapore",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Citi Singapore":     640_000,
                     "DBS Bank":         3_800_000,
@@ -1815,7 +1859,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance SG":     980_000,
                     "Coinbase SG":    640_000,
@@ -1827,14 +1871,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "ACRA Bizfile Registry":  980_000,
                     "IRAS GST Registered Entities": 760_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Singtel":  2_100_000,
                     "StarHub":  1_400_000,
@@ -1843,7 +1887,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes SG":      95_000,
                     "Ethereum Stakers SG":  180_000,
@@ -1858,7 +1902,7 @@ LEADS = {
         "flag": "🇸🇰", "name": "Slovakia",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "365.bank":          320_000,
                     "Česká sporiteľňa SK": 540_000,
@@ -1872,7 +1916,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance SK":   280_000,
                     "Coinbase SK":  160_000,
@@ -1880,14 +1924,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "Slovak Business Register (ORSR)": 620_000,
                     "Slovak Trade Register (ZRSR)":    480_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Slovak Telekom": 1_400_000,
                     "Orange SK":      1_100_000,
@@ -1895,7 +1939,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes SK":    32_000,
                     "Ethereum Stakers SK": 65_000,
@@ -1909,7 +1953,7 @@ LEADS = {
         "flag": "🇸🇮", "name": "Slovenia",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Abanka":              280_000,
                     "Addiko Bank SI":      160_000,
@@ -1920,7 +1964,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance SI":   160_000,
                     "Coinbase SI":   95_000,
@@ -1928,14 +1972,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "AJPES Business Register SI": 280_000,
                     "FURS Tax Entities":          210_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "A1 SI":         540_000,
                     "Telekom SI":    430_000,
@@ -1943,7 +1987,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes SI":    12_000,
                     "Ethereum Stakers SI": 26_000,
@@ -1957,7 +2001,7 @@ LEADS = {
         "flag": "🇿🇦", "name": "South Africa",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Absa Bank":                   2_400_000,
                     "African Bank":                  680_000,
@@ -1972,7 +2016,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "AltCoinTrader":  420_000,
                     "Binance ZA":     980_000,
@@ -1981,14 +2025,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "CIPC Registered Businesses": 1_100_000,
                     "SARS Tax Registered Entities": 890_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Vodacom":  5_200_000,
                     "MTN ZA":   4_800_000,
@@ -1997,7 +2041,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Validator Index ZA": 85_000,
                     "Ethereum Staking Nodes ZA":  120_000,
@@ -2011,7 +2055,7 @@ LEADS = {
         "flag": "🇪🇸", "name": "Spain",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Banco Sabadell":      2_400_000,
                     "Banco Santander ES": 10_800_000,
@@ -2026,7 +2070,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance ES":    2_100_000,
                     "Bit2Me":          640_000,
@@ -2036,7 +2080,7 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "Spanish BORME Registry":     3_200_000,
                     "Spanish VAT (NIF) Entities": 4_800_000,
@@ -2044,7 +2088,7 @@ LEADS = {
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Movistar":  7_200_000,
                     "Orange ES": 5_800_000,
@@ -2054,7 +2098,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes ES":      280_000,
                     "Ethereum Stakers ES":   480_000,
@@ -2069,7 +2113,7 @@ LEADS = {
         "flag": "🇸🇪", "name": "Sweden",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Avanza Bank":     1_200_000,
                     "Danske Bank SE":    420_000,
@@ -2083,7 +2127,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance SE":     760_000,
                     "Coinbase SE":    480_000,
@@ -2093,14 +2137,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "Swedish Bolagsverket Register": 1_200_000,
                     "Skatteverket Tax Entities":       980_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Telia SE":   3_200_000,
                     "Tele2 SE":   2_800_000,
@@ -2109,7 +2153,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes SE":      160_000,
                     "Ethereum Stakers SE":   290_000,
@@ -2124,7 +2168,7 @@ LEADS = {
         "flag": "🇨🇭", "name": "Switzerland",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Credit Suisse":    3_200_000,
                     "Julius Baer":        680_000,
@@ -2139,7 +2183,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Bitcoin Suisse":   640_000,
                     "Binance CH":       380_000,
@@ -2150,14 +2194,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "Swiss ZEFIX Commercial Register": 1_400_000,
                     "Swiss VAT (MWST) Entities":         980_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Swisscom": 2_800_000,
                     "Sunrise":  1_900_000,
@@ -2165,7 +2209,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes CH":      180_000,
                     "Ethereum Stakers CH":   310_000,
@@ -2180,7 +2224,7 @@ LEADS = {
         "flag": "🇹🇼", "name": "Taiwan",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Bank of Taiwan":        2_800_000,
                     "CTBC Bank":             2_400_000,
@@ -2195,7 +2239,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Ace Exchange":    420_000,
                     "Binance TW":      980_000,
@@ -2205,14 +2249,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "MOEA Company Register TW":  2_100_000,
                     "MOF Tax Registered Entities": 1_800_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Chunghwa Telecom":   4_100_000,
                     "Taiwan Mobile":      3_200_000,
@@ -2221,7 +2265,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes TW":      140_000,
                     "Ethereum Stakers TW":   260_000,
@@ -2236,7 +2280,7 @@ LEADS = {
         "flag": "🇹🇷", "name": "Turkey",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Akbank":           4_800_000,
                     "Denizbank":        2_400_000,
@@ -2252,7 +2296,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance TR":   3_800_000,
                     "BtcTurk":      2_100_000,
@@ -2262,7 +2306,7 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "MERSIS Turkish Trade Register": 3_400_000,
                     "GIB Tax Number Entities":       5_800_000,
@@ -2270,7 +2314,7 @@ LEADS = {
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Turkcell":      6_800_000,
                     "Vodafone TR":   4_900_000,
@@ -2278,7 +2322,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes TR":      280_000,
                     "Ethereum Stakers TR":   420_000,
@@ -2293,7 +2337,7 @@ LEADS = {
         "flag": "🇦🇪", "name": "UAE",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Abu Dhabi Commercial Bank (ADCB)": 1_400_000,
                     "Abu Dhabi Islamic Bank (ADIB)":    1_200_000,
@@ -2308,7 +2352,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance AE":     1_200_000,
                     "BitOasis":         480_000,
@@ -2319,7 +2363,7 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "DED Dubai Business Registry": 1_200_000,
                     "DIFC Registered Entities":      540_000,
@@ -2328,14 +2372,14 @@ LEADS = {
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Etisalat (e&)": 2_400_000,
                     "du":            1_800_000,
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes AE":     120_000,
                     "Ethereum Stakers AE":  210_000,
@@ -2350,7 +2394,7 @@ LEADS = {
         "flag": "🇺🇦", "name": "Ukraine",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Alfa-Bank UA":       980_000,
                     "Credit Agricole UA": 640_000,
@@ -2364,7 +2408,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance UA":      1_400_000,
                     "Coinbase UA":       480_000,
@@ -2374,14 +2418,14 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "Ukrainian EDRU Business Register": 2_800_000,
                     "State Tax Service Entities":       3_400_000,
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "Kyivstar":  4_800_000,
                     "Vodafone UA":3_200_000,
@@ -2389,7 +2433,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Nodes UA":      180_000,
                     "Ethereum Stakers UA":   320_000,
@@ -2404,7 +2448,7 @@ LEADS = {
         "flag": "🇬🇧", "name": "United Kingdom",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Bank of Scotland":           1_100_000,
                     "Barclays":                   3_400_000,
@@ -2430,7 +2474,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance UK":    1_800_000,
                     "Bitstamp UK":     420_000,
@@ -2445,7 +2489,7 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "Companies House Active Directors": 2_800_000,
                     "UK Corporate Officer Index":       1_900_000,
@@ -2453,7 +2497,7 @@ LEADS = {
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "EE":        3_544_000,
                     "O2 UK":     1_831_000,
@@ -2464,7 +2508,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Full Nodes (UK)":        140_000,
                     "Ethereum Staking Validators UK": 310_000,
@@ -2479,7 +2523,7 @@ LEADS = {
         "flag": "🇺🇸", "name": "United States",
         "verticals": {
             "banks": {
-                "label": "🏦 Banks & Financial",
+                "label": "🏦 Banks",
                 "items": {
                     "Ally Bank":           1_200_000,
                     "Bank of America":     7_200_000,
@@ -2499,7 +2543,7 @@ LEADS = {
                 },
             },
             "crypto": {
-                "label": "🪙 Crypto Exchanges",
+                "label": "🪙 Crypto",
                 "items": {
                     "Binance.US":    3_100_000,
                     "Coinbase US":   9_500_000,
@@ -2511,7 +2555,7 @@ LEADS = {
                 },
             },
             "biz": {
-                "label": "🏢 Business Registries",
+                "label": "🏢 Business",
                 "items": {
                     "Delaware Corporation Index":  5_400_000,
                     "Nevada LLC Registry":         2_100_000,
@@ -2521,7 +2565,7 @@ LEADS = {
                 },
             },
             "sim": {
-                "label": "📡 Mobile Networks",
+                "label": "📡 SMS",
                 "items": {
                     "AT&T":               12_800_000,
                     "Verizon":            11_400_000,
@@ -2534,7 +2578,7 @@ LEADS = {
                 },
             },
             "ledger": {
-                "label": "🔗 Ledgers & Nodes",
+                "label": "🔗 Hardware",
                 "items": {
                     "Bitcoin Full Nodes (US)":        850_000,
                     "Ethereum Staking Validators US": 1_100_000,
@@ -2554,6 +2598,48 @@ for _cc, _d in LEADS.items():
             _biggest = max(_items.values())
             _items["MIX"] = int(_biggest * 1.25)
 
+# ── Hardware Wallet Master List & Country Tier Map ────────────────────────────
+_HW_FULL = [
+    "Ledger Nano S Plus", "Ledger Nano X", "Ledger Flex", "Ledger Stax",
+    "Trezor Model One",   "Trezor Safe 3", "Trezor Safe 5",
+    "ELLIPAL Titan 2.0",  "ELLIPAL Titan Mini",
+    "Keystone 3 Pro",     "NGRAVE ZERO",      "Blockstream Jade",
+    "Foundation Passport","Coldcard Mk4",     "Coldcard Q",
+    "SafePal S1",         "SafePal X1",
+    "Tangem Card",        "Tangem Ring",
+    "BitBox02",           "SecuX W20",        "SecuX V20",  "KeepKey",
+    "CoolWallet Pro",     "CoolWallet S",
+    "OneKey Classic",     "OneKey Touch",     "OneKey Pro",
+]
+# Mid tier: drop US-export-restricted Coldcard Mk4/Q, NGRAVE ZERO (very limited dist),
+# Foundation Passport (US-only fulfilment issues)
+_HW_MID = [w for w in _HW_FULL if w not in {
+    "Coldcard Mk4", "Coldcard Q", "NGRAVE ZERO", "Foundation Passport",
+}]
+# Light tier: further drop BitBox02, KeepKey, SecuX W20/V20 (limited regional shipping)
+_HW_LIGHT = [w for w in _HW_MID if w not in {
+    "BitBox02", "KeepKey", "SecuX W20", "SecuX V20",
+}]
+
+_CC_HW_TIER = {
+    **{cc: _HW_FULL for cc in [
+        "AU","AT","BE","CA","CH","CZ","DE","DK","EE","ES","FI","FR",
+        "GR","HU","IE","IS","IT","LT","LV","MT","NL","NO","NZ","PL",
+        "PT","RO","SE","SI","SK","UK","US","PR",
+    ]},
+    **{cc: _HW_MID for cc in [
+        "AE","BH","QA","CY","SG","MY","TW","ZA","BR","BG",
+    ]},
+    **{cc: _HW_LIGHT for cc in ["TR","UA"]},
+}
+
+_HW_STOCK = 500_000  # stock per hardware model
+
+# Inject real hardware wallet items into every country's ledger vertical
+for _cc, _models in _CC_HW_TIER.items():
+    if _cc in LEADS and "ledger" in LEADS[_cc]["verticals"]:
+        LEADS[_cc]["verticals"]["ledger"]["items"] = {m: _HW_STOCK for m in _models}
+
 DEFAULT_LEADS = _copy.deepcopy(LEADS)
 DEFAULT_STORE = None  # set after STORE is defined above
 
@@ -2570,6 +2656,41 @@ CRYPTO_LEADS_PRICING = [
     (5_000,   800),
     (10_000,  1500),
     (25_000,  2500),
+]
+
+# ── Per-item target lists (name, fixed price £) ──────────────────────────────
+TS_FULLZ_ITEMS = [
+    ("NHS",                70),  ("Post Office",        70),
+    ("DPD",                70),  ("DHL",                70),
+    ("Apple",              70),  ("New Apple Pay",      70),
+    ("O2",                 70),  ("My3",                70),
+    ("Vodafone",           70),  ("EE",                 70),
+    ("Sky",                70),  ("Netflix",            70),
+    ("HMRC",               70),  ("DVLA",               70),
+    ("iD Mobile",          70),  ("Virgin",             70),
+    ("PayPal",             70),  ("NHS Omicron",        70),
+    ("EVRi",               70),  ("PureGym",            70),
+    ("Energy Scheme",      70),  ("Amazon",             70),
+    ("Cost of Crisis",     70),  ("Spare1Bank",         70),
+    ("BOI",                70),  ("AIB",                70),
+    ("Ulster",             70),  ("NAB",                70),
+    ("Westpac",            70),  ("Commonwealth",       70),
+    ("ANZ AU",             70),  ("Bendigo",            70),
+    ("St. George",         70),  ("Suncorp",            70),
+    ("UBank",              70),  ("Macquarie",          70),
+    ("BNZ",                70),  ("ASB",                70),
+    ("ANZ NZ",             70),  ("Santander PT",       70),
+    ("BBVA",               70),
+]
+
+TS_CRYPTO_ITEMS = [
+    ("Trading212",  200),  ("Bunq",      200),
+    ("KuCoin",      200),  ("Binance",   200),
+    ("Bybit",       200),  ("OKX",       200),
+    ("HTC",         200),  ("CoinSpot",  200),
+    ("Shakepay",    200),  ("Coinbase",  200),
+    ("Ledger",      200),  ("WEB3",      200),
+    ("CoinGate",    200),  ("CoinJar",   200),
 ]
 
 RULES_TEXT = (
@@ -2777,11 +2898,11 @@ def country_keyboard():
 
 def verticals_keyboard(cc):
     rows = [
-        [InlineKeyboardButton("🪙 Crypto Exchanges",    callback_data=f"lvert|{cc}|crypto")],
-        [InlineKeyboardButton("🏦 Banks & Financial",   callback_data=f"lvert|{cc}|banks")],
-        [InlineKeyboardButton("🏢 Business Registries", callback_data=f"lvert|{cc}|biz")],
-        [InlineKeyboardButton("📡 Mobile Networks",     callback_data=f"lvert|{cc}|sim")],
-        [InlineKeyboardButton("🔗 Ledgers & Nodes",     callback_data=f"lvert|{cc}|ledger")],
+        [InlineKeyboardButton("🪙 Crypto",    callback_data=f"lvert|{cc}|crypto")],
+        [InlineKeyboardButton("🏦 Banks",   callback_data=f"lvert|{cc}|banks")],
+        [InlineKeyboardButton("🏢 Business", callback_data=f"lvert|{cc}|biz")],
+        [InlineKeyboardButton("📡 SMS",     callback_data=f"lvert|{cc}|sim")],
+        [InlineKeyboardButton("🔗 Hardware",     callback_data=f"lvert|{cc}|ledger")],
         [InlineKeyboardButton("⬅️ Back to Directory",   callback_data="leads")],
     ]
     return InlineKeyboardMarkup(rows)
@@ -2798,12 +2919,39 @@ def dataset_item_keyboard(cc, vert_key):
     rows.append([InlineKeyboardButton("⬅️ Back", callback_data=f"lc|{cc}")])
     return InlineKeyboardMarkup(rows)
 
-def qty_keyboard(cc, vert_key, item_name):
+HW_PER_PAGE = 8  # 4 rows × 2 columns
+
+def hw_keyboard(cc, page=0):
+    """Paginated inline keyboard for the Hardware (ledger) vertical."""
+    models     = list(LEADS[cc]["verticals"]["ledger"]["items"].keys())
+    total_pages = max(1, (len(models) + HW_PER_PAGE - 1) // HW_PER_PAGE)
+    page        = max(0, min(page, total_pages - 1))
+    page_models = models[page * HW_PER_PAGE:(page + 1) * HW_PER_PAGE]
     rows = []
-    for i in range(0, len(LEADS_PRICING), 2):
+    for i in range(0, len(page_models), 2):
+        row = []
+        for j in range(i, min(i + 2, len(page_models))):
+            name = page_models[j]
+            row.append(InlineKeyboardButton(name, callback_data=f"lk|{cc}|ledger|{name}"))
+        rows.append(row)
+    if total_pages > 1:
+        nav = []
+        if page > 0:
+            nav.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"lhwp|{cc}|{page-1}"))
+        nav.append(InlineKeyboardButton(f"📄 {page+1}/{total_pages}", callback_data="noop"))
+        if page < total_pages - 1:
+            nav.append(InlineKeyboardButton("Next ➡️", callback_data=f"lhwp|{cc}|{page+1}"))
+        rows.append(nav)
+    rows.append([InlineKeyboardButton("⬅️ Back", callback_data=f"lc|{cc}")])
+    return InlineKeyboardMarkup(rows)
+
+def qty_keyboard(cc, vert_key, item_name):
+    pricing = VERT_PRICING.get(vert_key, LEADS_PRICING)
+    rows = []
+    for i in range(0, len(pricing), 2):
         row = [
             InlineKeyboardButton(f"{qty//1000}k — £{price}", callback_data=f"lq|{cc}|{vert_key}|{item_name}|{qty}")
-            for qty, price in LEADS_PRICING[i:i+2]
+            for qty, price in pricing[i:i+2]
         ]
         rows.append(row)
     rows.append([InlineKeyboardButton("⬅️ Back", callback_data=f"lvert|{cc}|{vert_key}")])
@@ -2811,8 +2959,8 @@ def qty_keyboard(cc, vert_key, item_name):
 
 def tsource_main_keyboard():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("‼️ Spam Service",        callback_data="ts_aged")],
-        [InlineKeyboardButton("🪙 Crypto Leads",        callback_data="ts_crypto")],
+        [InlineKeyboardButton("🏦 Bank Page",             callback_data="ts_aged")],
+        [InlineKeyboardButton("🪙 Crypto Page",          callback_data="ts_crypto")],
         [InlineKeyboardButton("🛠 Additional Services", callback_data="ts_services")],
         [InlineKeyboardButton("⬅️ Back",                callback_data="back")],
     ])
@@ -2829,11 +2977,33 @@ def ts_qty_keyboard(pricing, cb_prefix):
     rows.append([InlineKeyboardButton("⬅️ Back", callback_data="tsource")])
     return InlineKeyboardMarkup(rows)
 
+def ts_fullz_items_keyboard():
+    rows = []
+    for i in range(0, len(TS_FULLZ_ITEMS), 2):
+        row = []
+        for idx in range(i, min(i + 2, len(TS_FULLZ_ITEMS))):
+            name, price = TS_FULLZ_ITEMS[idx]
+            row.append(InlineKeyboardButton(f"{name} — £{price}", callback_data=f"tsfi|{idx}"))
+        rows.append(row)
+    rows.append([InlineKeyboardButton("⬅️ Back", callback_data="tsource")])
+    return InlineKeyboardMarkup(rows)
+
+def ts_crypto_items_keyboard():
+    rows = []
+    for i in range(0, len(TS_CRYPTO_ITEMS), 2):
+        row = []
+        for idx in range(i, min(i + 2, len(TS_CRYPTO_ITEMS))):
+            name, price = TS_CRYPTO_ITEMS[idx]
+            row.append(InlineKeyboardButton(f"{name} — £{price}", callback_data=f"tsci|{idx}"))
+        rows.append(row)
+    rows.append([InlineKeyboardButton("⬅️ Back", callback_data="tsource")])
+    return InlineKeyboardMarkup(rows)
+
 def main_menu_keyboard():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("🌍 Leads",  callback_data="leads"),  InlineKeyboardButton("🛍️ Store",  callback_data="store")],
         [InlineKeyboardButton("💰 Wallet", callback_data="wallet"), InlineKeyboardButton("🔍 Scanner", callback_data="scanner")],
-        [InlineKeyboardButton("🎯 Targeted Source", callback_data="tsource")],
+        [InlineKeyboardButton("📨 Spam Service", callback_data="tsource")],
     ])
 
 def main_menu_text():
@@ -2959,7 +3129,7 @@ async def cmd_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_targeted(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "🎯 *Targeted Source*\n\nSelect a category below:",
+        "📨 *Spam Service*\n\nSelect a category below:",
         reply_markup=tsource_main_keyboard(), parse_mode="Markdown")
 
 SUPPORT_USER = os.environ.get("SUPPORT_USERNAME", "HekTikz")
@@ -2981,7 +3151,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "ℹ️ *How to use this bot*\n\n"
         "1️⃣ Top up your balance — /wallet (crypto: BTC, SOL, LTC)\n"
         "2️⃣ Browse sections from /start:\n"
-        "   🌍 Leads · 🛍️ Store · 🔍 Scanner · 🎯 Targeted Source\n"
+        "   🌍 Leads · 🛍️ Store · 🔍 Scanner · 📨 Spam Service\n"
         "3️⃣ Pick an item and confirm — your balance is charged instantly\n"
         "4️⃣ After buying, contact the admin to receive your files\n\n"
         "*Useful commands:*\n/start · /wallet · /balance · /targeted · /contact",
@@ -3524,7 +3694,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ── Leads ────────────────────────────────────────────────────────────────
     if data == "leads":
         await query.edit_message_text(
-            f"🌍 *Leads Directory*\n\n{leads_pricing_text()}\n\nSelect a country:",
+            f"🌍 *Leads Directory*\n\nSelect a country:",
             reply_markup=country_keyboard(), parse_mode="Markdown")
         return
 
@@ -3543,11 +3713,33 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if cc not in LEADS or vert_key not in LEADS[cc]["verticals"]: return
         d         = LEADS[cc]
         vert_data = d["verticals"][vert_key]
-        total     = sum(vert_data["items"].values())
+        if vert_key == "ledger":
+            n_models = len(vert_data["items"])
+            await query.edit_message_text(
+                f"*Country:* {d['flag']} {d['name']}\n*Category:* {vert_data['label']}\n"
+                f"*Available:* {n_models} hardware wallet models\n\nSelect a device:",
+                reply_markup=hw_keyboard(cc, 0), parse_mode="Markdown")
+        else:
+            total = sum(vert_data["items"].values())
+            await query.edit_message_text(
+                f"*Country:* {d['flag']} {d['name']}\n*Category:* {vert_data['label']}\n"
+                f"*Available:* {total:,} records\n\nSelect a dataset item:",
+                reply_markup=dataset_item_keyboard(cc, vert_key), parse_mode="Markdown")
+        return
+
+    if data.startswith("lhwp|"):
+        _, cc, page_s = data.split("|", 2)
+        if cc not in LEADS: return
+        d         = LEADS[cc]
+        vert_data = d["verticals"]["ledger"]
+        n_models  = len(vert_data["items"])
         await query.edit_message_text(
             f"*Country:* {d['flag']} {d['name']}\n*Category:* {vert_data['label']}\n"
-            f"*Available:* {total:,} records\n\nSelect a dataset item:",
-            reply_markup=dataset_item_keyboard(cc, vert_key), parse_mode="Markdown")
+            f"*Available:* {n_models} hardware wallet models\n\nSelect a device:",
+            reply_markup=hw_keyboard(cc, int(page_s)), parse_mode="Markdown")
+        return
+
+    if data == "noop":
         return
 
     if data.startswith("lk|"):
@@ -3564,7 +3756,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if data.startswith("lq|"):
         _, cc, vert_key, item_name, qty_str = data.split("|", 4)
         qty     = int(qty_str)
-        price   = dict(LEADS_PRICING).get(qty, 0)
+        price   = dict(VERT_PRICING.get(vert_key, LEADS_PRICING)).get(qty, 0)
         d       = LEADS[cc]
         stock   = d["verticals"][vert_key]["items"].get(item_name, 0)
         balance = user_balances.get(uid, 0)
@@ -3583,7 +3775,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if data.startswith("lb|"):
         _, cc, vert_key, item_name, qty_str = data.split("|", 4)
         qty     = int(qty_str)
-        price   = dict(LEADS_PRICING).get(qty, 0)
+        price   = dict(VERT_PRICING.get(vert_key, LEADS_PRICING)).get(qty, 0)
         balance = user_balances.get(uid, 0)
         d       = LEADS[cc]
         blocked_text, blocked_kbd = get_blocked_message(balance, price, f"lk|{cc}|{vert_key}|{item_name}")
@@ -3670,36 +3862,23 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ── Targeted Source ──────────────────────────────────────────────────────
     if data == "tsource":
         await query.edit_message_text(
-            "🎯 *Targeted Source*\n\nSelect a category below:",
+            "📨 *Spam Service*\n\nSelect a category below:",
             reply_markup=tsource_main_keyboard(), parse_mode="Markdown")
         return
 
     if data == "ts_aged":
         await query.edit_message_text(
-            "‼️ *Spam Service — Aged & Targeted Fullz*\n\n"
-            "📋 *Available Fullz Pages:*\n"
-            "Note: Anti-Red pages now include encrypted results.\n\n"
-            "• NHS\n• Post Office\n• DPD\n• DHL\n• Apple\\*\n• New Apple Pay\n"
-            "• O2\n• My3\n• Vodafone\n• EE\n• Sky\n• Netflix\\*\n• HMRC\n• DVLA\n"
-            "• iD Mobile\n• Virgin\n• PayPal\n• NHS Omicron\n• EVRi\n• PureGym\n"
-            "• Energy Scheme\n• Amazon\n• Cost of Crisis\n• Spare1Bank\n• BOI\n"
-            "• AIB\n• Ulster\n• NAB\n• Westpac\n• Commonwealth\n• ANZ AU\n"
-            "• Bendigo\n• St. George\n• Suncorp\n• UBank\n• Macquarie\n• BNZ\n"
-            "• ASB\n• ANZ NZ\n• Santander (Portugal)\n• BBVA\n\n"
-            "💰 *Pricing:*\n• 1k — £70\n• 5k — £300\n• 10k — £500\n• 25k — £1.1k\n\n"
-            "_Select a quantity to purchase:_",
-            reply_markup=ts_qty_keyboard(AGED_LEADS_PRICING, "tsaged"), parse_mode="Markdown")
+            "🏦 *Bank Page — Aged & Targeted Fullz*\n\n"
+            "📋 *Select a page below:*\n"
+            "_Note: Anti-Red pages include encrypted results._",
+            reply_markup=ts_fullz_items_keyboard(), parse_mode="Markdown")
         return
 
     if data == "ts_crypto":
         await query.edit_message_text(
-            "🪙 *Crypto Leads*\n\n"
-            "*Available Crypto Pages:*\n"
-            "• Trading212\n• Bunq\n• KuCoin\n• Binance\n• Bybit\n• OKX\n• HTC\n"
-            "• CoinSpot\n• Shakepay\n• Coinbase\n• Ledger\n• WEB3\n• CoinGate\n• CoinJar\n\n"
-            "💰 *Pricing:*\n• 1k — £200\n• 5k — £800\n• 10k — £1.5k\n• 25k — £2.5k\n\n"
-            "_Select a quantity to purchase:_",
-            reply_markup=ts_qty_keyboard(CRYPTO_LEADS_PRICING, "tscrypto"), parse_mode="Markdown")
+            "🪙 *Crypto Page*\n\n"
+            "📋 *Select a platform below:*",
+            reply_markup=ts_crypto_items_keyboard(), parse_mode="Markdown")
         return
 
     if data == "ts_services":
@@ -3717,71 +3896,80 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown")
         return
 
-    if data.startswith("tsaged|"):
-        qty     = int(data.split("|")[1])
-        price   = dict(AGED_LEADS_PRICING).get(qty, 0)
-        k       = qty // 1000
-        label   = f"£{price//1000}k" if price >= 1000 else f"£{price}"
+    # ── Fullz item selected → confirmation ───────────────────────────────────
+    if data.startswith("tsfi|"):
+        idx     = int(data.split("|")[1])
+        if idx >= len(TS_FULLZ_ITEMS): return
+        name, price = TS_FULLZ_ITEMS[idx]
         balance = user_balances.get(uid, 0)
         await query.edit_message_text(
-            f"🛒 *Purchase Confirmation*\n\n‼️ Aged / Bank-Targeted Leads\n🗂 Quantity: *{k}k*\n"
-            f"💷 *Price: {label}*\n\nYour balance: *£{balance:.2f}*\n\nConfirm purchase?",
+            f"🛒 *Purchase Confirmation*\n\n"
+            f"🏦 *Bank Page — Fullz*\n"
+            f"📄 *Page:* {name}\n"
+            f"💷 *Price: £{price}*\n\n"
+            f"Your balance: *£{balance:.2f}*\n\nConfirm purchase?",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("✅ Confirm", callback_data=f"tsagedconf|{qty}"),
+                [InlineKeyboardButton("✅ Confirm", callback_data=f"tsfic|{idx}"),
                  InlineKeyboardButton("❌ Cancel",  callback_data="ts_aged")],
             ]),
             parse_mode="Markdown")
         return
 
-    if data.startswith("tsagedconf|"):
-        qty     = int(data.split("|")[1])
-        price   = dict(AGED_LEADS_PRICING).get(qty, 0)
+    if data.startswith("tsfic|"):
+        idx     = int(data.split("|")[1])
+        if idx >= len(TS_FULLZ_ITEMS): return
+        name, price = TS_FULLZ_ITEMS[idx]
         balance = user_balances.get(uid, 0)
         blocked_text, blocked_kbd = get_blocked_message(balance, price, "ts_aged")
         if blocked_text:
             await query.edit_message_text(blocked_text, reply_markup=blocked_kbd, parse_mode="Markdown"); return
         user_balances[uid] = round(balance - price, 2); save_data()
         await log(context.application,
-            f"🛒 *Purchase — Aged Leads*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
-            f"‼️ {qty//1000}k leads\n💷 Paid: £{price}\n💰 Remaining: £{user_balances[uid]:.2f}")
+            f"🛒 *Purchase — Bank Page*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
+            f"‼️ Page: {name}\n💷 Paid: £{price}\n💰 Remaining: £{user_balances[uid]:.2f}")
         await query.edit_message_text(
-            f"✅ *Purchase Successful!*\n\n‼️ Aged Leads — *{qty//1000}k records*\n"
+            f"✅ *Purchase Successful!*\n\n‼️ *{name}* Fullz Page\n"
             f"💷 Paid: *£{price}*\n💰 Remaining: *£{user_balances[uid]:.2f}*\n\n"
             f"Contact @{SUPER_ADMIN} to receive your data.",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="tsource")]]),
             parse_mode="Markdown")
         return
 
-    if data.startswith("tscrypto|"):
-        qty     = int(data.split("|")[1])
-        price   = dict(CRYPTO_LEADS_PRICING).get(qty, 0)
-        k       = qty // 1000
-        label   = f"£{price//1000}k" if price >= 1000 else f"£{price}"
+    # ── Crypto item selected → confirmation ───────────────────────────────────
+    if data.startswith("tsci|"):
+        idx     = int(data.split("|")[1])
+        if idx >= len(TS_CRYPTO_ITEMS): return
+        name, price = TS_CRYPTO_ITEMS[idx]
         balance = user_balances.get(uid, 0)
         await query.edit_message_text(
-            f"🛒 *Purchase Confirmation*\n\n🪙 Crypto Leads\n🗂 Quantity: *{k}k*\n"
-            f"💷 *Price: {label}*\n\nYour balance: *£{balance:.2f}*\n\nConfirm purchase?",
+            f"🛒 *Purchase Confirmation*\n\n"
+            f"🪙 *Crypto Page*\n"
+            f"📄 *Platform:* {name}\n"
+            f"💷 *Price: £{price}*\n\n"
+            f"Your balance: *£{balance:.2f}*\n\nConfirm purchase?",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("✅ Confirm", callback_data=f"tscryptoconf|{qty}"),
+                [InlineKeyboardButton("✅ Confirm", callback_data=f"tscic|{idx}"),
                  InlineKeyboardButton("❌ Cancel",  callback_data="ts_crypto")],
             ]),
             parse_mode="Markdown")
         return
 
-    if data.startswith("tscryptoconf|"):
-        qty     = int(data.split("|")[1])
-        price   = dict(CRYPTO_LEADS_PRICING).get(qty, 0)
+    if data.startswith("tscic|"):
+        idx     = int(data.split("|")[1])
+        if idx >= len(TS_CRYPTO_ITEMS): return
+        name, price = TS_CRYPTO_ITEMS[idx]
         balance = user_balances.get(uid, 0)
         blocked_text, blocked_kbd = get_blocked_message(balance, price, "ts_crypto")
         if blocked_text:
             await query.edit_message_text(blocked_text, reply_markup=blocked_kbd, parse_mode="Markdown"); return
         user_balances[uid] = round(balance - price, 2); save_data()
         await log(context.application,
-            f"🛒 *Purchase — Crypto Leads*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
-            f"🪙 {qty//1000}k leads\n💷 Paid: £{price}\n💰 Remaining: £{user_balances[uid]:.2f}")
+            f"🛒 *Purchase — Crypto Page*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
+            f"🪙 Platform: {name}\n💷 Paid: £{price}\n💰 Remaining: £{user_balances[uid]:.2f}")
         await query.edit_message_text(
-            f"✅ *Purchase Successful!*\n\n🪙 Crypto Leads — *{qty//1000}k records*\n"
-            f"💷 Paid: *£{price}*\n💰 Remaining: *£{user_balances[uid]:.2f}*\n\nContact @{SUPER_ADMIN} to receive your data.",
+            f"✅ *Purchase Successful!*\n\n🪙 *{name}* Crypto Page\n"
+            f"💷 Paid: *£{price}*\n💰 Remaining: *£{user_balances[uid]:.2f}*\n\n"
+            f"Contact @{SUPER_ADMIN} to receive your data.",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="tsource")]]),
             parse_mode="Markdown")
         return
