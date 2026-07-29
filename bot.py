@@ -2811,10 +2811,10 @@ def qty_keyboard(cc, vert_key, item_name):
 
 def tsource_main_keyboard():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("‼️ Aged / Bank-Targeted Leads", callback_data="ts_aged")],
-        [InlineKeyboardButton("🪙 Crypto Leads",               callback_data="ts_crypto")],
-        [InlineKeyboardButton("🛠 Additional Services",        callback_data="ts_services")],
-        [InlineKeyboardButton("⬅️ Back",                       callback_data="back")],
+        [InlineKeyboardButton("‼️ Spam Service",        callback_data="ts_aged")],
+        [InlineKeyboardButton("🪙 Crypto Leads",        callback_data="ts_crypto")],
+        [InlineKeyboardButton("🛠 Additional Services", callback_data="ts_services")],
+        [InlineKeyboardButton("⬅️ Back",                callback_data="back")],
     ])
 
 def ts_qty_keyboard(pricing, cb_prefix):
@@ -3676,8 +3676,16 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data == "ts_aged":
         await query.edit_message_text(
-            "‼️ *Aged Leads / Bank-Targeted Leads*\n\n"
-            "• Fresh leads added daily\n• Targeted bank leads available\n\n"
+            "‼️ *Spam Service — Aged & Targeted Fullz*\n\n"
+            "📋 *Available Fullz Pages:*\n"
+            "Note: Anti-Red pages now include encrypted results.\n\n"
+            "• NHS\n• Post Office\n• DPD\n• DHL\n• Apple\\*\n• New Apple Pay\n"
+            "• O2\n• My3\n• Vodafone\n• EE\n• Sky\n• Netflix\\*\n• HMRC\n• DVLA\n"
+            "• iD Mobile\n• Virgin\n• PayPal\n• NHS Omicron\n• EVRi\n• PureGym\n"
+            "• Energy Scheme\n• Amazon\n• Cost of Crisis\n• Spare1Bank\n• BOI\n"
+            "• AIB\n• Ulster\n• NAB\n• Westpac\n• Commonwealth\n• ANZ AU\n"
+            "• Bendigo\n• St. George\n• Suncorp\n• UBank\n• Macquarie\n• BNZ\n"
+            "• ASB\n• ANZ NZ\n• Santander (Portugal)\n• BBVA\n\n"
             "💰 *Pricing:*\n• 1k — £70\n• 5k — £300\n• 10k — £500\n• 25k — £1.1k\n\n"
             "_Select a quantity to purchase:_",
             reply_markup=ts_qty_keyboard(AGED_LEADS_PRICING, "tsaged"), parse_mode="Markdown")
@@ -3686,7 +3694,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if data == "ts_crypto":
         await query.edit_message_text(
             "🪙 *Crypto Leads*\n\n"
-            "*Available Platforms:*\n• KuCoin | Binance | CoinSpot | Crypto.com\n\n"
+            "*Available Crypto Pages:*\n"
+            "• Trading212\n• Bunq\n• KuCoin\n• Binance\n• Bybit\n• OKX\n• HTC\n"
+            "• CoinSpot\n• Shakepay\n• Coinbase\n• Ledger\n• WEB3\n• CoinGate\n• CoinJar\n\n"
             "💰 *Pricing:*\n• 1k — £200\n• 5k — £800\n• 10k — £1.5k\n• 25k — £2.5k\n\n"
             "_Select a quantity to purchase:_",
             reply_markup=ts_qty_keyboard(CRYPTO_LEADS_PRICING, "tscrypto"), parse_mode="Markdown")
@@ -3694,7 +3704,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data == "ts_services":
         await query.edit_message_text(
-            f"🛠 *Additional Services*\n\n💬 *Sender Services:*\n• Book your SMS send-out\n\n"
+            f"🛠 *Additional Services*\n\n"
+            f"🌐 Book Sms/email sendouts Service (SID)\n"
+            f"📥 My Page And Email/mobile Leads Or\n"
+            f"   Your Hosted Page & Leads\n\n"
+            f"💬 Want To Learn How To Spam Your Own Fullz\n\n"
             f"📩 PM Admin @{SUPER_ADMIN} to discuss requirements.",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("📩 Contact Admin", url=f"https://t.me/{SUPER_ADMIN}"),
