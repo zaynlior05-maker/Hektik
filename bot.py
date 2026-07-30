@@ -3683,25 +3683,99 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         address = WALLETS.get(coin, "Address not configured")
         await query.edit_message_text("⏳ Fetching live price...")
         prices = await get_crypto_prices()
-        if prices and coin in prices:
-            crypto_amt = round(amount / prices[coin], 6)
-            price_line = f"Send *Exactly* `{crypto_amt}` {coin} to get *£{amount}* credit"
-        else:
-            crypto_amt = "?"
-            price_line = f"Send the equivalent of *£{amount}* in {coin}"
+        crypto_amt = round(amount / prices[coin], 6) if (prices and coin in prices) else "?"
         await log(context.application,
-            f"💳 *Top-Up Request*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
+            f"💳 *Invoice Generated*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"💰 £{amount} via {coin}"
             + (f" = `{crypto_amt}` {coin}" if crypto_amt != "?" else "")
             + f"\n📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+        amt_line = f"`{crypto_amt}` {coin} (£{amount})" if crypto_amt != "?" else f"£{amount} in {coin}"
+        sep = "— — — — — — — — — — — — —"
         await query.edit_message_text(
-            f"{price_line}\n\n🏦 Address:\n`{address}`\n\n"
-            f"‼️ Deposits are permanent and *non refundable*\n"
-            f"‼️ Double check the {coin} amount *before* sending\n"
-            f"💠 Funded when transaction is confirmed\n\n"
-            f"_Your ID: `{uid}`_\n_DM @{SUPER_ADMIN} with TX ID after sending_",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data=f"amt|{amount}")]]),
+            f"🗂 *PAYMENT INVOICE GENERATED*\n{sep}\n\n"
+            f"🌐 *NETWORK:* {coin}\n"
+            f"⚠️ *WARNING:* Send ONLY {coin}.\n\n"
+            f"💰 *AMOUNT DUE:* {amt_line}\n"
+            f"📬 *DEPOSIT ADDRESS:*\n`{address}`\n\n"
+            f"{sep}\n\n"
+            f"⏳ *Status:* Waiting for payment...",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔄 Check Payment",   callback_data=f"check_pay|{coin}|{amount}")],
+                [InlineKeyboardButton("📸 Send Screenshot", callback_data=f"send_ss|{coin}|{amount}")],
+                [InlineKeyboardButton("❌ Cancel",          callback_data=f"amt|{amount}")],
+            ]),
             parse_mode="Markdown")
+        return
+
+    if data.startswith("check_pay|"):
+        await query.answer(
+            "❌ Error: Payment not found on the blockchain.\n\n"
+            "Please allow 5-15 minutes for confirmations,\n"
+            "or use 'Send Screenshot' if you have already paid.",
+            show_alert=True)
+        return
+
+    if data.startswith("send_ss|"):
+        _, coin, amount = data.split("|"); amount = int(amount)
+        context.user_data["awaiting_screenshot"] = {"coin": coin, "amount": amount}
+        await query.edit_message_text(
+            f"📸 *UPLOAD SCREENSHOT*\n— — — — — — — — — — — — —\n\n"
+            f"Please send the transaction screenshot/receipt for *£{amount}* now.",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("❌ Cancel", callback_data=f"cancel_ss|{coin}|{amount}")]
+            ]),
+            parse_mode="Markdown")
+        return
+
+    if data.startswith("cancel_ss|"):
+        _, coin, amount = data.split("|"); amount = int(amount)
+        context.user_data.pop("awaiting_screenshot", None)
+        await query.edit_message_text(
+            f"🔶 *£{amount} Top-Up*\n\nChoose your payment method:",
+            reply_markup=coin_select_keyboard(amount), parse_mode="Markdown")
+        return
+
+    if data.startswith("approve_pay|"):
+        if not is_admin(update): return
+        _, buyer_uid, amount = data.split("|")
+        buyer_uid, amount = int(buyer_uid), int(amount)
+        user_balances[buyer_uid] = round(user_balances.get(buyer_uid, 0) + amount, 2)
+        save_data()
+        await query.edit_message_caption(
+            caption=query.message.caption + f"\n\n✅ *APPROVED* by {user_tag(update)}",
+            parse_mode="Markdown")
+        try:
+            await context.application.bot.send_message(
+                chat_id=buyer_uid,
+                text=f"🎉 *PAYMENT APPROVED*\n— — — — — — — — — — — — —\n\n"
+                     f"Your payment of *£{amount}* has been successfully verified "
+                     f"and added to your balance.\n\n"
+                     f"💷 *New Balance:* £{user_balances[buyer_uid]:.2f}",
+                parse_mode="Markdown")
+        except Exception:
+            pass
+        await log(context.application,
+            f"✅ *Payment Approved*\n🪪 `{buyer_uid}`\n💷 £{amount} added\n"
+            f"👤 Approved by {user_tag(update)}")
+        return
+
+    if data.startswith("reject_pay|"):
+        if not is_admin(update): return
+        buyer_uid = int(data.split("|")[1])
+        await query.edit_message_caption(
+            caption=query.message.caption + f"\n\n❌ *REJECTED* by {user_tag(update)}",
+            parse_mode="Markdown")
+        try:
+            await context.application.bot.send_message(
+                chat_id=buyer_uid,
+                text=f"❌ *PAYMENT REJECTED*\n— — — — — — — — — — — — —\n\n"
+                     f"Your recent payment submission could not be verified.\n"
+                     f"If you believe this is an error, please contact support.",
+                parse_mode="Markdown")
+        except Exception:
+            pass
+        await log(context.application,
+            f"❌ *Payment Rejected*\n🪪 `{buyer_uid}`\n👤 Rejected by {user_tag(update)}")
         return
 
     # ── Store ────────────────────────────────────────────────────────────────
@@ -4152,6 +4226,40 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ═════════════════════════════════════════════════════════════════════════════
 
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+
+    # ── Payment screenshot submitted by user ─────────────────────────────────
+    ss_info = context.user_data.get("awaiting_screenshot")
+    if ss_info and update.message.photo:
+        coin   = ss_info["coin"]
+        amount = ss_info["amount"]
+        context.user_data.pop("awaiting_screenshot", None)
+        photo_id = update.message.photo[-1].file_id
+        caption = (
+            f"📸 *NEW PAYMENT SCREENSHOT*\n"
+            f"👤 From: {user_tag(update)} (`{uid}`)\n"
+            f"💰 *Expected Amount:* £{amount} via {coin}\n\n"
+            f"⚠️ *Action required:* Verify and Accept/Reject."
+        )
+        kbd = InlineKeyboardMarkup([
+            [InlineKeyboardButton(f"✅ Approve £{amount}", callback_data=f"approve_pay|{uid}|{amount}")],
+            [InlineKeyboardButton("❌ Reject Payment",     callback_data=f"reject_pay|{uid}")],
+        ])
+        if LOG_CHANNEL_ID:
+            try:
+                await context.application.bot.send_photo(
+                    chat_id=int(LOG_CHANNEL_ID),
+                    photo=photo_id, caption=caption,
+                    parse_mode="Markdown", reply_markup=kbd)
+            except Exception:
+                pass
+        await update.message.reply_text(
+            "✅ *SCREENSHOT RECEIVED*\n— — — — — — — — — — — — —\n\n"
+            "Your payment receipt has been successfully submitted to the system.\n"
+            "⏳ Verification processing window is 1-15 minutes.",
+            parse_mode="Markdown")
+        return
+
     if context.user_data.get("awaiting_qty"):
         info    = context.user_data.get("buy_bin", {})
         text    = update.message.text.strip()
