@@ -3794,14 +3794,16 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if data.startswith("approve_pay|"):
-        if not is_admin(update): return
         _, buyer_uid, amount = data.split("|")
         buyer_uid, amount = int(buyer_uid), int(amount)
         user_balances[buyer_uid] = round(user_balances.get(buyer_uid, 0) + amount, 2)
         save_data()
-        await query.edit_message_caption(
-            caption=query.message.caption + f"\n\n✅ *APPROVED* by {user_tag(update)}",
-            parse_mode="Markdown")
+        try:
+            await query.edit_message_caption(
+                caption=query.message.caption + f"\n\n✅ *APPROVED* by {user_tag(update)}",
+                parse_mode="Markdown")
+        except Exception:
+            pass
         try:
             await context.application.bot.send_message(
                 chat_id=buyer_uid,
@@ -3818,17 +3820,20 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if data.startswith("reject_pay|"):
-        if not is_admin(update): return
         buyer_uid = int(data.split("|")[1])
-        await query.edit_message_caption(
-            caption=query.message.caption + f"\n\n❌ *REJECTED* by {user_tag(update)}",
-            parse_mode="Markdown")
+        try:
+            await query.edit_message_caption(
+                caption=query.message.caption + f"\n\n❌ *REJECTED* by {user_tag(update)}",
+                parse_mode="Markdown")
+        except Exception:
+            pass
         try:
             await context.application.bot.send_message(
                 chat_id=buyer_uid,
-                text=f"❌ *PAYMENT REJECTED*\n— — — — — — — — — — — — —\n\n"
-                     f"Your recent payment submission could not be verified.\n"
-                     f"If you believe this is an error, please contact support.",
+                text=f"❌ *Payment Rejected*\n— — — — — — — — — — — — —\n\n"
+                     f"Your top-up could not be verified. This may be due to an "
+                     f"incomplete payment or missing transaction fees.\n\n"
+                     f"Please contact @HekTikz for assistance.",
                 parse_mode="Markdown")
         except Exception:
             pass
