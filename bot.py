@@ -3239,7 +3239,9 @@ ADMIN_HELP_TEXT = (
     "`/addbase <vid> <bkey> <price> <label>` | `/removebase <vid> <bkey>`\n"
     "`/addbin <vid> <bkey> <bin> <qty>` | `/removebin <vid> <bkey> <bin>`\n"
     "`/listbins <vid> <bkey>` | `/clearbase <vid> <bkey>`\n"
-    "`/listusers` | `/broadcast <message>`\n"
+    "`/listusers`\n"
+    "`/broadcast` — enter broadcast mode (send any message type)\n"
+    "`/broadcast <text>` — quick text broadcast\n"
     "`/updatelead <CC> <VerticalKey> <ItemName> <Stock>`\n"
     "`/bulkbin <vid> <bkey>`\n"
     "`/deliver <user_id>` — set delivery target, then send the file to forward"
@@ -3457,6 +3459,29 @@ async def file_delivery_handler(update: Update, context: ContextTypes.DEFAULT_TY
             parse_mode="Markdown")
         return
 
+    # ── Admin broadcast media capture ────────────────────────────────────────
+    if is_admin(update) and context.user_data.get("awaiting_broadcast"):
+        context.user_data.pop("awaiting_broadcast", None)
+        if msg.document:
+            btype, fid = "document", msg.document.file_id
+            cap = msg.caption or ""
+        elif msg.photo:
+            btype, fid = "photo", msg.photo[-1].file_id
+            cap = msg.caption or ""
+        elif msg.video:
+            btype, fid = "video", msg.video.file_id
+            cap = msg.caption or ""
+        elif msg.audio:
+            btype, fid = "audio", msg.audio.file_id
+            cap = msg.caption or ""
+        else:
+            await msg.reply_text("❌ Unsupported file type for broadcast.")
+            return
+        pending = {"type": btype, "file_id": fid, "caption": cap}
+        context.user_data["pending_broadcast"] = pending
+        await _show_broadcast_preview(msg, context, pending)
+        return
+
     # ── Admin file delivery ───────────────────────────────────────────────────
     if not is_admin(update): return
     target_uid = context.user_data.get("deliver_to")
@@ -3496,29 +3521,88 @@ async def file_delivery_handler(update: Update, context: ContextTypes.DEFAULT_TY
         ]),
         parse_mode="Markdown")
 
+def _broadcast_targets() -> set:
+    """All known user IDs across every data store."""
+    return set(user_join_dates.keys()) | set(user_balances.keys()) | agreed_users
+
+async def _do_broadcast(bot, status_msg, pending: dict) -> tuple[int, int]:
+    """Send the pending broadcast to every known user. Returns (sent, failed)."""
+    targets      = _broadcast_targets()
+    sent, failed = 0, 0
+    last_edit    = 0
+    for i, target_uid in enumerate(targets, 1):
+        try:
+            btype = pending["type"]
+            fid   = pending.get("file_id")
+            cap   = pending.get("caption", "")
+            txt   = pending.get("text", "")
+            pm    = "Markdown"
+            if btype == "text":
+                await bot.send_message(chat_id=target_uid, text=txt, parse_mode=pm)
+            elif btype == "photo":
+                await bot.send_photo(chat_id=target_uid, photo=fid, caption=cap, parse_mode=pm)
+            elif btype == "video":
+                await bot.send_video(chat_id=target_uid, video=fid, caption=cap, parse_mode=pm)
+            elif btype == "document":
+                await bot.send_document(chat_id=target_uid, document=fid, caption=cap, parse_mode=pm)
+            elif btype == "audio":
+                await bot.send_audio(chat_id=target_uid, audio=fid, caption=cap, parse_mode=pm)
+            sent += 1
+        except Exception:
+            failed += 1
+        await asyncio.sleep(0.05)
+        # Update progress every 20 users so admin can see it moving
+        if i - last_edit >= 20:
+            last_edit = i
+            try:
+                await status_msg.edit_text(
+                    f"📢 *Broadcasting…*\n\n"
+                    f"✅ Sent: *{sent}* / ❌ Failed: {failed}\n"
+                    f"📊 Progress: *{i}/{len(targets)}*",
+                    parse_mode="Markdown")
+            except Exception:
+                pass
+    return sent, failed
+
+async def _show_broadcast_preview(message, context, pending: dict):
+    """Show a preview of the pending broadcast with confirm / cancel buttons."""
+    count   = len(_broadcast_targets())
+    btype   = pending["type"]
+    txt     = pending.get("text", "")
+    cap     = pending.get("caption", "")
+    preview = txt or cap or f"[{btype} file]"
+    kbd = InlineKeyboardMarkup([
+        [InlineKeyboardButton(f"📢 Send to {count} users", callback_data="broadcast_confirm")],
+        [InlineKeyboardButton("❌ Cancel",                  callback_data="broadcast_cancel")],
+    ])
+    await message.reply_text(
+        f"📢 *Broadcast Preview*\n\n"
+        f"```\n{preview[:400]}\n```\n\n"
+        f"Type: *{btype}* · Targets: *{count} users*\n"
+        f"Tap *Send* to confirm.",
+        reply_markup=kbd, parse_mode="Markdown")
+
 async def cmd_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update): return
     full_text = update.message.text or ""
     parts     = full_text.split(None, 1)
-    msg       = parts[1] if len(parts) > 1 else ""
-    if not msg:
-        await update.message.reply_text("Please provide a message."); return
-    targets     = set(user_join_dates.keys()) | set(user_balances.keys()) | agreed_users
-    total_users = len(targets)
-    status_msg  = await update.message.reply_text(
-        "📢 *Sending to all users...*\n\nPlease wait.", parse_mode="Markdown")
-    sent, failed = 0, 0
-    for target_uid in targets:
-        try:
-            await context.application.bot.send_message(
-                chat_id=target_uid, text=msg, parse_mode="Markdown")
-            sent += 1
-        except:
-            failed += 1
-        await asyncio.sleep(0.05)
-    await status_msg.edit_text(
-        f"📢 *Broadcast Complete*\n\n✅ Sent: *{sent}*\n❌ Failed: {failed}\nTotal: *{total_users}* users",
-        parse_mode="Markdown")
+    inline_msg = parts[1].strip() if len(parts) > 1 else ""
+
+    if inline_msg:
+        # Quick text broadcast — skip the await-message step
+        pending = {"type": "text", "text": inline_msg}
+        context.user_data["pending_broadcast"] = pending
+        await _show_broadcast_preview(update.message, context, pending)
+    else:
+        # Enter broadcast mode — next message the admin sends becomes the broadcast
+        context.user_data["awaiting_broadcast"] = True
+        context.user_data.pop("pending_broadcast", None)
+        await update.message.reply_text(
+            "📢 *Broadcast Mode*\n\n"
+            "Send me the message you want to blast to all users.\n"
+            "Supports: text, photo, video, document, audio.\n\n"
+            "_Send /broadcast again to cancel._",
+            parse_mode="Markdown")
 
 async def cmd_updatelead(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Admin: /updatelead <CC> <VerticalKey> <ItemName> <Stock>"""
@@ -3618,6 +3702,7 @@ def get_blocked_message(balance, item_price, back_cb):
 
 _LOG_SKIP = {
     "back", "noop",               # pure navigation / no-op
+    "broadcast_cancel",           # admin flow — not useful to log
 }
 _LOG_SKIP_PREFIXES = (
     "bpage|", "lhwp|",            # pagination — too noisy
@@ -3676,6 +3761,35 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Clear any pending text-input modes
     for _k in ("awaiting_custom", "awaiting_bin_search", "awaiting_qty"):
         context.user_data.pop(_k, None)
+
+    # ── Broadcast confirm / cancel ───────────────────────────────────────────
+    if data == "broadcast_confirm":
+        if not is_admin(update): return
+        pending = context.user_data.pop("pending_broadcast", None)
+        context.user_data.pop("awaiting_broadcast", None)
+        if not pending:
+            await query.edit_message_text("❌ No pending broadcast found. Use /broadcast again.")
+            return
+        status_msg = await query.edit_message_text(
+            "📢 *Broadcast starting…*", parse_mode="Markdown")
+        bot  = context.application.bot
+        sent, failed = await _do_broadcast(bot, status_msg, pending)
+        total = len(_broadcast_targets())
+        log_bg(context.application,
+            f"📢 *Broadcast sent*\n👤 {user_tag(update)}\n"
+            f"✅ Sent: {sent} / ❌ Failed: {failed} / 👥 Total: {total}")
+        await status_msg.edit_text(
+            f"📢 *Broadcast Complete!*\n\n"
+            f"✅ Delivered: *{sent}*\n❌ Failed: *{failed}*\n👥 Total users: *{total}*",
+            parse_mode="Markdown")
+        return
+
+    if data == "broadcast_cancel":
+        if not is_admin(update): return
+        context.user_data.pop("pending_broadcast", None)
+        context.user_data.pop("awaiting_broadcast", None)
+        await query.edit_message_text("❌ Broadcast cancelled.")
+        return
 
     # ── Deliver file (tapped from log channel) ──────────────────────────────
     if data.startswith("deliver_to|"):
@@ -4295,6 +4409,18 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
+
+    # ── Admin broadcast text capture ─────────────────────────────────────────
+    if is_admin(update) and context.user_data.get("awaiting_broadcast"):
+        context.user_data.pop("awaiting_broadcast", None)
+        text = update.message.text or ""
+        if not text.strip():
+            await update.message.reply_text("❌ Empty message — broadcast cancelled.")
+            return
+        pending = {"type": "text", "text": text}
+        context.user_data["pending_broadcast"] = pending
+        await _show_broadcast_preview(update.message, context, pending)
+        return
 
     if context.user_data.get("awaiting_qty"):
         info    = context.user_data.get("buy_bin", {})
