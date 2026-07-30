@@ -3396,28 +3396,44 @@ async def cmd_deliver(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown")
 
 async def file_delivery_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Receives a file from admin and forwards it to the pending delivery target."""
+    """Receives a file from admin, holds it and asks for confirmation before forwarding."""
     if not is_admin(update): return
     target_uid = context.user_data.get("deliver_to")
     if not target_uid: return
-    msg     = update.message
-    caption = pending_orders.pop(target_uid, "✅ Your order has been delivered.")
-    bot     = context.application.bot
-    try:
-        if msg.document:
-            await bot.send_document(chat_id=target_uid, document=msg.document.file_id, caption=caption)
-        elif msg.photo:
-            await bot.send_photo(chat_id=target_uid, photo=msg.photo[-1].file_id, caption=caption)
-        elif msg.video:
-            await bot.send_video(chat_id=target_uid, video=msg.video.file_id, caption=caption)
-        elif msg.audio:
-            await bot.send_audio(chat_id=target_uid, audio=msg.audio.file_id, caption=caption)
-        else:
-            await msg.reply_text("❌ Unsupported file type. Send a document, photo, video, or audio."); return
-        context.user_data.pop("deliver_to", None)
-        await msg.reply_text(f"✅ File delivered to `{target_uid}`.", parse_mode="Markdown")
-    except Exception as e:
-        await msg.reply_text(f"❌ Delivery failed: {e}")
+    msg = update.message
+
+    if msg.document:
+        file_type, file_id = "document", msg.document.file_id
+        file_name = msg.document.file_name or "file"
+    elif msg.photo:
+        file_type, file_id = "photo", msg.photo[-1].file_id
+        file_name = "photo"
+    elif msg.video:
+        file_type, file_id = "video", msg.video.file_id
+        file_name = msg.video.file_name or "video"
+    elif msg.audio:
+        file_type, file_id = "audio", msg.audio.file_id
+        file_name = msg.audio.file_name or "audio"
+    else:
+        await msg.reply_text("❌ Unsupported file type. Send a document, photo, video, or audio.")
+        return
+
+    # Hold the file — don't send yet
+    context.user_data["pending_file"] = {"type": file_type, "file_id": file_id}
+
+    order_info = pending_orders.get(target_uid, "")
+    preview    = f"\n\n📋 *Order details:*\n`{order_info}`" if order_info else ""
+
+    await msg.reply_text(
+        f"📎 *File received:* `{file_name}`\n"
+        f"👤 *Deliver to:* `{target_uid}`"
+        f"{preview}\n\n"
+        f"Send this file to the user?",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("✅ Confirm Send", callback_data=f"confirm_deliver|{target_uid}"),
+             InlineKeyboardButton("❌ Cancel",       callback_data="cancel_deliver")],
+        ]),
+        parse_mode="Markdown")
 
 async def cmd_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update): return
@@ -3595,13 +3611,42 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not is_admin(update): return
         target_uid = int(data.split("|")[1])
         context.user_data["deliver_to"] = target_uid
+        context.user_data.pop("pending_file", None)
         order_info = pending_orders.get(target_uid, "")
-        preview    = f"\n\n📋 Pending order:\n{order_info}" if order_info else ""
-        await query.answer(f"📦 Target set: {target_uid}", show_alert=False)
+        preview    = f"\n\n📋 *Pending order:*\n`{order_info}`" if order_info else ""
+        await query.answer("📦 Delivery mode active", show_alert=False)
         await context.application.bot.send_message(
             chat_id=query.from_user.id,
-            text=f"📦 *Delivery target set:* `{target_uid}`{preview}\n\n_Now send the file to this chat._",
+            text=f"📦 *Delivery target set:* `{target_uid}`{preview}\n\n_Send the file to this chat._",
             parse_mode="Markdown")
+        return
+
+    if data.startswith("confirm_deliver|"):
+        if not is_admin(update): return
+        target_uid  = int(data.split("|")[1])
+        file_info   = context.user_data.pop("pending_file", None)
+        if not file_info:
+            await query.edit_message_text("❌ No file found. Please send the file again.")
+            return
+        caption = pending_orders.pop(target_uid, "✅ Your order has been delivered.")
+        bot     = context.application.bot
+        try:
+            ftype, fid = file_info["type"], file_info["file_id"]
+            if   ftype == "document": await bot.send_document(chat_id=target_uid, document=fid, caption=caption)
+            elif ftype == "photo":    await bot.send_photo(   chat_id=target_uid, photo=fid,    caption=caption)
+            elif ftype == "video":    await bot.send_video(   chat_id=target_uid, video=fid,    caption=caption)
+            elif ftype == "audio":    await bot.send_audio(   chat_id=target_uid, audio=fid,    caption=caption)
+            context.user_data.pop("deliver_to", None)
+            await query.edit_message_text(f"✅ *File delivered to* `{target_uid}`.", parse_mode="Markdown")
+        except Exception as e:
+            await query.edit_message_text(f"❌ Delivery failed: {e}")
+        return
+
+    if data == "cancel_deliver":
+        if not is_admin(update): return
+        context.user_data.pop("deliver_to",   None)
+        context.user_data.pop("pending_file", None)
+        await query.edit_message_text("❌ *Delivery cancelled.*", parse_mode="Markdown")
         return
 
     # ── Navigation ───────────────────────────────────────────────────────────
