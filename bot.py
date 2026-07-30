@@ -3,7 +3,7 @@ import json
 import logging
 import asyncio
 import aiohttp
-from datetime import datetim
+from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import Forbidden, BadRequest
 from telegram.request import HTTPXRequest
