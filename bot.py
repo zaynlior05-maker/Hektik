@@ -4184,7 +4184,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if data == "ts_services":
         await query.edit_message_text(
             f"🛠 *Additional Services*\n\n"
-            f"🌐 Book Sms/email sendouts Service (SID)\n"
+            f"📥 Book Sms/email sendouts Service (SID)\n"
             f"   My Page And Email/mobile Leads Or\n"
             f"   Your Hosted Page & Leads\n\n"
             f"💬 Want To Learn How To Spam Your Own Fullz\n\n"
