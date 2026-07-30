@@ -3423,6 +3423,52 @@ async def cmd_deliver(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📦 Delivery target set: `{target_uid}`{preview}\n\n_Now send the file._",
         parse_mode="Markdown")
 
+async def cmd_refund(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """User command: /refund — enforce 3-min window, 10-min auto-expiry."""
+    uid = update.effective_user.id
+    now = datetime.utcnow()
+    ts  = delivery_timestamps.get(uid)
+
+    back_kbd = InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back to Menu", callback_data="back")]])
+
+    if ts is None:
+        # Scenario C: never purchased / no delivery on record
+        await update.message.reply_text(
+            "❌ *No Recent Orders Found*\n\n"
+            "You don't have any recent purchases.",
+            reply_markup=back_kbd, parse_mode="Markdown")
+        return
+
+    elapsed = (now - ts).total_seconds()
+
+    if elapsed > 600:
+        # Scenario C: older than 10 mins — clean up and treat as no order
+        delivery_timestamps.pop(uid, None)
+        await update.message.reply_text(
+            "❌ *No Recent Orders Found*\n\n"
+            "You don't have any recent purchases.",
+            reply_markup=back_kbd, parse_mode="Markdown")
+
+    elif elapsed > 180:
+        # Scenario B: 3–10 mins — window has closed
+        await update.message.reply_text(
+            "❌ *You are not eligible for a refund.*\n\n"
+            "The 3-minute replacement window has expired.",
+            parse_mode="Markdown")
+
+    else:
+        # Scenario A: within 3 mins — eligible
+        remaining_secs = max(0, 180 - int(elapsed))
+        remaining_mins = max(1, round(remaining_secs / 60))
+        context.user_data["awaiting_refund_screenshot"] = True
+        await update.message.reply_text(
+            f"✅ *You're Eligible for a Refund*\n\n"
+            f"⏱ Time remaining: approx. *{remaining_mins} minute(s)*\n\n"
+            f"📸 Please send a screenshot of your issue below.\n"
+            f"Our team will review and respond shortly.",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="refund_cancel")]]),
+            parse_mode="Markdown")
+
 async def file_delivery_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handles photo/file uploads: payment screenshots from users, file delivery from admin."""
     uid = update.effective_user.id
@@ -3457,6 +3503,34 @@ async def file_delivery_handler(update: Update, context: ContextTypes.DEFAULT_TY
             "✅ *SCREENSHOT RECEIVED*\n— — — — — — — — — — — — —\n\n"
             "Your payment receipt has been successfully submitted to the system.\n"
             "⏳ Verification processing window is 1-15 minutes.",
+            parse_mode="Markdown")
+        return
+
+    # ── Refund screenshot from user ──────────────────────────────────────────
+    if context.user_data.get("awaiting_refund_screenshot") and msg.photo:
+        context.user_data.pop("awaiting_refund_screenshot", None)
+        delivery_timestamps.pop(uid, None)   # consume — one refund per order
+        photo_id = msg.photo[-1].file_id
+        caption  = (
+            f"🔄 *REFUND REQUEST*\n"
+            f"👤 {user_tag(update)} (`{uid}`)\n"
+            f"📸 Screenshot submitted for review."
+        )
+        kbd = InlineKeyboardMarkup([
+            [InlineKeyboardButton("✅ Approve Refund", callback_data=f"approve_refund|{uid}")],
+            [InlineKeyboardButton("❌ Reject",         callback_data=f"reject_refund|{uid}")],
+        ])
+        if LOG_CHANNEL_ID:
+            try:
+                await context.application.bot.send_photo(
+                    chat_id=int(LOG_CHANNEL_ID), photo=photo_id,
+                    caption=caption, parse_mode="Markdown", reply_markup=kbd)
+            except Exception:
+                pass
+        await msg.reply_text(
+            "✅ *Refund Request Submitted*\n\n"
+            "Your screenshot has been forwarded to our team.\n"
+            "We'll review and respond shortly.",
             parse_mode="Markdown")
         return
 
@@ -3842,6 +3916,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             elif ftype == "photo":    await bot.send_photo(   chat_id=target_uid, photo=fid,    caption=caption)
             elif ftype == "video":    await bot.send_video(   chat_id=target_uid, video=fid,    caption=caption)
             elif ftype == "audio":    await bot.send_audio(   chat_id=target_uid, audio=fid,    caption=caption)
+            delivery_timestamps[target_uid] = datetime.utcnow()
             context.user_data.pop("deliver_to", None)
             await query.edit_message_text(f"✅ *File delivered to* `{target_uid}`.", parse_mode="Markdown")
         except Exception as e:
@@ -3853,6 +3928,46 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data.pop("deliver_to",   None)
         context.user_data.pop("pending_file", None)
         await query.edit_message_text("❌ *Delivery cancelled.*", parse_mode="Markdown")
+        return
+
+    if data == "refund_cancel":
+        context.user_data.pop("awaiting_refund_screenshot", None)
+        await query.edit_message_text("❌ Refund request cancelled.")
+        return
+
+    if data.startswith("approve_refund|"):
+        target_uid = int(data.split("|")[1])
+        try:
+            await context.application.bot.send_message(
+                chat_id=target_uid,
+                text="✅ *Refund Approved*\n\nYour replacement will be delivered shortly.",
+                parse_mode="Markdown")
+        except Exception:
+            pass
+        try:
+            await query.edit_message_caption(
+                caption=query.message.caption + f"\n\n✅ *Refund APPROVED* by {user_tag(update)}",
+                parse_mode="Markdown")
+        except Exception:
+            pass
+        return
+
+    if data.startswith("reject_refund|"):
+        target_uid = int(data.split("|")[1])
+        try:
+            await context.application.bot.send_message(
+                chat_id=target_uid,
+                text="❌ *Refund Rejected*\n\nYour refund request could not be approved.\n"
+                     "Please contact @HekTikz for further assistance.",
+                parse_mode="Markdown")
+        except Exception:
+            pass
+        try:
+            await query.edit_message_caption(
+                caption=query.message.caption + f"\n\n❌ *Refund REJECTED* by {user_tag(update)}",
+                parse_mode="Markdown")
+        except Exception:
+            pass
         return
 
     # ── Navigation ───────────────────────────────────────────────────────────
@@ -4062,7 +4177,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"✅ Purchase Successful!\n\n"
             f"💳 BIN: {bin_num}\n🗂 Quantity: {buy_qty} fullz\n"
             f"💷 Price: £{total:.2f}\n💰 Remaining balance: £{user_balances[uid]:.2f}\n\n"
-            f"If there are any issues, type /refund and follow the instructions")
+            f"If there are any issues, type /refund within 3 minutes of delivery")
         log_purchase_bg(context.application,
             f"🛒 *Purchase — BIN*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"💳 BIN: {bin_num} | Qty: {buy_qty}\n💷 Paid: £{total:.2f}\n"
@@ -4109,7 +4224,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"✅ Purchase Successful!\n\n"
             f"💀 Item: {label}\n💷 Price: £{price:,}\n"
             f"💰 Remaining balance: £{user_balances[uid]:.2f}\n\n"
-            f"If there are any issues, type /refund and follow the instructions")
+            f"If there are any issues, type /refund within 3 minutes of delivery")
         log_purchase_bg(context.application,
             f"🛒 *Purchase — Deads*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"💀 {label}\n💷 Paid: £{price}\n💰 Remaining: £{user_balances[uid]:.2f}", uid)
@@ -4217,7 +4332,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"🌍 Country: {d['name']}\n📂 Category: {vert_key.title()}\n"
             f"📄 Dataset: {item_name}\n🗂 Quantity: {qty:,} records\n"
             f"💷 Price: £{price}\n💰 Remaining balance: £{user_balances[uid]:.2f}\n\n"
-            f"If there are any issues, type /refund and follow the instructions")
+            f"If there are any issues, type /refund within 3 minutes of delivery")
         log_purchase_bg(context.application,
             f"🛒 *Purchase — Leads*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"🌍 {d['flag']} {d['name']} | {vert_key} | {item_name}\n"
@@ -4286,7 +4401,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"✅ Purchase Successful!\n\n"
             f"🔍 Scanner: {label}\n🗂 Quantity: {qty_k}k records\n"
             f"💷 Price: £{total_gbp:.2f}\n💰 Remaining balance: £{user_balances[uid]:.2f}\n\n"
-            f"If there are any issues, type /refund and follow the instructions")
+            f"If there are any issues, type /refund within 3 minutes of delivery")
         log_purchase_bg(context.application,
             f"🛒 *Purchase — Scanner*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"🔍 {label} | {qty_k}k\n💷 Paid: £{total_gbp:.2f}\n"
@@ -4368,7 +4483,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"✅ Purchase Successful!\n\n"
             f"🏦 Bank Page: {name}\n💷 Price: £{price}\n"
             f"💰 Remaining balance: £{user_balances[uid]:.2f}\n\n"
-            f"If there are any issues, type /refund and follow the instructions")
+            f"If there are any issues, type /refund within 3 minutes of delivery")
         log_purchase_bg(context.application,
             f"🛒 *Purchase — Bank Page*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"‼️ Page: {name}\n💷 Paid: £{price}\n💰 Remaining: £{user_balances[uid]:.2f}", uid)
@@ -4412,7 +4527,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"✅ Purchase Successful!\n\n"
             f"🪙 Crypto Page: {name}\n💷 Price: £{price}\n"
             f"💰 Remaining balance: £{user_balances[uid]:.2f}\n\n"
-            f"If there are any issues, type /refund and follow the instructions")
+            f"If there are any issues, type /refund within 3 minutes of delivery")
         log_purchase_bg(context.application,
             f"🛒 *Purchase — Crypto Page*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"🪙 Platform: {name}\n💷 Paid: £{price}\n💰 Remaining: £{user_balances[uid]:.2f}", uid)
