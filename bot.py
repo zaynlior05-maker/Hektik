@@ -2785,6 +2785,20 @@ async def log(app, text: str):
     except Exception:
         pass
 
+async def log_purchase(app, text: str, buyer_uid: int):
+    """Send a purchase log to the log channel with a Deliver File button."""
+    if not LOG_CHANNEL_ID:
+        return
+    try:
+        kbd = InlineKeyboardMarkup([[
+            InlineKeyboardButton("📤 Deliver File", callback_data=f"deliver_to|{buyer_uid}")
+        ]])
+        await app.bot.send_message(
+            chat_id=int(LOG_CHANNEL_ID), text=text,
+            parse_mode="Markdown", reply_markup=kbd)
+    except Exception:
+        pass
+
 def is_admin(update) -> bool:
     uid      = update.effective_user.id
     username = update.effective_user.username or ""
@@ -3576,6 +3590,20 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for _k in ("awaiting_custom", "awaiting_bin_search", "awaiting_qty"):
         context.user_data.pop(_k, None)
 
+    # ── Deliver file (tapped from log channel) ──────────────────────────────
+    if data.startswith("deliver_to|"):
+        if not is_admin(update): return
+        target_uid = int(data.split("|")[1])
+        context.user_data["deliver_to"] = target_uid
+        order_info = pending_orders.get(target_uid, "")
+        preview    = f"\n\n📋 Pending order:\n{order_info}" if order_info else ""
+        await query.answer(f"📦 Target set: {target_uid}", show_alert=False)
+        await context.application.bot.send_message(
+            chat_id=query.from_user.id,
+            text=f"📦 *Delivery target set:* `{target_uid}`{preview}\n\n_Now send the file to this chat._",
+            parse_mode="Markdown")
+        return
+
     # ── Navigation ───────────────────────────────────────────────────────────
     if data == "back":
         await query.edit_message_text(main_menu_text(), reply_markup=main_menu_keyboard(), parse_mode="Markdown")
@@ -3713,14 +3741,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"💳 BIN: {bin_num}\n🗂 Quantity: {buy_qty} fullz\n"
             f"💷 Price: £{total:.2f}\n💰 Remaining balance: £{user_balances[uid]:.2f}\n\n"
             f"If there are any issues, type /refund and follow the instructions")
-        await log(context.application,
+        await log_purchase(context.application,
             f"🛒 *Purchase — BIN*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"💳 BIN: {bin_num} | Qty: {buy_qty}\n💷 Paid: £{total:.2f}\n"
-            f"💰 Remaining: £{user_balances[uid]:.2f}")
+            f"💰 Remaining: £{user_balances[uid]:.2f}", uid)
         await query.edit_message_text(
             f"✅ *Purchase Successful!*\n\n💳 BIN: *{bin_num}*\n🗂 *{buy_qty} fullz*\n"
             f"💷 Paid: *£{total:.2f}*\n💰 Remaining: *£{user_balances[uid]:.2f}*\n\n"
-            f"Contact @{SUPER_ADMIN} to receive your data.",
+            f"📦 Your file will be delivered to you shortly.",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back to Store", callback_data="store")]]),
             parse_mode="Markdown")
         return
@@ -3760,12 +3788,12 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"💀 Item: {label}\n💷 Price: £{price:,}\n"
             f"💰 Remaining balance: £{user_balances[uid]:.2f}\n\n"
             f"If there are any issues, type /refund and follow the instructions")
-        await log(context.application,
+        await log_purchase(context.application,
             f"🛒 *Purchase — Deads*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
-            f"💀 {label}\n💷 Paid: £{price}\n💰 Remaining: £{user_balances[uid]:.2f}")
+            f"💀 {label}\n💷 Paid: £{price}\n💰 Remaining: £{user_balances[uid]:.2f}", uid)
         await query.edit_message_text(
             f"✅ *Purchase Successful!*\n\n💀 *{label}*\n💷 Paid: *£{price:,}*\n"
-            f"💰 Remaining: *£{user_balances[uid]:.2f}*\n\nContact @{SUPER_ADMIN} to receive your data.",
+            f"💰 Remaining: *£{user_balances[uid]:.2f}*\n\n📦 Your file will be delivered to you shortly.",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="deads")]]),
             parse_mode="Markdown")
         return
@@ -3868,14 +3896,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"📄 Dataset: {item_name}\n🗂 Quantity: {qty:,} records\n"
             f"💷 Price: £{price}\n💰 Remaining balance: £{user_balances[uid]:.2f}\n\n"
             f"If there are any issues, type /refund and follow the instructions")
-        await log(context.application,
+        await log_purchase(context.application,
             f"🛒 *Purchase — Leads*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"🌍 {d['flag']} {d['name']} | {vert_key} | {item_name}\n"
-            f"🗂 {qty:,} records\n💷 Paid: £{price}\n💰 Remaining: £{user_balances[uid]:.2f}")
+            f"🗂 {qty:,} records\n💷 Paid: £{price}\n💰 Remaining: £{user_balances[uid]:.2f}", uid)
         await query.edit_message_text(
             f"✅ *Purchase Successful!*\n\n🌍 *{d['flag']} {d['name']}* — {item_name}\n"
             f"🗂 *{qty:,} records*\n💷 Paid: *£{price}*\n💰 Remaining: *£{user_balances[uid]:.2f}*\n\n"
-            f"Contact @{SUPER_ADMIN} to receive your data.",
+            f"📦 Your file will be delivered to you shortly.",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back to Leads", callback_data="leads")]]),
             parse_mode="Markdown")
         return
@@ -3937,14 +3965,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"🔍 Scanner: {label}\n🗂 Quantity: {qty_k}k records\n"
             f"💷 Price: £{total_gbp:.2f}\n💰 Remaining balance: £{user_balances[uid]:.2f}\n\n"
             f"If there are any issues, type /refund and follow the instructions")
-        await log(context.application,
+        await log_purchase(context.application,
             f"🛒 *Purchase — Scanner*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"🔍 {label} | {qty_k}k\n💷 Paid: £{total_gbp:.2f}\n"
-            f"💰 Remaining: £{user_balances[uid]:.2f}")
+            f"💰 Remaining: £{user_balances[uid]:.2f}", uid)
         await query.edit_message_text(
             f"✅ *Purchase Successful!*\n\n🔍 *{label}*\n🗂 *{qty_k}k records*\n"
             f"💷 Paid: *£{total_gbp:.2f}*\n💰 Remaining: *£{user_balances[uid]:.2f}*\n\n"
-            f"Contact @{SUPER_ADMIN} to receive your data.",
+            f"📦 Your file will be delivered to you shortly.",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back to Scanner", callback_data="scanner")]]),
             parse_mode="Markdown")
         return
@@ -4019,13 +4047,13 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"🏦 Bank Page: {name}\n💷 Price: £{price}\n"
             f"💰 Remaining balance: £{user_balances[uid]:.2f}\n\n"
             f"If there are any issues, type /refund and follow the instructions")
-        await log(context.application,
+        await log_purchase(context.application,
             f"🛒 *Purchase — Bank Page*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
-            f"‼️ Page: {name}\n💷 Paid: £{price}\n💰 Remaining: £{user_balances[uid]:.2f}")
+            f"‼️ Page: {name}\n💷 Paid: £{price}\n💰 Remaining: £{user_balances[uid]:.2f}", uid)
         await query.edit_message_text(
             f"✅ *Purchase Successful!*\n\n‼️ *{name}* Fullz Page\n"
             f"💷 Paid: *£{price}*\n💰 Remaining: *£{user_balances[uid]:.2f}*\n\n"
-            f"Contact @{SUPER_ADMIN} to receive your data.",
+            f"📦 Your file will be delivered to you shortly.",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="tsource")]]),
             parse_mode="Markdown")
         return
@@ -4063,13 +4091,13 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"🪙 Crypto Page: {name}\n💷 Price: £{price}\n"
             f"💰 Remaining balance: £{user_balances[uid]:.2f}\n\n"
             f"If there are any issues, type /refund and follow the instructions")
-        await log(context.application,
+        await log_purchase(context.application,
             f"🛒 *Purchase — Crypto Page*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
-            f"🪙 Platform: {name}\n💷 Paid: £{price}\n💰 Remaining: £{user_balances[uid]:.2f}")
+            f"🪙 Platform: {name}\n💷 Paid: £{price}\n💰 Remaining: £{user_balances[uid]:.2f}", uid)
         await query.edit_message_text(
             f"✅ *Purchase Successful!*\n\n🪙 *{name}* Crypto Page\n"
             f"💷 Paid: *£{price}*\n💰 Remaining: *£{user_balances[uid]:.2f}*\n\n"
-            f"Contact @{SUPER_ADMIN} to receive your data.",
+            f"📦 Your file will be delivered to you shortly.",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="tsource")]]),
             parse_mode="Markdown")
         return
