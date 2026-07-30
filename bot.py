@@ -47,7 +47,8 @@ agreed_users     = set()
 user_join_dates  = {}
 logged_in_admins = set()
 channel_verified = set()
-pending_orders   = {}   # uid → delivery caption stored after each purchase
+pending_orders      = {}   # uid → delivery caption stored after each purchase
+delivery_timestamps = {}   # uid → datetime (UTC) when order file was delivered to user
 
 live_stock    = {"leads": 63_629_085}
 TOPUP_AMOUNTS = [70, 100, 150, 200, 250, 300, 350, 400, 450, 500, 750, 1000]
@@ -3722,6 +3723,7 @@ def get_blocked_message(balance, item_price, back_cb):
 _LOG_SKIP = {
     "back", "noop",               # pure navigation / no-op
     "broadcast_cancel",           # admin flow — not useful to log
+    "refund_cancel",              # user flow — not useful to log
 }
 _LOG_SKIP_PREFIXES = (
     "bpage|", "lhwp|",            # pagination — too noisy
@@ -4564,6 +4566,7 @@ def main():
     app.add_handler(CommandHandler("bulkbin",         cmd_bulkbin))
     app.add_handler(CommandHandler("broadcast",       cmd_broadcast))
     app.add_handler(CommandHandler("deliver",         cmd_deliver))
+    app.add_handler(CommandHandler("refund",          cmd_refund))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(
         (filters.Document.ALL | filters.PHOTO | filters.VIDEO | filters.AUDIO) & ~filters.COMMAND,
