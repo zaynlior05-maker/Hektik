@@ -3584,12 +3584,30 @@ async def _show_broadcast_preview(message, context, pending: dict):
 
 async def cmd_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update): return
-    full_text = update.message.text or ""
-    parts     = full_text.split(None, 1)
+    full_text  = update.message.text or ""
+    parts      = full_text.split(None, 1)
     inline_msg = parts[1].strip() if len(parts) > 1 else ""
 
     if inline_msg:
-        # Quick text broadcast — skip the await-message step
+        # Check if the last token is a numeric UID → single-user DM
+        tokens    = inline_msg.split()
+        last_tok  = tokens[-1]
+        if last_tok.lstrip("-").isdigit() and len(tokens) > 1:
+            target_uid = int(last_tok)
+            msg_text   = " ".join(tokens[:-1])
+            try:
+                await context.application.bot.send_message(
+                    chat_id=target_uid, text=msg_text, parse_mode="Markdown")
+                await update.message.reply_text(
+                    f"✅ *Message sent to* `{target_uid}`\n\n`{msg_text}`",
+                    parse_mode="Markdown")
+            except Exception as e:
+                await update.message.reply_text(
+                    f"❌ Failed to send to `{target_uid}`:\n`{e}`",
+                    parse_mode="Markdown")
+            return
+
+        # No UID suffix — broadcast to everyone
         pending = {"type": "text", "text": inline_msg}
         context.user_data["pending_broadcast"] = pending
         await _show_broadcast_preview(update.message, context, pending)
@@ -3601,6 +3619,7 @@ async def cmd_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "📢 *Broadcast Mode*\n\n"
             "Send me the message you want to blast to all users.\n"
             "Supports: text, photo, video, document, audio.\n\n"
+            "To DM one user: `/broadcast <message> <uid>`\n"
             "_Send /broadcast again to cancel._",
             parse_mode="Markdown")
 
