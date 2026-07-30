@@ -2661,37 +2661,37 @@ CRYPTO_LEADS_PRICING = [
 
 # ── Per-item target lists (name, fixed price £) ──────────────────────────────
 TS_FULLZ_ITEMS = [
-    ("NHS",                70),  ("Post Office",        70),
-    ("DPD",                70),  ("DHL",                70),
-    ("Apple",              70),  ("New Apple Pay",      70),
-    ("O2",                 70),  ("My3",                70),
-    ("Vodafone",           70),  ("EE",                 70),
-    ("Sky",                70),  ("Netflix",            70),
-    ("HMRC",               70),  ("DVLA",               70),
-    ("iD Mobile",          70),  ("Virgin",             70),
-    ("PayPal",             70),  ("NHS Omicron",        70),
-    ("EVRi",               70),  ("PureGym",            70),
-    ("Energy Scheme",      70),  ("Amazon",             70),
-    ("Cost of Crisis",     70),  ("Spare1Bank",         70),
-    ("BOI",                70),  ("AIB",                70),
-    ("Ulster",             70),  ("NAB",                70),
-    ("Westpac",            70),  ("Commonwealth",       70),
-    ("ANZ AU",             70),  ("Bendigo",            70),
-    ("St. George",         70),  ("Suncorp",            70),
-    ("UBank",              70),  ("Macquarie",          70),
-    ("BNZ",                70),  ("ASB",                70),
-    ("ANZ NZ",             70),  ("Santander PT",       70),
-    ("BBVA",               70),
+    ("NHS",                180),  ("Post Office",        210),
+    ("DPD",                160),  ("DHL",                190),
+    ("Apple",              290),  ("New Apple Pay",      210),
+    ("O2",                 170),  ("My3",                150),
+    ("Vodafone",           220),  ("EE",                 210),
+    ("Sky",                180),  ("Netflix",            160),
+    ("HMRC",               250),  ("DVLA",               200),
+    ("iD Mobile",          150),  ("Virgin",             190),
+    ("PayPal",             200),  ("NHS Omicron",        160),
+    ("EVRi",               150),  ("PureGym",            140),
+    ("Energy Scheme",      170),  ("Amazon",             220),
+    ("Cost of Crisis",     150),  ("Spare1Bank",         200),
+    ("BOI",                170),  ("AIB",                200),
+    ("Ulster",             180),  ("NAB",                320),
+    ("Westpac",            230),  ("Commonwealth",       200),
+    ("ANZ AU",             190),  ("Bendigo",            170),
+    ("St. George",         190),  ("Suncorp",            250),
+    ("UBank",              210),  ("Macquarie",          140),
+    ("BNZ",                180),  ("ASB",                170),
+    ("ANZ NZ",             190),  ("Santander PT",       210),
+    ("BBVA",               230),
 ]
 
 TS_CRYPTO_ITEMS = [
-    ("Trading212",  200),  ("Bunq",      200),
-    ("KuCoin",      200),  ("Binance",   200),
-    ("Bybit",       200),  ("OKX",       200),
-    ("HTC",         200),  ("CoinSpot",  200),
-    ("Shakepay",    200),  ("Coinbase",  200),
-    ("Ledger",      200),  ("WEB3",      200),
-    ("CoinGate",    200),  ("CoinJar",   200),
+    ("Trading212",  260),  ("Bunq",      200),
+    ("KuCoin",      300),  ("Binance",   250),
+    ("Bybit",       280),  ("OKX",       200),
+    ("HTC",         250),  ("CoinSpot",  260),
+    ("Shakepay",    300),  ("Coinbase",  280),
+    ("Ledger",      200),  ("WEB3",      260),
+    ("CoinGate",    300),  ("CoinJar",   250),
 ]
 
 RULES_TEXT = (
@@ -2724,7 +2724,8 @@ def calculate_dynamic_stock():
                 total += qty
     return total
 
-def save_data():
+def _save_data_sync():
+    """Synchronous disk write — always call via the async await save_data() wrapper."""
     try:
         data = {
             "user_balances":    {str(k): v for k, v in user_balances.items()},
@@ -2741,6 +2742,12 @@ def save_data():
         os.replace(tmp, DATA_FILE)
     except Exception as e:
         logger.error(f"save_data failed: {e}")
+
+async def save_data():
+    """Non-blocking save — offloads the file write to a thread so the event
+    loop (and every other user's handler) keeps running during the I/O."""
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(None, _save_data_sync)
 
 def load_data():
     global user_balances, agreed_users, user_join_dates, channel_verified, live_stock, STORE, LEADS
@@ -2789,9 +2796,8 @@ def log_bg(app, text: str):
     """Fire-and-forget log — never blocks the caller."""
     if not LOG_CHANNEL_ID:
         return
-    import asyncio
     try:
-        asyncio.get_event_loop().create_task(log(app, text))
+        asyncio.get_running_loop().create_task(log(app, text))
     except Exception:
         pass
 
@@ -2813,9 +2819,8 @@ def log_purchase_bg(app, text: str, buyer_uid: int):
     """Fire-and-forget purchase log — never blocks the caller."""
     if not LOG_CHANNEL_ID:
         return
-    import asyncio
     try:
-        asyncio.get_event_loop().create_task(log_purchase(app, text, buyer_uid))
+        asyncio.get_running_loop().create_task(log_purchase(app, text, buyer_uid))
     except Exception:
         pass
 
@@ -3254,7 +3259,7 @@ async def cmd_addbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
         tid = int(context.args[0]); amt = float(context.args[1])
     except:
         await update.message.reply_text("Usage: /addbalance <user_id> <amount>"); return
-    user_balances[tid] = round(user_balances.get(tid, 0) + amt, 2); save_data()
+    user_balances[tid] = round(user_balances.get(tid, 0) + amt, 2); await save_data()
     await update.message.reply_text(
         f"✅ Added *£{amt:.2f}* to `{tid}`\nNew balance: *£{user_balances[tid]:.2f}*",
         parse_mode="Markdown")
@@ -3265,7 +3270,7 @@ async def cmd_removebalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
         tid = int(context.args[0]); amt = float(context.args[1])
     except:
         await update.message.reply_text("Usage: /removebalance <user_id> <amount>"); return
-    user_balances[tid] = round(max(0, user_balances.get(tid, 0) - amt), 2); save_data()
+    user_balances[tid] = round(max(0, user_balances.get(tid, 0) - amt), 2); await save_data()
     await update.message.reply_text(
         f"✅ Removed *£{amt:.2f}* from `{tid}`\nNew balance: *£{user_balances[tid]:.2f}*",
         parse_mode="Markdown")
@@ -3276,7 +3281,7 @@ async def cmd_setbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
         tid = int(context.args[0]); amt = float(context.args[1])
     except:
         await update.message.reply_text("Usage: /setbalance <user_id> <amount>"); return
-    user_balances[tid] = round(amt, 2); save_data()
+    user_balances[tid] = round(amt, 2); await save_data()
     await update.message.reply_text(
         f"✅ Set `{tid}` balance to *£{amt:.2f}*", parse_mode="Markdown")
 
@@ -3296,7 +3301,7 @@ async def cmd_setstock(update: Update, context: ContextTypes.DEFAULT_TYPE):
         assert key in ("leads", "stock")
     except:
         await update.message.reply_text("Usage: /setstock leads <number>"); return
-    live_stock[key] = val; save_data()
+    live_stock[key] = val; await save_data()
     await update.message.reply_text(f"✅ Updated *{key}* to *{val:,}*", parse_mode="Markdown")
 
 async def cmd_addvendor(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -3307,7 +3312,7 @@ async def cmd_addvendor(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Usage: /addvendor <id> <label>"); return
     if vid in STORE:
         await update.message.reply_text(f"Vendor `{vid}` already exists."); return
-    STORE[vid] = {"label": label, "bases": {}}; save_data()
+    STORE[vid] = {"label": label, "bases": {}}; await save_data()
     await update.message.reply_text(f"✅ Added vendor *{label}*", parse_mode="Markdown")
 
 async def cmd_removevendor(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -3316,7 +3321,7 @@ async def cmd_removevendor(update: Update, context: ContextTypes.DEFAULT_TYPE):
         vid = context.args[0]; assert vid in STORE
     except:
         await update.message.reply_text("Usage: /removevendor <vendor_id>"); return
-    del STORE[vid]; save_data()
+    del STORE[vid]; await save_data()
     await update.message.reply_text(f"✅ Removed vendor `{vid}`")
 
 async def cmd_addbase(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -3331,7 +3336,7 @@ async def cmd_addbase(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if bkey in STORE[vid]["bases"]:
         existing_bins = STORE[vid]["bases"][bkey].get("bins", {})
     STORE[vid]["bases"][bkey] = {"label": label, "price_per_card": price, "bins": existing_bins}
-    save_data()
+    await save_data()
     await update.message.reply_text(f"✅ Base *{label}* set in `{vid}`", parse_mode="Markdown")
 
 async def cmd_removebase(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -3341,7 +3346,7 @@ async def cmd_removebase(update: Update, context: ContextTypes.DEFAULT_TYPE):
         assert vid in STORE and bkey in STORE[vid]["bases"]
     except:
         await update.message.reply_text("Usage: /removebase <vendor_id> <base_key>"); return
-    del STORE[vid]["bases"][bkey]; save_data()
+    del STORE[vid]["bases"][bkey]; await save_data()
     await update.message.reply_text(f"✅ Removed base `{bkey}` from `{vid}`")
 
 async def cmd_addbin(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -3352,7 +3357,7 @@ async def cmd_addbin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         assert vid in STORE and bkey in STORE[vid]["bases"]
     except:
         await update.message.reply_text("Usage: /addbin <vid> <bkey> <bin> <qty>"); return
-    STORE[vid]["bases"][bkey]["bins"][bin_num] = qty; save_data()
+    STORE[vid]["bases"][bkey]["bins"][bin_num] = qty; await save_data()
     await update.message.reply_text(
         f"✅ BIN *{bin_num}* = *{qty}* in `{vid}` / `{bkey}`", parse_mode="Markdown")
 
@@ -3363,7 +3368,7 @@ async def cmd_removebin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         assert vid in STORE and bkey in STORE[vid]["bases"]
     except:
         await update.message.reply_text("Usage: /removebin <vid> <bkey> <bin>"); return
-    STORE[vid]["bases"][bkey]["bins"].pop(bin_num, None); save_data()
+    STORE[vid]["bases"][bkey]["bins"].pop(bin_num, None); await save_data()
     await update.message.reply_text(f"✅ Removed BIN *{bin_num}*", parse_mode="Markdown")
 
 async def cmd_listbins(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -3389,7 +3394,7 @@ async def cmd_clearbase(update: Update, context: ContextTypes.DEFAULT_TYPE):
         assert vid in STORE and bkey in STORE[vid]["bases"]
     except:
         await update.message.reply_text("Usage: /clearbase <vid> <bkey>"); return
-    STORE[vid]["bases"][bkey]["bins"].clear(); save_data()
+    STORE[vid]["bases"][bkey]["bins"].clear(); await save_data()
     await update.message.reply_text(f"✅ Cleared all BINs from `{vid}` / `{bkey}`")
 
 async def cmd_listusers(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -3530,12 +3535,12 @@ async def cmd_updatelead(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Usage: /updatelead <CC> <VerticalKey> <ItemName> <Stock>\n"
             "Example: /updatelead AU banks Westpac 3000000"); return
     if stock <= 0:
-        LEADS[cc]["verticals"][vert_key]["items"].pop(item_name, None); save_data()
+        LEADS[cc]["verticals"][vert_key]["items"].pop(item_name, None); await save_data()
         await update.message.reply_text(
             f"✅ Removed *{item_name}* from {LEADS[cc]['flag']} {LEADS[cc]['name']} ({vert_key})",
             parse_mode="Markdown")
     else:
-        LEADS[cc]["verticals"][vert_key]["items"][item_name] = stock; save_data()
+        LEADS[cc]["verticals"][vert_key]["items"][item_name] = stock; await save_data()
         await update.message.reply_text(
             f"✅ Updated *{item_name}* → *{stock:,}* in {LEADS[cc]['flag']} {LEADS[cc]['name']} ({vert_key})",
             parse_mode="Markdown")
@@ -3563,7 +3568,7 @@ async def cmd_bulkbin(update: Update, context: ContextTypes.DEFAULT_TYPE):
             STORE[vid]["bases"][bkey]["bins"][bin_num] = qty; added += 1
         except ValueError:
             skipped += 1
-    total = sum(STORE[vid]["bases"][bkey]["bins"].values()); save_data()
+    total = sum(STORE[vid]["bases"][bkey]["bins"].values()); await save_data()
     await update.message.reply_text(
         f"✅ *Bulk Add Complete*\n\nVendor: `{vid}` / `{bkey}`\n"
         f"Added/updated: *{added}* BINs\nSkipped: *{skipped}* lines\n"
@@ -3660,7 +3665,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         agreed_users.add(uid)
         channel_verified.add(uid)
-        save_data()
+        await save_data()
         log_bg(context.application,
             f"✅ *Channel Verified*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
@@ -3797,7 +3802,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         _, buyer_uid, amount = data.split("|")
         buyer_uid, amount = int(buyer_uid), int(amount)
         user_balances[buyer_uid] = round(user_balances.get(buyer_uid, 0) + amount, 2)
-        save_data()
+        await save_data()
         try:
             await query.edit_message_caption(
                 caption=query.message.caption + f"\n\n✅ *APPROVED* by {user_tag(update)}",
@@ -3917,7 +3922,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         base["bins"][bin_num] = stock - buy_qty
         if base["bins"][bin_num] <= 0:
             del base["bins"][bin_num]
-        save_data()
+        await save_data()
         pending_orders[uid] = (
             f"✅ Purchase Successful!\n\n"
             f"💳 BIN: {bin_num}\n🗂 Quantity: {buy_qty} fullz\n"
@@ -3964,7 +3969,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         blocked_text, blocked_kbd = get_blocked_message(balance, price, "deads")
         if blocked_text:
             await query.edit_message_text(blocked_text, reply_markup=blocked_kbd, parse_mode="Markdown"); return
-        user_balances[uid] = round(balance - price, 2); save_data()
+        user_balances[uid] = round(balance - price, 2); await save_data()
         pending_orders[uid] = (
             f"✅ Purchase Successful!\n\n"
             f"💀 Item: {label}\n💷 Price: £{price:,}\n"
@@ -4070,7 +4075,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         blocked_text, blocked_kbd = get_blocked_message(balance, price, f"lk|{cc}|{vert_key}|{item_name}")
         if blocked_text:
             await query.edit_message_text(blocked_text, reply_markup=blocked_kbd, parse_mode="Markdown"); return
-        user_balances[uid] = round(balance - price, 2); save_data()
+        user_balances[uid] = round(balance - price, 2); await save_data()
         d["verticals"][vert_key]["items"][item_name] = max(0, d["verticals"][vert_key]["items"][item_name] - qty)
         pending_orders[uid] = (
             f"✅ Purchase Successful!\n\n"
@@ -4141,7 +4146,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         blocked_text, blocked_kbd = get_blocked_message(balance, total_gbp, f"sni|{idx}")
         if blocked_text:
             await query.edit_message_text(blocked_text, reply_markup=blocked_kbd, parse_mode="Markdown"); return
-        user_balances[uid] = round(balance - total_gbp, 2); save_data()
+        user_balances[uid] = round(balance - total_gbp, 2); await save_data()
         pending_orders[uid] = (
             f"✅ Purchase Successful!\n\n"
             f"🔍 Scanner: {label}\n🗂 Quantity: {qty_k}k records\n"
@@ -4184,8 +4189,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if data == "ts_services":
         await query.edit_message_text(
             f"🛠 *Additional Services*\n\n"
-            f"📥 Book Sms/email sendouts Service (SID)\n"
-            f"   My Page And Email/mobile Leads Or\n"
+            f"🌐 Book Sms/email sendouts Service (SID)\n"
+            f"📥 My Page And Email/mobile Leads Or\n"
             f"   Your Hosted Page & Leads\n\n"
             f"💬 Want To Learn How To Spam Your Own Fullz\n\n"
             f"📩 PM Admin @{SUPER_ADMIN} to discuss requirements.",
@@ -4223,7 +4228,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         blocked_text, blocked_kbd = get_blocked_message(balance, price, "ts_aged")
         if blocked_text:
             await query.edit_message_text(blocked_text, reply_markup=blocked_kbd, parse_mode="Markdown"); return
-        user_balances[uid] = round(balance - price, 2); save_data()
+        user_balances[uid] = round(balance - price, 2); await save_data()
         pending_orders[uid] = (
             f"✅ Purchase Successful!\n\n"
             f"🏦 Bank Page: {name}\n💷 Price: £{price}\n"
@@ -4267,7 +4272,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         blocked_text, blocked_kbd = get_blocked_message(balance, price, "ts_crypto")
         if blocked_text:
             await query.edit_message_text(blocked_text, reply_markup=blocked_kbd, parse_mode="Markdown"); return
-        user_balances[uid] = round(balance - price, 2); save_data()
+        user_balances[uid] = round(balance - price, 2); await save_data()
         pending_orders[uid] = (
             f"✅ Purchase Successful!\n\n"
             f"🪙 Crypto Page: {name}\n💷 Price: £{price}\n"
@@ -4366,12 +4371,24 @@ def main():
         raise ValueError("BOT_TOKEN is not set!")
     load_data()
 
-    request            = HTTPXRequest(connect_timeout=30.0, read_timeout=30.0, write_timeout=30.0, pool_timeout=30.0)
-    get_updates_request = HTTPXRequest(connect_timeout=30.0, read_timeout=45.0, write_timeout=30.0, pool_timeout=30.0)
+    # Larger connection pool so many concurrent Telegram API calls don't queue up.
+    request = HTTPXRequest(
+        connect_timeout=30.0, read_timeout=30.0,
+        write_timeout=30.0,   pool_timeout=30.0,
+        connection_pool_size=64,
+    )
+    get_updates_request = HTTPXRequest(
+        connect_timeout=30.0, read_timeout=45.0,
+        write_timeout=30.0,   pool_timeout=30.0,
+        connection_pool_size=8,
+    )
     app = (Application.builder()
            .token(BOT_TOKEN)
            .request(request)
            .get_updates_request(get_updates_request)
+           # Process up to 256 updates simultaneously — each user's handler
+           # runs in its own asyncio task so no one waits for anyone else.
+           .concurrent_updates(256)
            .build())
 
     app.add_handler(CommandHandler("start",          cmd_start))
