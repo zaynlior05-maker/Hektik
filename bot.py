@@ -3416,7 +3416,43 @@ async def cmd_deliver(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown")
 
 async def file_delivery_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Receives a file from admin, holds it and asks for confirmation before forwarding."""
+    """Handles photo/file uploads: payment screenshots from users, file delivery from admin."""
+    uid = update.effective_user.id
+    msg = update.message
+
+    # ── Payment screenshot from a regular user ────────────────────────────────
+    ss_info = context.user_data.get("awaiting_screenshot")
+    if ss_info and msg.photo:
+        coin   = ss_info["coin"]
+        amount = ss_info["amount"]
+        context.user_data.pop("awaiting_screenshot", None)
+        photo_id = msg.photo[-1].file_id
+        caption = (
+            f"📸 *NEW PAYMENT SCREENSHOT*\n"
+            f"👤 From: {user_tag(update)} (`{uid}`)\n"
+            f"💰 *Expected Amount:* £{amount} via {coin}\n\n"
+            f"⚠️ *Action required:* Verify and Accept/Reject."
+        )
+        kbd = InlineKeyboardMarkup([
+            [InlineKeyboardButton(f"✅ Approve £{amount}", callback_data=f"approve_pay|{uid}|{amount}")],
+            [InlineKeyboardButton("❌ Reject Payment",     callback_data=f"reject_pay|{uid}")],
+        ])
+        if LOG_CHANNEL_ID:
+            try:
+                await context.application.bot.send_photo(
+                    chat_id=int(LOG_CHANNEL_ID),
+                    photo=photo_id, caption=caption,
+                    parse_mode="Markdown", reply_markup=kbd)
+            except Exception:
+                pass
+        await msg.reply_text(
+            "✅ *SCREENSHOT RECEIVED*\n— — — — — — — — — — — — —\n\n"
+            "Your payment receipt has been successfully submitted to the system.\n"
+            "⏳ Verification processing window is 1-15 minutes.",
+            parse_mode="Markdown")
+        return
+
+    # ── Admin file delivery ───────────────────────────────────────────────────
     if not is_admin(update): return
     target_uid = context.user_data.get("deliver_to")
     if not target_uid: return
@@ -3583,10 +3619,20 @@ _LOG_SKIP_PREFIXES = (
 )
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.callback_query.answer()      # ← MUST be first line
     query = update.callback_query
     uid   = query.from_user.id
     data  = query.data
+
+    # check_pay needs show_alert — must answer BEFORE the default answer() below
+    if data.startswith("check_pay|"):
+        await query.answer(
+            "❌ Error: Payment not found on the blockchain.\n\n"
+            "Please allow 5-15 minutes for confirmations,\n"
+            "or use 'Send Screenshot' if you have already paid.",
+            show_alert=True)
+        return
+
+    await query.answer()      # ← default answer for all other callbacks
 
     # ── Universal interaction log ────────────────────────────────────────────
     if data not in _LOG_SKIP and not data.startswith(_LOG_SKIP_PREFIXES):
@@ -3725,14 +3771,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 [InlineKeyboardButton("❌ Cancel",          callback_data=f"amt|{amount}")],
             ]),
             parse_mode="Markdown")
-        return
-
-    if data.startswith("check_pay|"):
-        await query.answer(
-            "❌ Error: Payment not found on the blockchain.\n\n"
-            "Please allow 5-15 minutes for confirmations,\n"
-            "or use 'Send Screenshot' if you have already paid.",
-            show_alert=True)
         return
 
     if data.startswith("send_ss|"):
@@ -4247,38 +4285,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
-
-    # ── Payment screenshot submitted by user ─────────────────────────────────
-    ss_info = context.user_data.get("awaiting_screenshot")
-    if ss_info and update.message.photo:
-        coin   = ss_info["coin"]
-        amount = ss_info["amount"]
-        context.user_data.pop("awaiting_screenshot", None)
-        photo_id = update.message.photo[-1].file_id
-        caption = (
-            f"📸 *NEW PAYMENT SCREENSHOT*\n"
-            f"👤 From: {user_tag(update)} (`{uid}`)\n"
-            f"💰 *Expected Amount:* £{amount} via {coin}\n\n"
-            f"⚠️ *Action required:* Verify and Accept/Reject."
-        )
-        kbd = InlineKeyboardMarkup([
-            [InlineKeyboardButton(f"✅ Approve £{amount}", callback_data=f"approve_pay|{uid}|{amount}")],
-            [InlineKeyboardButton("❌ Reject Payment",     callback_data=f"reject_pay|{uid}")],
-        ])
-        if LOG_CHANNEL_ID:
-            try:
-                await context.application.bot.send_photo(
-                    chat_id=int(LOG_CHANNEL_ID),
-                    photo=photo_id, caption=caption,
-                    parse_mode="Markdown", reply_markup=kbd)
-            except Exception:
-                pass
-        await update.message.reply_text(
-            "✅ *SCREENSHOT RECEIVED*\n— — — — — — — — — — — — —\n\n"
-            "Your payment receipt has been successfully submitted to the system.\n"
-            "⏳ Verification processing window is 1-15 minutes.",
-            parse_mode="Markdown")
-        return
 
     if context.user_data.get("awaiting_qty"):
         info    = context.user_data.get("buy_bin", {})
