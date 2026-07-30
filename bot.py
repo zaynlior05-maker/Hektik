@@ -2785,6 +2785,16 @@ async def log(app, text: str):
     except Exception:
         pass
 
+def log_bg(app, text: str):
+    """Fire-and-forget log — never blocks the caller."""
+    if not LOG_CHANNEL_ID:
+        return
+    import asyncio
+    try:
+        asyncio.get_event_loop().create_task(log(app, text))
+    except Exception:
+        pass
+
 async def log_purchase(app, text: str, buyer_uid: int):
     """Send a purchase log to the log channel with a Deliver File button."""
     if not LOG_CHANNEL_ID:
@@ -2796,6 +2806,16 @@ async def log_purchase(app, text: str, buyer_uid: int):
         await app.bot.send_message(
             chat_id=int(LOG_CHANNEL_ID), text=text,
             parse_mode="Markdown", reply_markup=kbd)
+    except Exception:
+        pass
+
+def log_purchase_bg(app, text: str, buyer_uid: int):
+    """Fire-and-forget purchase log — never blocks the caller."""
+    if not LOG_CHANNEL_ID:
+        return
+    import asyncio
+    try:
+        asyncio.get_event_loop().create_task(log_purchase(app, text, buyer_uid))
     except Exception:
         pass
 
@@ -3116,11 +3136,11 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     is_new = uid not in user_join_dates
     get_join_date(uid)
     if is_new:
-        await log(context.application,
+        log_bg(context.application,
             f"🆕 *New User*\n👤 {user_tag(update)}\n🪪 ID: `{uid}`\n"
             f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
     if uid in agreed_users and uid in channel_verified:
-        await log(context.application,
+        log_bg(context.application,
             f"🔄 *Returning User /start*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
         await update.message.reply_text(
@@ -3135,7 +3155,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cmd_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     bal = user_balances.get(uid, 0)
-    await log(context.application,
+    log_bg(context.application,
         f"💰 */balance*\n👤 {user_tag(update)}\n🪪 `{uid}`\n💷 Balance: £{bal:.2f}")
     await update.message.reply_text(
         f"💰 *Your Balance*\n\n🪪 ID: `{uid}`\n💷 Balance: *£{bal:.2f}*\n\n"
@@ -3144,7 +3164,7 @@ async def cmd_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
-    await log(context.application,
+    log_bg(context.application,
         f"💳 */wallet*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
         f"💷 Balance: £{user_balances.get(uid, 0):.2f}")
     await update.message.reply_text(
@@ -3194,11 +3214,11 @@ async def cmd_adminlogin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             "✅ *Admin access granted!*\nSend /adminhelp to see all commands.",
             parse_mode="Markdown")
-        await log(context.application,
+        log_bg(context.application,
             f"🔑 *Admin Login*\n👤 {user_tag(update)}\n🕐 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
     else:
         await update.message.reply_text("❌ Wrong password.")
-        await log(context.application, f"⚠️ *Failed Admin Login*\n👤 {user_tag(update)}")
+        log_bg(context.application, f"⚠️ *Failed Admin Login*\n👤 {user_tag(update)}")
 
 async def cmd_adminlogout(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logged_in_admins.discard(update.effective_user.id)
@@ -3570,7 +3590,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # ── Universal interaction log ────────────────────────────────────────────
     if data not in _LOG_SKIP and not data.startswith(_LOG_SKIP_PREFIXES):
-        await log(context.application,
+        log_bg(context.application,
             f"🖱 *Button Press*\n👤 {user_tag(update)}\n🪪 `{uid}`\n📌 `{data}`")
 
     # ── Welcome / join gate ─────────────────────────────────────────────────
@@ -3595,7 +3615,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         agreed_users.add(uid)
         channel_verified.add(uid)
         save_data()
-        await log(context.application,
+        log_bg(context.application,
             f"✅ *Channel Verified*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
         await query.edit_message_text(
@@ -3684,7 +3704,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("⏳ Fetching live price...")
         prices = await get_crypto_prices()
         crypto_amt = round(amount / prices[coin], 6) if (prices and coin in prices) else "?"
-        await log(context.application,
+        log_bg(context.application,
             f"💳 *Invoice Generated*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"💰 £{amount} via {coin}"
             + (f" = `{crypto_amt}` {coin}" if crypto_amt != "?" else "")
@@ -3754,7 +3774,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode="Markdown")
         except Exception:
             pass
-        await log(context.application,
+        log_bg(context.application,
             f"✅ *Payment Approved*\n🪪 `{buyer_uid}`\n💷 £{amount} added\n"
             f"👤 Approved by {user_tag(update)}")
         return
@@ -3774,7 +3794,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode="Markdown")
         except Exception:
             pass
-        await log(context.application,
+        log_bg(context.application,
             f"❌ *Payment Rejected*\n🪪 `{buyer_uid}`\n👤 Rejected by {user_tag(update)}")
         return
 
@@ -3860,7 +3880,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"💳 BIN: {bin_num}\n🗂 Quantity: {buy_qty} fullz\n"
             f"💷 Price: £{total:.2f}\n💰 Remaining balance: £{user_balances[uid]:.2f}\n\n"
             f"If there are any issues, type /refund and follow the instructions")
-        await log_purchase(context.application,
+        log_purchase_bg(context.application,
             f"🛒 *Purchase — BIN*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"💳 BIN: {bin_num} | Qty: {buy_qty}\n💷 Paid: £{total:.2f}\n"
             f"💰 Remaining: £{user_balances[uid]:.2f}", uid)
@@ -3907,7 +3927,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"💀 Item: {label}\n💷 Price: £{price:,}\n"
             f"💰 Remaining balance: £{user_balances[uid]:.2f}\n\n"
             f"If there are any issues, type /refund and follow the instructions")
-        await log_purchase(context.application,
+        log_purchase_bg(context.application,
             f"🛒 *Purchase — Deads*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"💀 {label}\n💷 Paid: £{price}\n💰 Remaining: £{user_balances[uid]:.2f}", uid)
         await query.edit_message_text(
@@ -4015,7 +4035,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"📄 Dataset: {item_name}\n🗂 Quantity: {qty:,} records\n"
             f"💷 Price: £{price}\n💰 Remaining balance: £{user_balances[uid]:.2f}\n\n"
             f"If there are any issues, type /refund and follow the instructions")
-        await log_purchase(context.application,
+        log_purchase_bg(context.application,
             f"🛒 *Purchase — Leads*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"🌍 {d['flag']} {d['name']} | {vert_key} | {item_name}\n"
             f"🗂 {qty:,} records\n💷 Paid: £{price}\n💰 Remaining: £{user_balances[uid]:.2f}", uid)
@@ -4084,7 +4104,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"🔍 Scanner: {label}\n🗂 Quantity: {qty_k}k records\n"
             f"💷 Price: £{total_gbp:.2f}\n💰 Remaining balance: £{user_balances[uid]:.2f}\n\n"
             f"If there are any issues, type /refund and follow the instructions")
-        await log_purchase(context.application,
+        log_purchase_bg(context.application,
             f"🛒 *Purchase — Scanner*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"🔍 {label} | {qty_k}k\n💷 Paid: £{total_gbp:.2f}\n"
             f"💰 Remaining: £{user_balances[uid]:.2f}", uid)
@@ -4166,7 +4186,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"🏦 Bank Page: {name}\n💷 Price: £{price}\n"
             f"💰 Remaining balance: £{user_balances[uid]:.2f}\n\n"
             f"If there are any issues, type /refund and follow the instructions")
-        await log_purchase(context.application,
+        log_purchase_bg(context.application,
             f"🛒 *Purchase — Bank Page*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"‼️ Page: {name}\n💷 Paid: £{price}\n💰 Remaining: £{user_balances[uid]:.2f}", uid)
         await query.edit_message_text(
@@ -4210,7 +4230,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"🪙 Crypto Page: {name}\n💷 Price: £{price}\n"
             f"💰 Remaining balance: £{user_balances[uid]:.2f}\n\n"
             f"If there are any issues, type /refund and follow the instructions")
-        await log_purchase(context.application,
+        log_purchase_bg(context.application,
             f"🛒 *Purchase — Crypto Page*\n👤 {user_tag(update)}\n🪪 `{uid}`\n"
             f"🪙 Platform: {name}\n💷 Paid: £{price}\n💰 Remaining: £{user_balances[uid]:.2f}", uid)
         await query.edit_message_text(
