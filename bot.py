@@ -4823,7 +4823,16 @@ async def _restore_from_cloud(app) -> bool:
         return False
 
 async def _post_init(application) -> None:
-    """Runs after bot initialises — restores cloud backup if local data is empty, sends startup ping."""
+    """Runs after bot initialises — clears any stale webhook, restores cloud backup if needed, sends startup ping."""
+    # Remove any active webhook so polling works properly.
+    # A leftover webhook from a previous deploy will silently swallow all
+    # updates and make the bot appear completely unresponsive.
+    try:
+        await application.bot.delete_webhook(drop_pending_updates=True)
+        logger.info("Webhook cleared — polling active.")
+    except Exception as e:
+        logger.warning(f"Could not delete webhook: {e}")
+
     if not os.path.exists(DATA_FILE):
         logger.info("Local botdata.json missing — trying cloud restore…")
         await _restore_from_cloud(application)
