@@ -1,8 +1,11 @@
 import os
+import io
 import json
 import logging
 import asyncio
 import aiohttp
+import psycopg2
+import psycopg2.extras
 from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import Forbidden, BadRequest
@@ -16,10 +19,14 @@ import copy as _copy
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Where data is saved. Set DATA_DIR=/data in Railway (with a Volume mounted at /data)
-# so it survives restarts AND redeploys.
+# Where data is saved (local cache — optional when DATABASE_URL is set)
 DATA_DIR  = os.environ.get("DATA_DIR", ".")
 DATA_FILE = os.path.join(DATA_DIR, "botdata.json")
+
+# PostgreSQL — primary persistent storage.  Copy DATABASE_URL from this
+# Replit workspace into your Railway / Render / VPS env vars and data
+# will survive every restart automatically, no manual steps needed.
+DB_URL = os.environ.get("DATABASE_URL")
 
 # ── Config ────────────────────────────────────────────────────────────────────
 BOT_TOKEN            = os.environ.get("BOT_TOKEN")
@@ -2726,8 +2733,74 @@ def calculate_dynamic_stock():
                 total += qty
     return total
 
+def _db_save_sync():
+    """Upsert every known user into PostgreSQL. No-op if DATABASE_URL is not set."""
+    if not DB_URL:
+        return
+    try:
+        conn = psycopg2.connect(DB_URL)
+        cur  = conn.cursor()
+        targets = _broadcast_targets()
+        rows = [
+            (
+                int(uid),
+                user_join_dates.get(uid, ""),
+                user_balances.get(uid, 0.0),
+                uid in agreed_users,
+                uid in channel_verified,
+            )
+            for uid in targets
+        ]
+        psycopg2.extras.execute_values(cur, """
+            INSERT INTO bot_users (user_id, join_date, balance, agreed, channel_verified)
+            VALUES %s
+            ON CONFLICT (user_id) DO UPDATE SET
+                join_date        = EXCLUDED.join_date,
+                balance          = EXCLUDED.balance,
+                agreed           = EXCLUDED.agreed,
+                channel_verified = EXCLUDED.channel_verified
+        """, rows)
+        conn.commit()
+        cur.close()
+        conn.close()
+        logger.debug(f"DB save: {len(rows)} users upserted")
+    except Exception as e:
+        logger.error(f"DB save failed: {e}")
+
+def _db_load_sync() -> int:
+    """Load every user row from PostgreSQL into the in-memory globals.
+    Returns the number of rows loaded (0 if DB not available or empty)."""
+    if not DB_URL:
+        return 0
+    try:
+        conn = psycopg2.connect(DB_URL)
+        cur  = conn.cursor()
+        cur.execute("SELECT user_id, join_date, balance, agreed, channel_verified FROM bot_users")
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+        global user_balances, agreed_users, user_join_dates, all_users, channel_verified
+        for uid, join_date, balance, is_agreed, is_verified in rows:
+            uid = int(uid)
+            all_users.add(uid)
+            if join_date:
+                user_join_dates.setdefault(uid, join_date)
+            if balance and balance > 0:
+                if uid not in user_balances or user_balances[uid] < balance:
+                    user_balances[uid] = balance
+            if is_agreed:
+                agreed_users.add(uid)
+            if is_verified:
+                channel_verified.add(uid)
+        logger.info(f"✅ Loaded {len(rows)} users from PostgreSQL")
+        return len(rows)
+    except Exception as e:
+        logger.error(f"DB load failed: {e}")
+        return 0
+
 def _save_data_sync():
-    """Synchronous disk write — always call via the async save_data() wrapper."""
+    """Synchronous disk write + DB upsert — always call via async save_data()."""
+    # ── Local JSON cache ──────────────────────────────────────────────────────
     try:
         data = {
             "user_balances":    {str(k): v for k, v in user_balances.items()},
@@ -2744,7 +2817,9 @@ def _save_data_sync():
             json.dump(data, f)
         os.replace(tmp, DATA_FILE)
     except Exception as e:
-        logger.error(f"save_data failed: {e}")
+        logger.error(f"save_data (file) failed: {e}")
+    # ── PostgreSQL (primary persistent storage) ───────────────────────────────
+    _db_save_sync()
 
 async def save_data():
     """Non-blocking save — offloads the file write to a thread so the event
@@ -2754,43 +2829,46 @@ async def save_data():
 
 def load_data():
     global user_balances, agreed_users, user_join_dates, channel_verified, all_users, live_stock, STORE, LEADS
-    if not os.path.exists(DATA_FILE):
-        return
-    try:
-        with open(DATA_FILE) as f:
-            data = json.load(f)
-        user_balances    = {int(k): v for k, v in data.get("user_balances", {}).items()}
-        agreed_users     = set(data.get("agreed_users", []))
-        user_join_dates  = {int(k): v for k, v in data.get("user_join_dates", {}).items()}
-        channel_verified = set(data.get("channel_verified", []))
-        # Rebuild all_users as the union of every source so old data files populate it too
-        all_users        = (set(data.get("all_users", [])) |
-                            set(user_join_dates.keys()) |
-                            set(user_balances.keys()) |
-                            agreed_users)
-        live_stock.update(data.get("live_stock", {}))
 
-        if data.get("STORE"):
-            STORE.clear(); STORE.update(data["STORE"])
-        if data.get("LEADS"):
-            LEADS.clear(); LEADS.update(data["LEADS"])
+    # ── 1. Try local JSON cache first ─────────────────────────────────────────
+    if os.path.exists(DATA_FILE):
+        try:
+            with open(DATA_FILE) as f:
+                data = json.load(f)
+            user_balances    = {int(k): v for k, v in data.get("user_balances", {}).items()}
+            agreed_users     = set(data.get("agreed_users", []))
+            user_join_dates  = {int(k): v for k, v in data.get("user_join_dates", {}).items()}
+            channel_verified = set(data.get("channel_verified", []))
+            all_users        = (set(data.get("all_users", [])) |
+                                set(user_join_dates.keys()) |
+                                set(user_balances.keys()) |
+                                agreed_users)
+            live_stock.update(data.get("live_stock", {}))
+            if data.get("STORE"):
+                STORE.clear(); STORE.update(data["STORE"])
+            if data.get("LEADS"):
+                LEADS.clear(); LEADS.update(data["LEADS"])
+            logger.info("✅ Loaded saved data from disk.")
+        except Exception as e:
+            logger.error(f"load_data (file) failed: {e}")
 
-        # Merge in any new countries/verticals/items added to DEFAULT_LEADS
-        for cc, d in DEFAULT_LEADS.items():
-            if cc not in LEADS:
-                LEADS[cc] = _copy.deepcopy(d)
-            else:
-                for v_key, v_data in d.get("verticals", {}).items():
-                    if v_key not in LEADS[cc]["verticals"]:
-                        LEADS[cc]["verticals"][v_key] = _copy.deepcopy(v_data)
-                    else:
-                        for item, stock in v_data.get("items", {}).items():
-                            if item not in LEADS[cc]["verticals"][v_key]["items"]:
-                                LEADS[cc]["verticals"][v_key]["items"][item] = stock
+    # ── 2. Merge PostgreSQL — source of truth for users ───────────────────────
+    #    Even if the local file existed, DB may have newer / more users from a
+    #    previous deployment that the file didn't capture.
+    _db_load_sync()
 
-        logger.info("✅ Loaded saved data from disk.")
-    except Exception as e:
-        logger.error(f"load_data failed: {e}")
+    # ── 3. Merge DEFAULT_LEADS for any newly added countries / items ──────────
+    for cc, d in DEFAULT_LEADS.items():
+        if cc not in LEADS:
+            LEADS[cc] = _copy.deepcopy(d)
+        else:
+            for v_key, v_data in d.get("verticals", {}).items():
+                if v_key not in LEADS[cc]["verticals"]:
+                    LEADS[cc]["verticals"][v_key] = _copy.deepcopy(v_data)
+                else:
+                    for item, stock in v_data.get("items", {}).items():
+                        if item not in LEADS[cc]["verticals"][v_key]["items"]:
+                            LEADS[cc]["verticals"][v_key]["items"][item] = stock
 
 async def log(app, text: str):
     if not LOG_CHANNEL_ID:
@@ -3253,6 +3331,8 @@ ADMIN_HELP_TEXT = (
     "`/listusers`\n"
     "`/broadcast` — enter broadcast mode (send any message type)\n"
     "`/broadcast <text>` — quick text broadcast\n"
+    "`/exportusers` — download full user backup JSON\n"
+    "`/importusers` — restore users from backup file\n"
     "`/updatelead <CC> <VerticalKey> <ItemName> <Stock>`\n"
     "`/bulkbin <vid> <bkey>`\n"
     "`/deliver <user_id>` — set delivery target, then send the file to forward"
@@ -3542,6 +3622,34 @@ async def file_delivery_handler(update: Update, context: ContextTypes.DEFAULT_TY
             "Your screenshot has been forwarded to our team.\n"
             "We'll review and respond shortly.",
             parse_mode="Markdown")
+        return
+
+    # ── Admin import: restore users from uploaded backup JSON ────────────────
+    if is_admin(update) and context.user_data.get("awaiting_import") and msg.document:
+        context.user_data.pop("awaiting_import", None)
+        try:
+            file_obj = await context.application.bot.get_file(msg.document.file_id)
+            buf = io.BytesIO()
+            await file_obj.download_to_memory(buf)
+            buf.seek(0)
+            data = json.loads(buf.read().decode())
+            global user_balances, agreed_users, user_join_dates, all_users, channel_verified
+            before = len(_broadcast_targets())
+            all_users.update(int(u)        for u in data.get("all_users",       []))
+            user_balances.update({int(k): v for k, v in data.get("user_balances",   {}).items()})
+            user_join_dates.update({int(k): v for k, v in data.get("user_join_dates", {}).items()})
+            agreed_users.update(           data.get("agreed_users",    []))
+            channel_verified.update(       data.get("channel_verified",[]))
+            after = len(_broadcast_targets())
+            await save_data()
+            await msg.reply_text(
+                f"✅ *Import Complete*\n\n"
+                f"👥 Users before: *{before}*\n"
+                f"👥 Users after:  *{after}*\n"
+                f"➕ Added: *{after - before}* new users",
+                parse_mode="Markdown")
+        except Exception as e:
+            await msg.reply_text(f"❌ Import failed: `{e}`", parse_mode="Markdown")
         return
 
     # ── Admin broadcast media capture ────────────────────────────────────────
@@ -4632,6 +4740,130 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
 # ═════════════════════════════════════════════════════════════════════════════
+# CLOUD BACKUP  (Telegram-pinned JSON — survives container restarts)
+# ═════════════════════════════════════════════════════════════════════════════
+
+_BACKUP_CAPTION_TAG = "HekTikBot-Backup-v1"   # unique tag so we can find the message
+
+def _build_backup_payload() -> bytes:
+    payload = {
+        "all_users":       [int(u) for u in _broadcast_targets()],
+        "user_balances":   {str(k): v for k, v in user_balances.items()},
+        "user_join_dates": {str(k): v for k, v in user_join_dates.items()},
+        "agreed_users":    list(agreed_users),
+        "channel_verified": list(channel_verified),
+    }
+    return json.dumps(payload, indent=2).encode()
+
+async def _cloud_backup_job(context) -> None:
+    """JobQueue callback — runs every 30 min, pins a fresh backup to the log channel."""
+    if not LOG_CHANNEL_ID:
+        return
+    try:
+        bot     = context.bot
+        cid     = int(LOG_CHANNEL_ID)
+        targets = list(_broadcast_targets())
+        caption = (
+            f"📦 *{_BACKUP_CAPTION_TAG}*\n"
+            f"👥 Users: *{len(targets)}*\n"
+            f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}\n"
+            f"_Auto-restored on next restart if local data is missing._"
+        )
+        # Delete old pinned backup (best-effort)
+        try:
+            chat = await bot.get_chat(cid)
+            if chat.pinned_message and _BACKUP_CAPTION_TAG in (chat.pinned_message.caption or ""):
+                await bot.delete_message(cid, chat.pinned_message.message_id)
+        except Exception:
+            pass
+        # Send new backup document and pin it
+        buf = io.BytesIO(_build_backup_payload())
+        msg = await bot.send_document(
+            chat_id=cid, document=buf,
+            caption=caption, parse_mode="Markdown",
+            filename="hektik_backup.json")
+        await bot.pin_chat_message(cid, msg.message_id, disable_notification=True)
+        logger.info(f"☁️ Cloud backup sent ({len(targets)} users)")
+    except Exception as e:
+        logger.error(f"Cloud backup failed: {e}")
+
+async def _restore_from_cloud(app) -> bool:
+    """Called at startup — pulls the pinned backup from the log channel if local data is empty."""
+    if not LOG_CHANNEL_ID:
+        return False
+    try:
+        chat   = await app.bot.get_chat(int(LOG_CHANNEL_ID))
+        pinned = chat.pinned_message
+        if not pinned or _BACKUP_CAPTION_TAG not in (pinned.caption or ""):
+            logger.info("No cloud backup found in log channel.")
+            return False
+        file_obj = await app.bot.get_file(pinned.document.file_id)
+        buf = io.BytesIO()
+        await file_obj.download_to_memory(buf)
+        buf.seek(0)
+        data = json.loads(buf.read().decode())
+        global user_balances, agreed_users, user_join_dates, all_users, channel_verified
+        all_users.update(int(u)        for u in data.get("all_users",       []))
+        user_balances.update({int(k): v for k, v in data.get("user_balances",   {}).items()})
+        user_join_dates.update({int(k): v for k, v in data.get("user_join_dates", {}).items()})
+        agreed_users.update(           data.get("agreed_users",    []))
+        channel_verified.update(       data.get("channel_verified",[]))
+        logger.info(f"☁️ Restored from cloud backup: {len(all_users)} users")
+        _save_data_sync()   # persist locally so we don't re-fetch on next restart
+        return True
+    except Exception as e:
+        logger.error(f"Cloud restore failed: {e}")
+        return False
+
+async def _post_init(application) -> None:
+    """Runs after bot initialises — restores cloud backup if local data is empty, sends startup ping."""
+    if not os.path.exists(DATA_FILE):
+        logger.info("Local botdata.json missing — trying cloud restore…")
+        await _restore_from_cloud(application)
+
+    if LOG_CHANNEL_ID:
+        try:
+            count = len(_broadcast_targets())
+            await application.bot.send_message(
+                chat_id=int(LOG_CHANNEL_ID),
+                text=f"🤖 *Bot Started*\n👥 Loaded *{count}* users from storage.",
+                parse_mode="Markdown")
+        except Exception:
+            pass
+
+    # Schedule periodic backup every 30 minutes
+    application.job_queue.run_repeating(
+        _cloud_backup_job, interval=1800, first=60)
+
+# ── Export / Import admin commands ───────────────────────────────────────────
+
+async def cmd_exportusers(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin: /exportusers — sends the full user backup as a JSON file."""
+    if not is_admin(update): return
+    targets = list(_broadcast_targets())
+    buf = io.BytesIO(_build_backup_payload())
+    await update.message.reply_document(
+        document=buf,
+        caption=(
+            f"📦 *User Export*\n"
+            f"👥 {len(targets)} users · 💰 {len(user_balances)} with balance\n"
+            f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\n"
+            f"_Send this file back with /importusers to restore after a restart._"
+        ),
+        parse_mode="Markdown",
+        filename="hektik_backup.json")
+
+async def cmd_importusers(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin: /importusers — prompts admin to send the backup JSON file."""
+    if not is_admin(update): return
+    context.user_data["awaiting_import"] = True
+    await update.message.reply_text(
+        "📥 *Import Users*\n\n"
+        "Send me the `hektik_backup.json` file to restore user data.\n"
+        "_You can get it from /exportusers or from the pinned backup in the log channel._",
+        parse_mode="Markdown")
+
+# ═════════════════════════════════════════════════════════════════════════════
 # ERROR HANDLER & MAIN
 # ═════════════════════════════════════════════════════════════════════════════
 
@@ -4661,6 +4893,7 @@ def main():
            # Process up to 256 updates simultaneously — each user's handler
            # runs in its own asyncio task so no one waits for anyone else.
            .concurrent_updates(256)
+           .post_init(_post_init)
            .build())
 
     app.add_handler(CommandHandler("start",          cmd_start))
@@ -4692,6 +4925,8 @@ def main():
     app.add_handler(CommandHandler("broadcast",       cmd_broadcast))
     app.add_handler(CommandHandler("deliver",         cmd_deliver))
     app.add_handler(CommandHandler("refund",          cmd_refund))
+    app.add_handler(CommandHandler("exportusers",     cmd_exportusers))
+    app.add_handler(CommandHandler("importusers",     cmd_importusers))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(
         (filters.Document.ALL | filters.PHOTO | filters.VIDEO | filters.AUDIO) & ~filters.COMMAND,
