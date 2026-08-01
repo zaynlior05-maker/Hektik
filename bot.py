@@ -77,16 +77,7 @@ STORE = {
             "15fresh": {
                 "label": "£15 Base - Fresh Lives 🇬🇧",
                 "price_per_card": 15,
-                "bins": {
-                    "371789": 6,  "374288": 1,  "377383": 3,  "377390": 9,
-                    "379006": 1,  "402396": 1,  "402399": 1,  "404972": 2,
-                    "416549": 9,  "416598": 16, "446223": 1,  "446261": 7,
-                    "446278": 1,  "446291": 1,  "449352": 2,  "449353": 2,
-                    "450875": 1,  "454313": 6,  "454638": 2,  "459647": 4,
-                    "459661": 2,  "462010": 3,  "465941": 2,  "470041": 1,
-                    "471626": 5,  "480038": 2,  "484446": 1,  "486490": 3,
-                    "490581": 1,  "491179": 2,
-                },
+                "bins": {},
             }
         },
     },
@@ -96,11 +87,7 @@ STORE = {
             "10fresh": {
                 "label": "£10 Base - Fresh Lives 🇬🇧",
                 "price_per_card": 10,
-                "bins": {
-                    "400115": 4,  "401178": 2,  "402601": 3,  "403628": 1,
-                    "410076": 5,  "411929": 2,  "415530": 6,  "419740": 1,
-                    "422773": 3,  "425938": 2,
-                },
+                "bins": {},
             }
         },
     },
@@ -2741,12 +2728,14 @@ def calculate_dynamic_stock():
     return total
 
 def _db_save_sync():
-    """Upsert every known user into PostgreSQL. No-op if psycopg2 or DATABASE_URL unavailable."""
+    """Upsert users + STORE + live_stock into PostgreSQL. No-op if unavailable."""
     if not _PSYCOPG2_AVAILABLE or not DB_URL:
         return
     try:
         conn = psycopg2.connect(DB_URL)
         cur  = conn.cursor()
+
+        # ── Users ─────────────────────────────────────────────────────────────
         targets = _broadcast_targets()
         rows = [
             (
@@ -2758,30 +2747,83 @@ def _db_save_sync():
             )
             for uid in targets
         ]
-        psycopg2.extras.execute_values(cur, """
-            INSERT INTO bot_users (user_id, join_date, balance, agreed, channel_verified)
-            VALUES %s
-            ON CONFLICT (user_id) DO UPDATE SET
-                join_date        = EXCLUDED.join_date,
-                balance          = EXCLUDED.balance,
-                agreed           = EXCLUDED.agreed,
-                channel_verified = EXCLUDED.channel_verified
-        """, rows)
+        if rows:
+            psycopg2.extras.execute_values(cur, """
+                INSERT INTO bot_users (user_id, join_date, balance, agreed, channel_verified)
+                VALUES %s
+                ON CONFLICT (user_id) DO UPDATE SET
+                    join_date        = EXCLUDED.join_date,
+                    balance          = EXCLUDED.balance,
+                    agreed           = EXCLUDED.agreed,
+                    channel_verified = EXCLUDED.channel_verified
+            """, rows)
+
+        # ── STORE + live_stock ────────────────────────────────────────────────
+        for key, value in (("STORE", STORE), ("live_stock", live_stock)):
+            cur.execute("""
+                INSERT INTO bot_state (key, value) VALUES (%s, %s)
+                ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+            """, (key, json.dumps(value)))
+
         conn.commit()
         cur.close()
         conn.close()
-        logger.debug(f"DB save: {len(rows)} users upserted")
+        logger.debug(f"DB save: {len(rows)} users, STORE & live_stock persisted")
     except Exception as e:
         logger.error(f"DB save failed: {e}")
 
-def _db_load_sync() -> int:
-    """Load every user row from PostgreSQL into the in-memory globals.
-    Returns the number of rows loaded (0 if psycopg2 or DATABASE_URL unavailable)."""
+def _db_ensure_table():
+    """Create all required tables if they don't exist yet. Safe to call every startup."""
     if not _PSYCOPG2_AVAILABLE or not DB_URL:
-        return 0
+        return
     try:
         conn = psycopg2.connect(DB_URL)
         cur  = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS bot_users (
+                user_id          BIGINT PRIMARY KEY,
+                join_date        TEXT    DEFAULT '',
+                balance          FLOAT   DEFAULT 0.0,
+                agreed           BOOLEAN DEFAULT FALSE,
+                channel_verified BOOLEAN DEFAULT FALSE
+            )
+        """)
+        # Single-row table for STORE + live_stock (key-value JSON blobs)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS bot_state (
+                key   TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            )
+        """)
+        conn.commit()
+        cur.close()
+        conn.close()
+        logger.info("DB tables ready.")
+    except Exception as e:
+        logger.error(f"DB table creation failed: {e}")
+
+def _db_load_sync() -> int:
+    """Load users, STORE, and live_stock from PostgreSQL.
+    Returns the number of user rows loaded (0 if unavailable)."""
+    if not _PSYCOPG2_AVAILABLE or not DB_URL:
+        return 0
+    _db_ensure_table()
+    try:
+        conn = psycopg2.connect(DB_URL)
+        cur  = conn.cursor()
+
+        # ── STORE + live_stock ────────────────────────────────────────────────
+        global STORE, live_stock
+        cur.execute("SELECT key, value FROM bot_state WHERE key IN ('STORE', 'live_stock')")
+        for key, value in cur.fetchall():
+            parsed = json.loads(value)
+            if key == "STORE" and parsed:
+                STORE.clear(); STORE.update(parsed)
+                logger.info("✅ Loaded STORE from PostgreSQL")
+            elif key == "live_stock" and parsed:
+                live_stock.update(parsed)
+
+        # ── Users ─────────────────────────────────────────────────────────────
         cur.execute("SELECT user_id, join_date, balance, agreed, channel_verified FROM bot_users")
         rows = cur.fetchall()
         cur.close()
@@ -4962,3 +5004,10 @@ if __name__ == "__main__":
         except Exception:
             logger.exception("Fatal error — restarting bot in 5s")
             time.sleep(5)
+            # Discard any closed event loop so the next run_polling gets a fresh one
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_closed():
+                    asyncio.set_event_loop(asyncio.new_event_loop())
+            except Exception:
+                asyncio.set_event_loop(asyncio.new_event_loop())
