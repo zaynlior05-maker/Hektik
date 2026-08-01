@@ -49,6 +49,7 @@ logged_in_admins = set()
 channel_verified = set()
 pending_orders      = {}   # uid → delivery caption stored after each purchase
 delivery_timestamps = {}   # uid → datetime (UTC) when order file was delivered to user
+all_users           = set()  # every UID that has ever /start-ed — persisted immediately
 
 live_stock    = {"leads": 63_629_085}
 TOPUP_AMOUNTS = [70, 100, 150, 200, 250, 300, 350, 400, 450, 500, 750, 1000]
@@ -2726,13 +2727,14 @@ def calculate_dynamic_stock():
     return total
 
 def _save_data_sync():
-    """Synchronous disk write — always call via the async await save_data() wrapper."""
+    """Synchronous disk write — always call via the async save_data() wrapper."""
     try:
         data = {
             "user_balances":    {str(k): v for k, v in user_balances.items()},
             "agreed_users":     list(agreed_users),
             "user_join_dates":  {str(k): v for k, v in user_join_dates.items()},
             "channel_verified": list(channel_verified),
+            "all_users":        list(all_users),
             "live_stock":       live_stock,
             "STORE":            STORE,
             "LEADS":            LEADS,
@@ -2751,7 +2753,7 @@ async def save_data():
     await loop.run_in_executor(None, _save_data_sync)
 
 def load_data():
-    global user_balances, agreed_users, user_join_dates, channel_verified, live_stock, STORE, LEADS
+    global user_balances, agreed_users, user_join_dates, channel_verified, all_users, live_stock, STORE, LEADS
     if not os.path.exists(DATA_FILE):
         return
     try:
@@ -2761,6 +2763,11 @@ def load_data():
         agreed_users     = set(data.get("agreed_users", []))
         user_join_dates  = {int(k): v for k, v in data.get("user_join_dates", {}).items()}
         channel_verified = set(data.get("channel_verified", []))
+        # Rebuild all_users as the union of every source so old data files populate it too
+        all_users        = (set(data.get("all_users", [])) |
+                            set(user_join_dates.keys()) |
+                            set(user_balances.keys()) |
+                            agreed_users)
         live_stock.update(data.get("live_stock", {}))
 
         if data.get("STORE"):
@@ -3139,9 +3146,12 @@ def deads_keyboard():
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid    = update.effective_user.id
-    is_new = uid not in user_join_dates
+    is_new = uid not in all_users
     get_join_date(uid)
+    all_users.add(uid)
     if is_new:
+        # Flush to disk immediately so this user survives a bot restart
+        await save_data()
         log_bg(context.application,
             f"🆕 *New User*\n👤 {user_tag(update)}\n🪪 ID: `{uid}`\n"
             f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
@@ -3598,7 +3608,7 @@ async def file_delivery_handler(update: Update, context: ContextTypes.DEFAULT_TY
 
 def _broadcast_targets() -> set:
     """All known user IDs across every data store."""
-    return set(user_join_dates.keys()) | set(user_balances.keys()) | agreed_users
+    return all_users | set(user_join_dates.keys()) | set(user_balances.keys()) | agreed_users
 
 async def _do_broadcast(bot, status_msg, pending: dict) -> tuple[int, int]:
     """Send the pending broadcast to every known user. Returns (sent, failed)."""
