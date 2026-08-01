@@ -4,8 +4,7 @@ import json
 import logging
 import asyncio
 import aiohttp
-import psycopg2
-import psycopg2.extras
+_PSYCOPG2_AVAILABLE = False   # set properly after logger is ready (see below)
 from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import Forbidden, BadRequest
@@ -18,6 +17,14 @@ import copy as _copy
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+try:
+    import psycopg2
+    import psycopg2.extras
+    _PSYCOPG2_AVAILABLE = True
+except ImportError:
+    _PSYCOPG2_AVAILABLE = False
+    logger.warning("psycopg2 not installed — DB persistence disabled. Add psycopg2-binary to requirements.txt")
 
 # Where data is saved (local cache — optional when DATABASE_URL is set)
 DATA_DIR  = os.environ.get("DATA_DIR", ".")
@@ -2734,8 +2741,8 @@ def calculate_dynamic_stock():
     return total
 
 def _db_save_sync():
-    """Upsert every known user into PostgreSQL. No-op if DATABASE_URL is not set."""
-    if not DB_URL:
+    """Upsert every known user into PostgreSQL. No-op if psycopg2 or DATABASE_URL unavailable."""
+    if not _PSYCOPG2_AVAILABLE or not DB_URL:
         return
     try:
         conn = psycopg2.connect(DB_URL)
@@ -2769,8 +2776,8 @@ def _db_save_sync():
 
 def _db_load_sync() -> int:
     """Load every user row from PostgreSQL into the in-memory globals.
-    Returns the number of rows loaded (0 if DB not available or empty)."""
-    if not DB_URL:
+    Returns the number of rows loaded (0 if psycopg2 or DATABASE_URL unavailable)."""
+    if not _PSYCOPG2_AVAILABLE or not DB_URL:
         return 0
     try:
         conn = psycopg2.connect(DB_URL)
